@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets — never commit these
+.env
+.env.*
+!.env.example
+
+# Vercel local state
+.vercel/
