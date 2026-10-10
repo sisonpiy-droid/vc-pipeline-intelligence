@@ -30,6 +30,7 @@ export function pgliteDb(pg: PGlite): Db {
 /** `dataDir` undefined → in-memory. Dates are returned as YYYY-MM-DD strings, like the pg driver config. */
 export async function openPglite(dataDir?: string): Promise<Db> {
   const { PGlite } = await import("@electric-sql/pglite");
+  if (dataDir) (await import("node:fs")).mkdirSync(dataDir, { recursive: true }); // PGlite does not create parents
   // Single-object form on purpose: `new PGlite(undefined, opts)` silently drops `opts`.
   return pgliteDb(new PGlite({ ...(dataDir ? { dataDir } : {}), parsers: { 1082: (v: string) => v } }));
 }

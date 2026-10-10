@@ -2,7 +2,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Db } from "./index";
 
-export const MIGRATIONS_DIR = join(process.cwd(), "supabase", "migrations");
+// Only used by scripts, tests and the dev-only pglite:// mode — never by a production request. The ignore
+// comment stops the bundler from tracing the whole project into the serverless output for this path.
+export const MIGRATIONS_DIR = join(/*turbopackIgnore: true*/ process.cwd(), "supabase", "migrations");
 
 /** Applies supabase/migrations/*.sql in filename order, once each. Safe to re-run. */
 export async function applyMigrations(db: Db, dir = MIGRATIONS_DIR): Promise<string[]> {

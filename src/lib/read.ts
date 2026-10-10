@@ -66,13 +66,16 @@ export interface PipelineRow {
   relevant_30d: number;
   lead: LeadSignal | null;
   explanation: string | null;
+  breakdown: Record<string, { points: number; max: number; note: string }> | null;
   last_checked: string | null;
+  last_error: string | null; // why the latest refresh failed, if it did
 }
 
-interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" | "explanation" | "last_checked"> {
+interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" | "explanation" | "breakdown" | "last_checked" | "last_error"> {
   latest_status: string | null;
+  latest_error: string | null;
   latest_finished: Date | string | null;
-  latest_outcome: { explanation?: string; coverage?: string } | null;
+  latest_outcome: { explanation?: string; coverage?: string; breakdown?: PipelineRow["breakdown"] } | null;
   last_relevant: string | null;
   lead_headline: string | null;
   lead_summary: string | null;
@@ -89,13 +92,13 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
     `select i.id, i.firm_name, i.entity_type, i.role_title, i.sectors, i.stage_preference, i.geography, i.relationship_status,
             i.follow_up_score, i.recommended_action, i.last_signal_date::text as last_signal_date, i.signal_summary,
             i.website_url, i.verification_status,
-            li.status as latest_status, li.finished_at as latest_finished, li.outcome as latest_outcome,
+            li.status as latest_status, li.error as latest_error, li.finished_at as latest_finished, li.outcome as latest_outcome,
             coalesce(sg.relevant_30d, 0)::int as relevant_30d, coalesce(sg.needs_review, 0)::int as needs_review_signals,
             sg.last_relevant::text as last_relevant,
             ld.headline as lead_headline, ld.summary as lead_summary, ld.published_at as lead_published, ld.signal_type as lead_type,
             ld.url as lead_url, ld.relevance_explanation as lead_why, ld.evidence_confidence as lead_conf, ld.relevance_score as lead_relevance
        from investors i
-       left join (select distinct on (investor_id) investor_id, status, finished_at, outcome
+       left join (select distinct on (investor_id) investor_id, status, error, finished_at, outcome
                     from run_items where status in ('done', 'failed')
                    order by investor_id, finished_at desc nulls last) li on li.investor_id = i.id
        left join (select investor_id,
@@ -127,7 +130,7 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
       },
       today,
     );
-    const { latest_status, latest_finished, latest_outcome, last_relevant, lead_headline, lead_summary, lead_published, lead_type, lead_url, lead_why, lead_conf, lead_relevance, ...rest } = r;
+    const { latest_status, latest_error, latest_finished, latest_outcome, last_relevant, lead_headline, lead_summary, lead_published, lead_type, lead_url, lead_why, lead_conf, lead_relevance, ...rest } = r;
     void latest_status; void last_relevant;
     return {
       ...rest,
@@ -137,7 +140,9 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
         ? { headline: lead_headline, summary: lead_summary, published_at: lead_published, signal_type: lead_type, url: lead_url, why: lead_why, confidence: lead_conf, relevance: lead_relevance }
         : null,
       explanation: latest_outcome?.explanation ?? null,
+      breakdown: latest_outcome?.breakdown ?? null,
       last_checked: latest_finished ? new Date(latest_finished).toISOString() : null,
+      last_error: latestFailed ? latest_error : null,
     };
   });
 }
@@ -347,5 +352,28 @@ export async function getFailedItems(db: Db, runId: string) {
     `select ri.investor_id, i.firm_name, ri.error, ri.attempts from run_items ri join investors i on i.id = ri.investor_id
       where ri.run_id = $1 and ri.status = 'failed' order by i.firm_name`,
     [runId],
+  )).rows;
+}
+
+/** Small query for the global status bar: current run and last completed refresh. */
+export async function getRunBar(db: Db) {
+  const [run] = await listRuns(db, 1);
+  const lastGood = (await db.query<{ completed_at: string; status: string; error_count: number }>(
+    `select completed_at::text as completed_at, status, error_count from runs where status in ('succeeded','partial') order by completed_at desc limit 1`,
+  )).rows[0] ?? null;
+  const total = (await db.query<{ n: number }>(`select count(*)::int as n from investors`)).rows[0]!.n;
+  return { latest: run ?? null, active: run?.status === "running" ? run : null, lastGood, total };
+}
+
+export interface AuditRow {
+  id: string; at: string; run_id: string | null; firm_name: string | null; level: string; event: string; detail: Record<string, unknown>;
+}
+
+/** Recent audit events. `detail` never contains notes or contact history (nothing in the pipeline can read them). */
+export async function listAudit(db: Db, limit = 40): Promise<AuditRow[]> {
+  return (await db.query<AuditRow>(
+    `select a.id::text as id, a.at::text as at, a.run_id, i.firm_name, a.level, a.event, a.detail
+       from audit_logs a left join investors i on i.id = a.investor_id order by a.at desc, a.id desc limit $1`,
+    [limit],
   )).rows;
 }

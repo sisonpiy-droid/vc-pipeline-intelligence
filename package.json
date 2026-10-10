@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "VC Fundraising Pipeline Intelligence — evidence-first investor signal tracking for a Seed-stage B2B logistics SaaS",
+  "description": "VC Fundraising Pipeline Intelligence \u00e2\u20ac\u201d evidence-first investor signal tracking for a Seed-stage B2B logistics SaaS",
   "engines": {
     "node": ">=20"
   },
@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:migrate": "tsx --env-file=.env scripts/migrate.ts",
-    "import": "tsx --env-file=.env scripts/import.ts"
+    "import": "tsx --env-file=.env scripts/import.ts",
+    "dev:fixture": "tsx --env-file=.env scripts/dev-fixture.ts",
+    "check:live": "tsx --env-file=.env scripts/check-live.ts"
   },
   "dependencies": {
     "next": "16.4.0",

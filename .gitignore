@@ -12,3 +12,6 @@ next-env.d.ts
 
 # Vercel local state
 .vercel/
+
+# Local dev database
+.data/
