@@ -8,7 +8,7 @@ import pg from "pg";
 export type Row = Record<string, unknown>;
 
 export interface Queryable {
-  query<T extends Row = Row>(sql: string, params?: unknown[]): Promise<{ rows: T[]; rowCount: number }>;
+  query<T = Row>(sql: string, params?: unknown[]): Promise<{ rows: T[]; rowCount: number }>;
 }
 
 export interface Db extends Queryable {
@@ -24,6 +24,10 @@ export interface Db extends Queryable {
 }
 
 const ROLE_RE = /^[a-z_]+$/;
+
+// Dates travel as YYYY-MM-DD strings end to end. node-postgres would otherwise build a JS Date at local
+// midnight, which silently shifts the calendar day in some time zones — fatal for a 30-day window.
+pg.types.setTypeParser(1082, (v: string) => v);
 
 export function pgDb(connectionString: string): Db {
   // Supabase's pooler presents a certificate chain Node does not trust by default.

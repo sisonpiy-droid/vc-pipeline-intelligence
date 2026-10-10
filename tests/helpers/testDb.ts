@@ -4,7 +4,7 @@ import { applyMigrations } from "@/lib/db/migrate";
 
 /** A fresh, fully-migrated in-process Postgres. Runs the real migration files, not a copy of them. */
 export async function makeTestDb(): Promise<Db> {
-  const pg = new PGlite();
+  const pg = new PGlite({ parsers: { 1082: (v: string) => v } });
   const db: Db = {
     async query(sql, params) {
       const r = await pg.query(sql, params as unknown[]);

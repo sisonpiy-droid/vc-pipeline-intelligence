@@ -1,0 +1,55 @@
+import { z } from "zod";
+
+export const SIGNAL_TYPES = [
+  "portfolio_investment",
+  "article",
+  "interview_podcast",
+  "public_statement",
+  "event_appearance",
+  "fund_thesis_announcement",
+  "other",
+] as const;
+export type SignalType = (typeof SIGNAL_TYPES)[number];
+
+/** What the model may say about ONE candidate. Dates, URLs and scores' arithmetic are never the model's job. */
+export const AssessmentSchema = z.object({
+  index: z.number().int().min(0),
+  investor_involvement: z.enum(["verified", "unclear", "not_involved"]),
+  signal_type: z.enum(SIGNAL_TYPES),
+  relevance: z.number().int().min(0).max(100),
+  confidence: z.enum(["high", "medium", "low"]),
+  evidence_excerpt: z.string().min(10).max(600),
+  summary: z.string().min(10).max(300),
+  why_it_matters: z.string().min(10).max(450),
+});
+export type Assessment = z.infer<typeof AssessmentSchema>;
+
+export const BatchSchema = z.object({ assessments: z.array(AssessmentSchema).max(20) });
+
+/** Gemini `responseSchema` (OpenAPI subset). Kept next to the zod schema; the zod schema is the authority. */
+export const RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    assessments: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          index: { type: "INTEGER" },
+          investor_involvement: { type: "STRING", enum: ["verified", "unclear", "not_involved"] },
+          signal_type: { type: "STRING", enum: [...SIGNAL_TYPES] },
+          relevance: { type: "INTEGER" },
+          confidence: { type: "STRING", enum: ["high", "medium", "low"] },
+          evidence_excerpt: { type: "STRING" },
+          summary: { type: "STRING" },
+          why_it_matters: { type: "STRING" },
+        },
+        required: [
+          "index", "investor_involvement", "signal_type", "relevance", "confidence",
+          "evidence_excerpt", "summary", "why_it_matters",
+        ],
+      },
+    },
+  },
+  required: ["assessments"],
+} as const;

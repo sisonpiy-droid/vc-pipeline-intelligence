@@ -135,6 +135,7 @@ create table signals (
   source_name         text,
   published_at        date,                                 -- null = date could not be established (never guessed)
   date_basis          text not null default 'unknown' check (date_basis in ('published', 'event', 'unknown')),
+  date_source         text check (date_source in ('page', 'search_estimate')),  -- search_estimate = the search API's guess; may be later than the real date
   retrieved_at        timestamptz not null default now(),
   signal_type         text check (signal_type in
                         ('portfolio_investment', 'article', 'interview_podcast', 'public_statement',
