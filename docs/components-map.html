@@ -50,18 +50,18 @@
   <p class="sub">As built: every box is a component that exists in the repository. Chips show verification status, not intent.</p>
   <div class="legend">
     <span class="chip t">tested</span> automated tests / manual check run
-    <span class="chip b">built · live unverified</span> code complete, needs real keys / deployment to prove
+    <span class="chip t">verified live</span> exercised against the real service on the deployed app
     <span class="chip n">not built</span> deliberately out of scope
-    <span style="margin-left:auto"><b>209 tests passing</b> · typecheck clean · production build clean · live verification pending</span>
+    <span style="margin-left:auto"><b>212 tests passing</b> · typecheck clean · production build clean · deployed on Vercel · 2 real runs completed</span>
   </div>
 
   <div class="row r1">
     <!-- EXTERNAL -->
     <section class="panel src">
       <h2>External Data Sources</h2>
-      <div class="card"><b>Tavily Search API <span class="chip b">built · live unverified</span></b><p>1 query per investor · last 30 days · dated results only · 1 credit each</p></div>
+      <div class="card"><b>Tavily Search API <span class="chip t">verified live</span></b><p>1 query per investor · last 30 days · dated results only · 1 credit each</p></div>
       <div class="card"><b>Public web pages <span class="chip t">tested</span></b><p>Direct HTTPS fetch, SSRF-guarded, robots.txt-aware; date read from page metadata</p></div>
-      <div class="card"><b>Gemini API (Flash only) <span class="chip b">built · live unverified</span></b><p>Classification + relevance judgement · no fallback model</p></div>
+      <div class="card"><b>Gemini API (Flash only) <span class="chip t">verified live</span></b><p>Classification + relevance judgement · no fallback model</p></div>
       <div class="card"><b>Investor workbook (.xlsx) <span class="chip t">tested</span></b><p>50 VC firms + 32 angels → 82 investors, 0 import issues</p></div>
       <div class="card dashed"><b>Not used <span class="chip n">not built</span></b><p>Firecrawl / Jina · Crunchbase · SerpAPI · Brave · independent crawl of official portfolio pages</p></div>
       <span class="arrow">➜</span>
@@ -73,13 +73,13 @@
       <div class="grid2">
         <div class="card"><b>Triggers <span class="chip t">tested</span></b><p>Vercel Cron Mon+Thu 04:00 UTC → <span class="mono">GET /api/cron/refresh</span>; <span class="mono">POST /api/refresh</span> (passcode, 10-min cooldown); <span class="mono">POST /api/refresh/continue</span>. Constant-time auth, fail-closed.</p></div>
         <div class="card"><b>Durable run queue <span class="chip t">tested</span></b><p><span class="mono">runs</span> + <span class="mono">run_items</span>; one active run (unique index); claims 3 investors, 240 s budget per invocation, hand-off to a new invocation, stale-run resume.</p></div>
-        <div class="card"><b>Research <span class="chip t">tested*</span></b><p>query → fetch page → date from metadata → entity + 30-day window checks → de-duplicate events → ≤ 6 candidates.</p></div>
-        <div class="card"><b>Gemini Flash analysis <span class="chip t">tested*</span></b><p>1 batched call / investor · zod schema · involvement must be “verified” · quoted excerpt must appear verbatim in the page · 1 retry.</p></div>
+        <div class="card"><b>Research <span class="chip t">verified live</span></b><p>query → fetch page → date from metadata → entity + 30-day window checks → de-duplicate events → ≤ 6 candidates.</p></div>
+        <div class="card"><b>Gemini Flash analysis <span class="chip t">verified live</span></b><p>1 batched call / investor · zod schema · involvement must be “verified” · quoted excerpt must appear verbatim in the page · 1 retry.</p></div>
         <div class="card"><b>Scoring engine <span class="chip t">tested</span></b><p>recency 30 · relevance 30 · evidence 20 · fit 15 · relationship 5 · relevance gate &amp; floor · 5 actions with reasons.</p></div>
         <div class="card"><b>Safe signal writer <span class="chip t">tested</span></b><p><span class="mono">applySignalUpdate</span>: strict 4-field schema, runs as DB role <span class="mono">vc_refresh</span>, one transaction per investor.</p></div>
         <div class="card" style="grid-column:span 3"><b>Run monitor &amp; audit <span class="chip t">tested</span></b><p>per-run counters (investors, sources queried, evidence found, accepted, duplicates removed, records updated, errors) · per-source coverage (ok / empty / error / skipped) · audit log · failed items keep their previous score, never reported as “quiet”.</p></div>
       </div>
-      <p class="foot">* tested with provider doubles and local servers; real Tavily/Gemini calls verified by <span class="mono">npm run check:live</span> (pending).</p>
+      <p class="foot">* tested with provider doubles and local servers; two real production runs completed 82/82 with 0 errors (the second after tightening the evidence filters).</p>
       <span class="arrow">➜</span>
     </section>
 
@@ -92,7 +92,7 @@
       <div class="card"><b>source_coverage <span class="chip t">tested</span></b><p>latest status per investor × source</p></div>
       <div class="card"><b>audit_logs <span class="chip t">tested</span></b><p>events &amp; field-update outcomes; never notes</p></div>
       <div class="card"><b>Security <span class="chip t">tested</span></b><p>role <span class="mono">vc_refresh</span>: UPDATE on 4 columns only, cannot read notes/contact history · RLS on · no public API</p></div>
-      <p class="foot">Migration applied on PGlite in every test run; <b>Supabase project not connected yet</b> <span class="chip b">built · live unverified</span></p>
+      <p class="foot">Migration applied to Supabase; role boundary verified on the live database (<span class="mono">npm run verify:boundary</span>).</p>
       <span class="arrow">⇄</span>
     </section>
 

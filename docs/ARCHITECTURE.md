@@ -71,7 +71,8 @@ columns only, guarded by `IS DISTINCT FROM` so an unchanged re-import writes not
 | Outside [now−30d, now+1d] ⇒ `out_of_window` / `future_date` | `signals/window.ts` |
 | Investor must be named (whole-word name / alias / founder-entered partner); no fuzzy "stems" | `signals/match.ts` |
 | Same event reported by several sites ⇒ one kept (official source preferred), the rest `duplicate_of` | `signals/dedupe.ts` |
-| Model says `investor_involvement=verified` | `ai/analyze.ts` |
+| Model says `investor_involvement=verified` (acting, not merely listed) **and** `specific_recent_event=true` (not a profile / directory / evergreen page) | `ai/analyze.ts` |
+| Known profile/directory URLs (Crunchbase, Tracxn, LinkedIn, Wikipedia, ...) rejected before any fetch or AI call | `refresh/research.ts` |
 | Quoted `evidence_excerpt` occurs verbatim in the fetched text (whitespace/case/quote-insensitive) | `ai/analyze.ts` |
 | Model output must satisfy the zod schema; one retry with the validation error; then `needs_review` | `ai/analyze.ts` |
 

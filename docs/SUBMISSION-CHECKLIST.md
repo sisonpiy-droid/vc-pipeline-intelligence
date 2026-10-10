@@ -9,10 +9,10 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 
 | Component | Weight | Where | Status |
 |---|---|---|---|
-| Components Map | 10% | `docs/components-map.png` / `.html` (only components that exist; status chips) | [x] — chips to be flipped to "verified" after live run |
-| Working Vercel link | 10% | https://vc-pipeline-intelligence.vercel.app | [~] deployed & healthy; **shows a setup error until `DATABASE_URL` (Supabase) is added** |
+| Components Map | 10% | `docs/components-map.png` / `.html` (only components that exist; status chips) | [x] status chips reflect live verification |
+| Working Vercel link | 10% | https://vc-pipeline-intelligence.vercel.app | [x] live, connected to Supabase, populated by real refreshes |
 | Design | 10% | 6 pages, token-based light/dark system, responsive, loading/empty/error states | [x] checked in browser at desktop and 375 px |
-| Backend logic & build quality | 25% | `src/lib/**`, `supabase/migrations`, 209 tests | [x] logic · [~] live providers unverified |
+| Backend logic & build quality | 25% | `src/lib/**`, `supabase/migrations`, 212 tests | [x] incl. live run + live boundary check |
 | Demo video | 5% | script in `docs/DEMO.md` | [ ] recording is yours |
 | Viva (40%) | — | `docs/VIVA.md` | prep done |
 
@@ -20,19 +20,19 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 
 | # | Requirement | Status | Evidence / what is missing |
 |---|---|---|---|
-| 1 | Find observable investor signals from the previous 30 days | [~] | Pipeline built and tested with provider doubles (`tests/refresh.test.ts`). **Not yet run against live Tavily/Gemini** — run `npm run check:live`, then one real refresh. |
-| 2 | Public activity categories (articles, interviews/podcasts, portfolio investments, statements, events, thesis announcements) | [~] | Seven categories in schema + Gemini classification schema; classification quality unverified live. |
+| 1 | Find observable investor signals from the previous 30 days | [x] | Two real production runs (82/82, 0 errors). Run 2: 65 verified signals, e.g. Avaana Capital led Drivn's Rs 45 Cr seed (21 Sep), Prime Venture Partners "Seed Plus" (7 Oct), Peak XV raised its Surge seed cap to $5M. |
+| 2 | Public activity categories (articles, interviews/podcasts, portfolio investments, statements, events, thesis announcements) | [x] | All seven categories in schema; the live run produced portfolio investments, fund/thesis announcements, articles, interviews/podcasts and event appearances. |
 | 3 | Explain why a signal makes an investor relevant | [x] | `signals.relevance_explanation` (validated, sanitised) shown on cards; tested. |
 | 4 | Recommend who to contact now and why | [x] | Deterministic score + action + explanation (`tests/scoring.test.ts`, 22 cases); UI verified in browser on fixture data. |
 | 5 | Include investors with no verified signals | [x] | `/quiet` lists all, grouped into 5 states; partition of the 82 asserted in `tests/read.test.ts`; UI verified. |
-| 6 | Refresh twice weekly | [~] | `vercel.json` cron `0 4 * * 1,4`, test keeps dashboard schedule in step. **Not yet running on Vercel.** |
-| 7 | Keep Supabase data up to date on every run | [~] | Same SQL runs on PGlite in tests. **Supabase project not connected yet** (needs `DATABASE_URL`). |
+| 6 | Refresh twice weekly | [~] | `vercel.json` cron `0 4 * * 1,4` is deployed; the refresh path itself was proven live via the manual trigger (same code, chained across invocations). **First scheduled firing is Mon 12 Oct 04:00 UTC and has not been observed yet.** |
+| 7 | Keep Supabase data up to date on every run | [x] | Live runs write signals, coverage, audit and the four columns to Supabase (82 records updated per run). |
 | 8 | Preserve manual notes and contact history | [x] | Whole-row snapshot tests across success, repeat, partial failure; DB role cannot read them. |
-| 9 | Update only the four permitted columns | [x] | zod allowlist + `vc_refresh` role (`tests/db.roles.test.ts`: 13 cases) + snapshot tests. |
-| 10 | Use live external data wherever possible | [~] | Tavily + direct page fetch implemented. Live verification pending. Official-site crawling **not implemented**. |
-| 11 | Gemini Flash for all AI; no Claude API | [~] | Only `src/lib/ai/gemini.ts` calls a model; no fallback by design (tested: 500s → typed error, requests only ever to `generativelanguage.googleapis.com`). Live call pending. |
-| 12 | Deploy on Vercel | [ ] | Config ready (`vercel.json`, env docs). Needs your Vercel project + env vars + approval. |
-| 13 | Public URL · GitHub repo · Components Map | [ ] URL · [ ] repo · [~] map | Map is at `docs/components-map.html`; repo not pushed; URL not deployed. |
+| 9 | Update only the four permitted columns | [x] | zod allowlist + `vc_refresh` role (`tests/db.roles.test.ts`: 13 cases) + snapshot tests + `npm run verify:boundary` against live Supabase (notes/status writes and reads denied by the database). |
+| 10 | Use live external data wherever possible | [x] | Live Tavily search + live page fetch with page-metadata dates. Official-site crawling **not implemented** (limitation). |
+| 11 | Gemini Flash for all AI; no Claude API | [x] | Only `src/lib/ai/gemini.ts` calls a model (`gemini-3.6-flash`, confirmed to exist by `check:live`); no fallback by design. Live structured output works; validators caught 3 fabricated quotes across the two runs. |
+| 12 | Deploy on Vercel | [x] | https://vc-pipeline-intelligence.vercel.app (all five configuration checks green at `/api/health`). |
+| 13 | Public URL · GitHub repo · Components Map | [x] | URL above · https://github.com/sisonpiy-droid/vc-pipeline-intelligence · `docs/components-map.png`. |
 
 ## Build-prompt deliverables
 
@@ -47,7 +47,7 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 | Safe signal-only updates | [x] |
 | Scheduled + manual refresh | [x] logic & auth tested (22 API tests); [~] on Vercel |
 | Run monitoring & audit | [x] `/runs`, `audit_logs`, `source_coverage` |
-| Automated tests | [x] **209 passing**, typecheck clean, production build clean |
+| Automated tests | [x] **212 passing**, typecheck clean, production build clean |
 | `.env.example` | [x] |
 | README · API/architecture docs | [x] `README.md`, `docs/ARCHITECTURE.md` |
 | Components Map | [~] reflects only components that exist; live-status badges to be updated after verification |
@@ -56,11 +56,15 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 | Provider evaluation, cost estimate | [x] `docs/PROVIDERS.md` (some vendor figures are third-party/unverified and labelled) |
 | GitHub-ready repository | [x] local git history with checkpoints; **not pushed** |
 
-## Tests that need live credentials (not run yet)
+## Live verification log (what was actually run)
 
-`npm run check:live` — environment, DB reachable + migrated, Gemini model id exists, Gemini structured output,
-Tavily dated search, SSRF-guarded page fetch + date extraction. Then, after deploy: one real refresh and a look at
-`/runs`, `/signals`, one investor's evidence at its source URL.
+1. `npm run check:live` - all green: DB migrated, Gemini model exists, structured JSON works, Tavily dated search, SSRF-guarded fetch.
+2. Query probe (4 investors x 3 styles): boolean/quoted queries found almost nothing; plain natural-language queries returned on-topic news, so the app uses those.
+3. **Run 1 on production** (manual trigger, chained invocations): 82/82, 0 errors, ~9.5 min, 104 verified signals. Review showed evergreen profiles and an IPO shareholder list ranked as "signals".
+4. Fix: `specific_recent_event` field, stricter involvement/portfolio definitions in the prompt, profile/directory URL filter (+3 tests).
+5. **Run 2 on production** (after clearing derived evidence only): 82/82, 0 errors, 65 verified signals; 28 profile pages and 7 non-events rejected. Top results are real, checkable events.
+6. `npm run verify:boundary` against live Supabase: all denials/permissions as designed.
+7. Still unobserved: the **scheduled** cron firing (first due Mon 12 Oct 04:00 UTC).
 
 ## Known limitations
 

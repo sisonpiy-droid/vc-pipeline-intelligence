@@ -1,7 +1,6 @@
 # Demo script & video plan (≈ 6 minutes)
 
-Pre-flight (do once, off camera): live deployment has run at least one **real** refresh (`/runs` shows it), `npm run check:live`
-is green, and you know one investor whose signal you can open at the source URL.
+Pre-flight (do once, off camera): the live deployment has completed real refreshes (`/runs` shows two), and you know one investor whose signal you can open at the source URL.
 
 | t | Show | Say |
 |---|---|---|
