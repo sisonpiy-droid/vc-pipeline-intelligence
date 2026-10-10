@@ -74,15 +74,15 @@ const MAX_HITS = 8;
 const MAX_CANDIDATES = 6;
 const MIN_PAGE_TEXT = 200; // shorter than this = JS-rendered shell; fall back to the search snippet
 
-const q = (s: string) => `"${s.replace(/"/g, "")}"`;
-
+/**
+ * Plain natural-language query. Tavily is a semantic search engine: an earlier version with quoted names and
+ * boolean OR chains returned almost nothing, while "<name> investment announcement" returned on-topic news
+ * (probed live against 4 investors). Precision does not come from the query but from the later checks:
+ * the investor must be named in the page, the date must be in the window, and Gemini must verify involvement.
+ */
 export function buildQuery(inv: Pick<InvestorRow, "firm_name" | "aliases" | "entity_type">): string {
-  const names = [inv.firm_name, ...inv.aliases].map(q).join(" OR ");
-  const topics =
-    inv.entity_type === "angel"
-      ? "invests OR investment OR angel OR podcast OR interview OR logistics OR \"supply chain\""
-      : "logistics OR \"supply chain\" OR investment OR portfolio OR podcast OR interview OR thesis";
-  return `(${names}) (${topics})`;
+  const names = [inv.firm_name, ...inv.aliases].join(" OR ");
+  return inv.entity_type === "angel" ? `${names} invests in startup funding round` : `${names} investment announcement`;
 }
 
 const hostOf = (u: string) => new URL(u).hostname.replace(/^www\./, "");

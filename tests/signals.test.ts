@@ -31,6 +31,7 @@ describe("date window", () => {
       ["2026-10-05 09:30", "2026-10-05"],
       ["12 October 2026", "2026-10-12"],
       ["Oct 3, 2026", "2026-10-03"],
+      ["Thu, 08 Oct 2026 21:00:00 GMT", "2026-10-08"], // search-provider format; must not shift with the server time zone
     ])("%j → %j", (input, out) => expect(parseDate(input)).toBe(out));
 
     it.each(["2026-02-31", "01/02/2026", "yesterday", "", null, "2026-13-01", "n/a"])("rejects %j", (input) =>

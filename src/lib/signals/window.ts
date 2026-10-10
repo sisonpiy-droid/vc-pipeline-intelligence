@@ -34,7 +34,10 @@ export function parseDate(raw: string | null | undefined): string | null {
     const t = Date.parse(s);
     if (Number.isNaN(t) || !/[a-z]{3,}/i.test(s)) return null; // numeric-only formats are ambiguous (01/02/2026)
     const dt = new Date(t);
-    [y, m, d] = [dt.getFullYear(), dt.getMonth() + 1, dt.getDate()];
+    // A string that names its zone ("... GMT", "+05:30") is an instant: read its calendar day in UTC so the
+    // result does not depend on the server's time zone. A bare "12 October 2026" is a calendar day already.
+    const zoned = /(GMT|UTC|Z|[+-]\d{2}:?\d{2})\s*$/i.test(s);
+    [y, m, d] = zoned ? [dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()] : [dt.getFullYear(), dt.getMonth() + 1, dt.getDate()];
   }
   const probe = new Date(Date.UTC(y, m - 1, d));
   if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) return null;
