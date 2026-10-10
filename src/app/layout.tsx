@@ -9,6 +9,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 export const metadata: Metadata = {
   title: { default: "VC Pipeline Intelligence", template: "%s · VC Pipeline Intelligence" },
   description: "Which investors are worth contacting this week, and the evidence why — for a Seed-stage B2B logistics SaaS.",
+  robots: { index: false, follow: false }, // a founder's fundraising tool: keep it out of search indexes
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 export const dynamic = "force-dynamic"; // every page reads live data
