@@ -3,8 +3,18 @@
 Legend: **[x] Tested** = an automated test or a manual check was actually run · **[~] Built** = code complete but
 **not yet verified against the real service / deployment** · **[ ] Not done**.
 
-> The official rubric was **not available to me** — only the requirement list extracted in the build prompt. This checklist maps to
-> those requirements. If you share the brief's rubric I will re-map it line by line.
+> Source: *Cohort 4 Term 1 AI Final Evaluation* (Hard level). **Build deadline EOD 12 Oct 2026; viva 15 Oct, 2:00–8:00 PM.**
+
+## Build rubric (60 marks) → where each is
+
+| Component | Weight | Where | Status |
+|---|---|---|---|
+| Components Map | 10% | `docs/components-map.png` / `.html` (only components that exist; status chips) | [x] — chips to be flipped to "verified" after live run |
+| Working Vercel link | 10% | https://vc-pipeline-intelligence.vercel.app | [~] deployed & healthy; **shows a setup error until `DATABASE_URL` (Supabase) is added** |
+| Design | 10% | 6 pages, token-based light/dark system, responsive, loading/empty/error states | [x] checked in browser at desktop and 375 px |
+| Backend logic & build quality | 25% | `src/lib/**`, `supabase/migrations`, 209 tests | [x] logic · [~] live providers unverified |
+| Demo video | 5% | script in `docs/DEMO.md` | [ ] recording is yours |
+| Viva (40%) | — | `docs/VIVA.md` | prep done |
 
 ## Assignment requirements
 

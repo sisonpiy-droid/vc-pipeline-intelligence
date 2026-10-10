@@ -11,6 +11,8 @@ without ever overwriting the founder's own notes, contact history or relationshi
 > **Built, not yet verified live** (code complete, needs real API keys / deployment to prove), or **Not built**.
 > See [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md) for the full list.
 
+**Live:** https://vc-pipeline-intelligence.vercel.app · **Repo:** https://github.com/sisonpiy-droid/vc-pipeline-intelligence
+
 ## What it does
 
 | | |
