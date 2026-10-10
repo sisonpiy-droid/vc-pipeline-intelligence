@@ -168,7 +168,10 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
   for (const c of kept.slice(MAX_CANDIDATES))
     rejected.push({ url: c.url, canonical_url: c.canonical_url, title: c.title, reason: "over_candidate_cap", published_at: c.published_at, source_name: c.source_name });
 
-  if (pagesTried > 0) {
+  if (pagesTried === 0) {
+    // Overwrite any stale page_fetch error from an earlier run so coverage reflects this run only.
+    coverage.push({ source: "page_fetch", status: "skipped", result_count: 0, error_category: null, note: "no new pages needed fetching" });
+  } else {
     const failed = base.pageFetchFailures;
     coverage.push({
       source: "page_fetch",

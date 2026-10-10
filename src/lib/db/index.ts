@@ -90,7 +90,23 @@ export function getDb(): Db {
         "DATABASE_URL is not set. Use the Supabase 'Transaction pooler' connection string (see .env.example).",
       );
     }
-    g.__vcDb = pgDb(url);
+    g.__vcDb = url.startsWith("pglite://") ? lazyPglite(url.slice("pglite://".length)) : pgDb(url);
   }
   return g.__vcDb;
+}
+
+/** Dev-only: opens PGlite (a devDependency) on first use and applies migrations, so DATABASE_URL=pglite://.data/dev just works. */
+function lazyPglite(dir: string): Db {
+  const ready = (async () => {
+    const [{ openPglite }, { applyMigrations }] = await Promise.all([import("./pglite"), import("./migrate")]);
+    const db = await openPglite(dir);
+    await applyMigrations(db);
+    return db;
+  })();
+  return {
+    query: async (sql, params) => (await ready).query(sql, params),
+    exec: async (sql) => (await ready).exec(sql),
+    tx: async (fn, opts) => (await ready).tx(fn, opts),
+    close: async () => (await ready).close(),
+  };
 }
