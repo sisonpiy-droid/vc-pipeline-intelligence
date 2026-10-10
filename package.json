@@ -16,7 +16,8 @@
     "db:migrate": "tsx --env-file=.env scripts/migrate.ts",
     "import": "tsx --env-file=.env scripts/import.ts",
     "dev:fixture": "tsx --env-file=.env scripts/dev-fixture.ts",
-    "check:live": "tsx --env-file=.env scripts/check-live.ts"
+    "check:live": "tsx --env-file=.env scripts/check-live.ts",
+    "verify:boundary": "tsx --env-file=.env scripts/verify-boundary.ts"
   },
   "dependencies": {
     "next": "16.4.0",
