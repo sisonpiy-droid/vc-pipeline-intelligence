@@ -201,6 +201,17 @@ describe("pipeline behaviour", () => {
     expect(ai.calls).toBe(1);
   });
 
+  it("static profile / directory pages are rejected before any fetch or AI call", async () => {
+    const cb = "https://www.crunchbase.com/organization/alpha";
+    const search = fakeSearch({ Alpha: [hit(cb, "Alpha", daysAgo(2))], Beta: [] });
+    const pages = fakePages({ [cb]: article("Alpha", daysAgo(2)) });
+    const ai = fakeAi();
+    await fullRun({ search, pages, ai, url: cb });
+    expect(pages.fetched).toEqual([]);
+    expect(ai.calls).toBe(0);
+    expect((await db.query(`select rejection_reason from signals where canonical_url like '%crunchbase%'`)).rows).toEqual([{ rejection_reason: "profile_or_directory_page" }]);
+  });
+
   it("missing evidence: with no candidates there is no AI call, and no signal is invented", async () => {
     const w = goodWorld();
     w.search = fakeSearch({ Alpha: [], Beta: [], Gamma: [] });

@@ -82,7 +82,7 @@ const investor: InvestorContext = { firm_name: "Blume Ventures", aliases: [], en
 const cand = (i: number, text: string): Candidate => ({ index: i, url: `https://news.example/${i}`, title: `Title ${i}`, text, published_at: "2026-10-05" });
 const SOURCE = "Blume Ventures led a $5M Seed round in Raaho, a freight marketplace for trucking fleets across India.";
 const good = (over: object = {}) => ({
-  index: 0, investor_involvement: "verified", signal_type: "portfolio_investment", relevance: 88, confidence: "high",
+  index: 0, investor_involvement: "verified", specific_recent_event: true, signal_type: "portfolio_investment", relevance: 88, confidence: "high",
   evidence_excerpt: "Blume Ventures led a $5M Seed round in Raaho", summary: "Blume led a $5M Seed in logistics startup Raaho.",
   why_it_matters: "Shows active Seed investing in logistics.", ...over,
 });
@@ -116,6 +116,11 @@ describe("analyzeCandidates (Gemini output is verified in code)", () => {
       const r = await analyzeCandidates(fake({ assessments: [good({ investor_involvement: inv })] }), investor, [cand(0, SOURCE)]);
       expect(r.verdicts[0]).toMatchObject({ status: "rejected", reason: `investor_${inv}` });
     }
+  });
+
+  it("rejects profiles, directories and evergreen pages that are not a specific recent event", async () => {
+    const r = await analyzeCandidates(fake({ assessments: [good({ specific_recent_event: false })] }), investor, [cand(0, SOURCE)]);
+    expect(r.verdicts[0]).toMatchObject({ status: "rejected", reason: "not_a_specific_event" });
   });
 
   it("retries once on schema-invalid output, then succeeds", async () => {

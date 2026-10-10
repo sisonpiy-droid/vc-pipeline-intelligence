@@ -85,6 +85,9 @@ export function buildQuery(inv: Pick<InvestorRow, "firm_name" | "aliases" | "ent
   return inv.entity_type === "angel" ? `${names} invests in startup funding round` : `${names} investment announcement`;
 }
 
+/** Static profile / directory pages describe an investor; they are not events. Rejected before any fetch or AI cost. */
+const PROFILE_URL = /(crunchbase\.com\/(organization|person|funding_round)\/|pitchbook\.com\/profiles\/|tracxn\.com\/d\/|cbinsights\.com\/(investor|company)\/|linkedin\.com\/(company|in|school)\/|wikipedia\.org\/|zaubacorp\.|theorg\.com\/|owler\.com\/company\/)/i;
+
 const hostOf = (u: string) => new URL(u).hostname.replace(/^www\./, "");
 
 /**
@@ -121,6 +124,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
     if (!canon) { reject("invalid_url"); continue; }
     if (seen.has(canon)) continue;
     seen.add(canon);
+    if (PROFILE_URL.test(canon)) { reject("profile_or_directory_page"); continue; }
     if (known.has(canon)) { base.skippedKnown++; continue; } // already judged on an earlier run — no refetch, no new AI call
     if (!mentionsInvestor(`${hit.title}\n${hit.snippet}`, inv)) { reject("entity_not_mentioned"); continue; }
 
