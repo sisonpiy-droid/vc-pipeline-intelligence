@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { safeHref, type Tone } from "@/lib/format";
+import { ACTION_THRESHOLDS } from "@/lib/scoring/score";
 
 const TONE: Record<Tone, string> = {
   good: "bg-good-soft text-good",
@@ -52,10 +53,11 @@ export function Stat({ label, value, hint, href, tone }: { label: string; value:
   );
 }
 
-/** 0–100 score with its tier written out. Tiers match the action thresholds (70 / 50). */
+/** 0–100 score with its tier written out. Tiers are the action thresholds (see ACTION_THRESHOLDS). */
 export function ScoreBadge({ score, size = "md" }: { score: number | null; size?: "md" | "lg" }) {
-  const tier = score === null ? null : score >= 70 ? "good" : score >= 50 ? "info" : "neutral";
-  const label = score === null ? "Not scored" : score >= 70 ? "High" : score >= 50 ? "Medium" : "Low";
+  const { reachOutNow, prepareOutreach } = ACTION_THRESHOLDS;
+  const tier = score === null ? null : score >= reachOutNow ? "good" : score >= prepareOutreach ? "info" : "neutral";
+  const label = score === null ? "Not scored" : score >= reachOutNow ? "High" : score >= prepareOutreach ? "Medium" : "Low";
   const big = size === "lg";
   return (
     <div className="flex flex-col items-center" title="Follow-up score, 0–100">

@@ -37,7 +37,7 @@ describe("deriveState — failed or partial retrieval is never read as 'quiet'",
 
 describe("helpers", () => {
   it("priority buckets", () => {
-    expect([null, 20, 50, 69, 70, 99].map(priorityOf)).toEqual(["unscored", "low", "medium", "medium", "high", "high"]);
+    expect([null, 20, 54, 55, 74, 75, 99].map(priorityOf)).toEqual(["unscored", "low", "low", "medium", "medium", "high", "high"]);
   });
   it("stage buckets agree with the scoring engine's reading", () => {
     expect(stageBucket("Pre-seed / seed")).toBe("seed");

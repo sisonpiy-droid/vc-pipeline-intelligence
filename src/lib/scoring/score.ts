@@ -18,7 +18,9 @@ import { ageInDays } from "@/lib/signals/window";
 export const WEIGHTS = { recency: 30, relevance: 30, evidence: 20, fit: 15, relationship: 5 } as const;
 export const RELEVANCE_MIN = 40; // below this a signal is genuine but not about the founder's market
 export const FULL_RELEVANCE = 70; // at/above this, recency and evidence count in full
-export const ACTION_THRESHOLDS = { reachOutNow: 70, prepareOutreach: 50 } as const;
+// Chosen from the score grid in docs/SCORING.md: 75 needs a fresh signal that is clearly relevant (≳ 60) from a
+// well-fitting investor; a merely adjacent signal (relevance ~55) lands in "prepare targeted outreach" instead.
+export const ACTION_THRESHOLDS = { reachOutNow: 75, prepareOutreach: 55 } as const;
 
 /** The founder's company, which fit and relevance are judged against. Assumptions are shown in the UI. */
 export const STARTUP = {

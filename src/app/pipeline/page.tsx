@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, Empty, PageTitle, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate } from "@/lib/format";
 import { load, pick, today } from "@/lib/page";
-import { filterPipeline, listPipeline, sectorOptions } from "@/lib/read";
+import { PRIORITY, filterPipeline, listPipeline, sectorOptions } from "@/lib/read";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Pipeline" };
@@ -49,9 +49,9 @@ export default async function Pipeline({ searchParams }: Props) {
           </Field>
           <Field label="Priority" name="priority" value={f.priority}>
             <option value="">All</option>
-            <option value="high">High (70+)</option>
-            <option value="medium">Medium (50–69)</option>
-            <option value="low">Low (&lt;50)</option>
+            <option value="high">High ({PRIORITY.high}+)</option>
+            <option value="medium">Medium ({PRIORITY.medium}–{PRIORITY.high - 1})</option>
+            <option value="low">Low (&lt;{PRIORITY.medium})</option>
             <option value="unscored">Not scored</option>
           </Field>
           <Field label="Type" name="entity" value={f.entity}>

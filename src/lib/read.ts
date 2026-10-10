@@ -1,5 +1,5 @@
 import type { Db } from "@/lib/db";
-import { RELEVANCE_MIN } from "@/lib/scoring/score";
+import { ACTION_THRESHOLDS, RELEVANCE_MIN } from "@/lib/scoring/score";
 import { ageInDays, windowStart } from "@/lib/signals/window";
 
 /**
@@ -162,7 +162,7 @@ export interface PipelineFilters {
   sort?: string; // "score" | "recent" | "name"
 }
 
-export const PRIORITY = { high: 70, medium: 50 } as const;
+export const PRIORITY = { high: ACTION_THRESHOLDS.reachOutNow, medium: ACTION_THRESHOLDS.prepareOutreach } as const;
 
 export function priorityOf(score: number | null): "high" | "medium" | "low" | "unscored" {
   if (score === null) return "unscored";
