@@ -54,7 +54,7 @@ and only 20% for static profile and relationship data (which the founder already
 The two changes I made are structural rather than numeric: the relevance **gate** on recency/evidence and the
 **relevance floor of 40**. Without them the literal weights would score a *recent, high-confidence, off-topic article
 (relevance 15)* at **72** for a good-fit investor — as high as a genuinely relevant signal. With them it scores **18**.
-(Both numbers computed from `scoreInvestor`; the 18 is asserted in `tests/scoring.test.ts`.)
+(Both numbers computed from `scoreInvestor`; `tests/scoring.test.ts` asserts the real one stays ≤ 20 — fit + relationship only.)
 
 The action thresholds (75 / 55) were chosen from this grid — score for a perfect-fit investor (sector, stage, geography
 all 1.0), not yet contacted, **high-confidence** evidence — so the choice is inspectable:
@@ -68,9 +68,8 @@ all 1.0), not yet contacted, **high-confidence** evidence — so the choice is i
 | 28 | 49 | 56 | 63 | 66 | 69 | 72 |
 
 Bold = "reach out now" (≥ 75). A merely *adjacent* signal (relevance ~55) never qualifies even when fresh — it lands in
-"prepare targeted outreach" — while a clearly relevant one (≳ 65) qualifies for about two weeks and a strong one (80+)
-for about three. With medium-confidence evidence every cell drops ~4–10 points, so a weakly-sourced signal needs to be
-fresher or more relevant. A lower-fit investor loses up to ~10 points more. The first version used 70 / 50 and was
+"prepare targeted outreach" — while relevance 65 qualifies for about a week, 70 for about two weeks, and 80+ for about three. With
+medium-confidence evidence every cell drops ~4–7 points, so a weakly-sourced signal needs to be fresher or more relevant. A lower-fit investor loses up to ~10 points more. The first version used 70 / 50 and was
 raised after this grid showed relevance-55 signals triggering "reach out now". All thresholds are constants in
 `scoring/score.ts` and are exercised by tests; recalibrate against real outcomes once there are any.
 
