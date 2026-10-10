@@ -160,7 +160,7 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
 
   const accepted = signalRows.filter((s) => s.verification_status === "verified");
   counters.signals_accepted = accepted.length;
-  const partial = res.pageFetchFailures > 0;
+  const partial = res.lostToFetchFailure > 0;
 
   const outcome = await rdb.tx(async (q) => {
     const idByUrl = new Map<string, string>();

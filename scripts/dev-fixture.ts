@@ -43,7 +43,7 @@ plant("Nithin Kamath", "nithin-1", 3, { relevance: 55 });
 plant("Peak XV Partners", "peak-1", 5, { relevance: 90 });
 plant("Matrix Partners India", "matrix-1", 8, { relevance: 80 });
 hits["Accel India"] = new ProviderError("rate_limited", "Tavily rate limit (429)");
-hits["Lightspeed India Partners"] = [{ url: "https://fixture.example.com/lightspeed-partial", title: "[FIXTURE] Lightspeed India note", snippet: "Lightspeed India Partners published a short note.", published_date: day(2), score: 0.5 }];
+hits["Lightspeed India Partners"] = [{ url: "https://fixture.example.com/lightspeed-partial", title: "[FIXTURE] Lightspeed India note", snippet: "Lightspeed note.", published_date: day(2), score: 0.5 }];
 pages["https://fixture.example.com/lightspeed-partial"] = new ProviderError("http_5xx", "origin down");
 rules["https://fixture.example.com/lightspeed-partial"] = { relevance: 10 };
 

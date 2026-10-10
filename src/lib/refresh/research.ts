@@ -68,6 +68,8 @@ export interface ResearchResult {
   /** provider calls made (search + page fetches), for the run's "sources queried" counter */
   sourcesChecked: number;
   pageFetchFailures: number;
+  /** Fetch failures that actually prevented a decision (no usable date or text without the page). Only these make coverage 'partial'. */
+  lostToFetchFailure: number;
 }
 
 const MAX_HITS = 8;
@@ -99,7 +101,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
   const now = deps.now();
   const rejected: Rejected[] = [];
   const coverage: CoverageEntry[] = [];
-  const base = { rejected, coverage, skippedKnown: 0, sourcesChecked: 0, pageFetchFailures: 0 };
+  const base = { rejected, coverage, skippedKnown: 0, sourcesChecked: 0, pageFetchFailures: 0, lostToFetchFailure: 0 };
   const officialHost = inv.website_url ? hostOf(inv.website_url) : null;
 
   let hits: SearchHit[];
@@ -130,26 +132,30 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
 
     // Fetch the page itself: dates and quotes must come from the source, not from a search snippet.
     let page: ExtractedPage | null = null;
+    let fetchFailed = false;
     pagesTried++;
     base.sourcesChecked++;
     try {
       page = extractPage((await deps.pages.fetch(hit.url)).html);
     } catch {
       base.pageFetchFailures++;
+      fetchFailed = true;
     }
+    // A failed fetch only costs coverage when the search snippet could not stand in for the page.
+    const lose = (reason: string) => { if (fetchFailed && (reason === 'missing_date' || reason === 'insufficient_content')) base.lostToFetchFailure++; };
 
     if (page?.date_conflict) { reject("contradictory_dates", { title: page.title || hit.title }); continue; }
     const pageDate = page?.published_at ?? null;
     const searchDate = parseDate(hit.published_date);
     const date = pageDate ?? searchDate;
     const verdict = checkWindow(date, now);
-    if (!verdict.ok) { reject(verdict.reason, { published_at: date, title: page?.title || hit.title }); continue; }
+    if (!verdict.ok) { lose(verdict.reason); reject(verdict.reason, { published_at: date, title: page?.title || hit.title }); continue; }
 
     const usePage = !!page && page.text.length >= MIN_PAGE_TEXT;
     const text = usePage ? page!.text : hit.snippet;
     const title = (page?.title || hit.title || hit.url).trim();
     if (!mentionsInvestor(`${title}\n${text}`, inv)) { reject("entity_not_mentioned", { published_at: date, title }); continue; }
-    if (text.length < 40) { reject("insufficient_content", { published_at: date, title }); continue; }
+    if (text.length < 40) { lose("insufficient_content"); reject("insufficient_content", { published_at: date, title }); continue; }
 
     accepted.push({
       index: -1, // assigned after dedupe
@@ -182,7 +188,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
       status: failed === pagesTried ? "error" : "ok",
       result_count: pagesTried - failed,
       error_category: failed === pagesTried ? "unfetchable" : null,
-      note: failed ? `${failed} of ${pagesTried} pages could not be fetched; those relied on the search snippet or were dropped` : null,
+      note: failed ? `${failed} of ${pagesTried} pages could not be fetched (${base.lostToFetchFailure} could not be judged without the page; the rest were judged from the search snippet)` : null,
     });
   }
   return { ...base, candidates, searchFailed: false, skippedKnown: base.skippedKnown };

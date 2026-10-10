@@ -78,14 +78,15 @@ describe("read model over data written by the real pipeline", () => {
     );
     const u = "https://news.example/alpha";
     const eps = "https://news.example/epsilon";
+    const zet = "https://news.example/zeta";
     const search = fakeSearch({
       Alpha: [hit(u, "Alpha", daysAgo(3))], Beta: [], Gamma: new ProviderError("http_5xx", "down"), Delta: [],
-      Epsilon: [hit(eps, "Epsilon", daysAgo(2))], Zeta: [],
+      Epsilon: [{ ...hit(eps, "Epsilon", daysAgo(2)), snippet: "Epsilon note." }], Zeta: [hit(zet, "Zeta", daysAgo(2))],
     });
-    const pages = fakePages({ [u]: article("Alpha", daysAgo(3)), [eps]: new ProviderError("http_5xx", "origin down") });
+    const pages = fakePages({ [u]: article("Alpha", daysAgo(3)), [eps]: new ProviderError("http_5xx", "origin down"), [zet]: article("Zeta", daysAgo(2)) });
     const rdb = asRefresh(db);
     const { run_id } = await startRun(rdb, "manual");
-    await runChunk(rdb, mkDeps(search, pages, fakeAi({ [eps]: { relevance: 10 } })), run_id, { batchEstimateMs: 0 });
+    await runChunk(rdb, mkDeps(search, pages, fakeAi({ [zet]: { relevance: 10 } })), run_id, { batchEstimateMs: 0 });
     // Eta: added after the run → never checked.
     await add("Eta");
   });
@@ -135,8 +136,8 @@ describe("read model over data written by the real pipeline", () => {
     expect(feed[0]).toMatchObject({ firm_name: "Alpha", published_at: daysAgo(3), source_name: "news.example", verification_status: "verified", duplicates: 0 });
     expect(feed[0]!.retrieved_at).toBeTruthy();
     expect(feed[0]!.evidence_excerpt).toBeTruthy();
-    // Epsilon's irrelevant (relevance 10) verified signal appears only under "all verified".
-    expect((await listSignals(db, TODAY, { show: "verified" })).map((s) => s.firm_name).sort()).toEqual(["Alpha", "Epsilon"]);
+    // Zeta's irrelevant (relevance 10) verified signal appears only under "all verified".
+    expect((await listSignals(db, TODAY, { show: "verified" })).map((s) => s.firm_name).sort()).toEqual(["Alpha", "Zeta"]);
     expect(await listSignals(db, TODAY, { show: "review" })).toEqual([]);
     expect(await listSignals(db, TODAY, { category: "article" })).toEqual([]);
     expect((await listSignals(db, TODAY, { investor: ids.Alpha })).length).toBe(1);

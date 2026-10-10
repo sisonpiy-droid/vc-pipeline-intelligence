@@ -292,6 +292,14 @@ describe("pipeline behaviour", () => {
     expect((await db.query(`select status from source_coverage where investor_id=$1 and source='page_fetch'`, [ids.Alpha])).rows[0]).toEqual({ status: "error" });
   });
 
+  it("an unfetchable page that the search snippet can stand in for does NOT make the investor 'partial'", async () => {
+    const w = goodWorld();
+    const snippetOk = { ...hit(w.url, "Alpha", daysAgo(3)), snippet: `Alpha ${"led a five million dollar Seed round in a freight marketplace for trucking fleets. ".repeat(2)}` };
+    const { run_id } = await fullRun({ ...w, pages: fakePages({ [w.url]: new ProviderError("http_5xx", "blocked") }), search: fakeSearch({ Alpha: [snippetOk], Beta: [], Gamma: [] }) });
+    const out = (await db.query(`select outcome->>'coverage' c from run_items where run_id=$1 and investor_id=$2`, [run_id, ids.Alpha])).rows[0] as { c: string };
+    expect(out.c).toBe("complete");
+  });
+
   it("a database failure mid-persist rolls the whole investor back (no half-written signals) and the retry then succeeds", async () => {
     const w = goodWorld();
     let failed = false;
