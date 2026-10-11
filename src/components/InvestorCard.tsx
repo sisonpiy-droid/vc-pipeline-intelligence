@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, SECTOR_LABEL, STATE_META, TIER_LABEL, TYPE_LABEL, fmtDate, hostOf } from "@/lib/format";
+import { cadence } from "@/lib/cadence";
 import { displayStatus, type PipelineRow } from "@/lib/read";
 import { CopyButton } from "./CopyButton";
 import { Interactive } from "./motion/Interactive";
@@ -55,6 +56,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {r.recommended_action && <Pill tone={ACTION_TONE[r.recommended_action]} href={`/pipeline?action=${r.recommended_action}`}>{ACTION_LABEL[r.recommended_action]}</Pill>}
+              {(() => { const c = cadence(r.relationship_status, r.last_contact_date, new Date().toISOString().slice(0, 10)); return c && c.due ? <Pill tone={c.tone} title="Follow-up cadence, from the last-contact date you entered">{c.label}</Pill> : null; })()}
               {r.refresh_failed && <Pill tone="bad" title="The most recent refresh failed; showing the last good result">Last refresh failed</Pill>}
               <Fresh at={r.last_checked} />
             </div>

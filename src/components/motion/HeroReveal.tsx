@@ -27,7 +27,10 @@ export function HeroReveal({ children, className }: { children: ReactNode; class
     const ctx = gsap.context(() => {
       gsap.to(items, { opacity: 1, y: 0, duration: 0.9, ease: "power4.out", stagger: 0.09, delay: 0.05, onComplete: show });
     }, el);
+    // requestAnimationFrame is paused in a background tab, so the tween above may never advance there; a timer is not.
+    const guard = setTimeout(show, 2200);
     return () => {
+      clearTimeout(guard);
       ctx.revert();
       show();
     };

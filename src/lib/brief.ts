@@ -1,6 +1,7 @@
 import type { Db } from "@/lib/db";
 import { ACTION_THRESHOLDS, RELEVANCE_MIN } from "@/lib/scoring/score";
 import { windowStart } from "@/lib/signals/window";
+import { cadence, type Cadence } from "./cadence";
 import { effRel, listPipeline, type PipelineRow } from "./read";
 
 /**
@@ -50,6 +51,8 @@ export interface Brief {
   prepare: PipelineRow[];
   hold: PipelineRow[];
   attention: PipelineRow[];
+  /** Investors you have already contacted whose follow-up is due today (your data, read-only). */
+  followUps: { row: PipelineRow; cadence: Cadence }[];
   counts: { active: number; total: number };
 }
 
@@ -105,6 +108,7 @@ export async function getBrief(db: Db, today: string): Promise<Brief> {
     prepare: active.filter((r) => !holdIt(r) && r.recommended_action === "prepare_targeted_outreach").sort(byScore),
     hold: active.filter(holdIt).sort(byScore),
     attention: pipeline.filter((r) => r.state === "failed" || r.state === "quiet_partial" || r.state === "not_checked"),
+    followUps: pipeline.flatMap((row) => { const c = cadence(row.relationship_status, row.last_contact_date, today); return c?.due ? [{ row, cadence: c }] : []; }).sort((a, b) => (b.cadence.days ?? 0) - (a.cadence.days ?? 0)),
     counts: { active: active.length, total: pipeline.length },
   };
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { CaretLeft, Globe, LinkedinLogo, LockSimple, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { CompareToggle } from "@/components/CompareToggle";
 import { CopyButton } from "@/components/CopyButton";
 import { FounderEdit } from "@/components/FounderEdit";
 import { ScoreTrend } from "@/components/ScoreTrend";
@@ -114,6 +115,7 @@ export default async function InvestorPage({ params }: Props) {
             <Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(state)}`}>{st.label}</Pill>
             {action && <Pill tone={ACTION_TONE[action]} href={`/pipeline?action=${action}`}>{ACTION_LABEL[action]}</Pill>}
             {latest?.status === "failed" && <Pill tone="bad">Last refresh failed</Pill>}
+            <CompareToggle id={String(i.id)} name={String(i.firm_name)} />
           </div>
 
           <p className="mt-5 max-w-[60ch] text-lg font-medium leading-snug tracking-tight">{(i.signal_summary as string | null) ?? "Not refreshed yet."}</p>

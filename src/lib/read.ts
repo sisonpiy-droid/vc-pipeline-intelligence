@@ -67,6 +67,8 @@ export interface PipelineRow {
   stage_preference: string | null;
   geography: string | null;
   relationship_status: string;
+  /** Founder-entered; used for follow-up cadence (read-only here). */
+  last_contact_date: string | null;
   follow_up_score: number | null;
   recommended_action: string | null;
   last_signal_date: string | null;
@@ -114,7 +116,7 @@ interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" |
 
 export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]> {
   const { rows } = await db.query<RawRow>(
-    `select i.id, i.firm_name, i.entity_type, i.role_title, i.sectors, i.stage_preference, i.geography, i.relationship_status,
+    `select i.id, i.firm_name, i.entity_type, i.role_title, i.sectors, i.stage_preference, i.geography, i.relationship_status, i.last_contact_date::text as last_contact_date,
             i.follow_up_score, i.recommended_action, i.last_signal_date::text as last_signal_date, i.signal_summary,
             i.website_url, i.verification_status,
             li.status as latest_status, li.error as latest_error, li.finished_at as latest_finished, li.outcome as latest_outcome,

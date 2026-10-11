@@ -7,6 +7,8 @@ const LINKS = [
   { href: "/", label: "Priority queue" },
   { href: "/brief", label: "Weekly brief" },
   { href: "/pipeline", label: "Pipeline" },
+  { href: "/simulate", label: "What-if" },
+  { href: "/board", label: "Board" },
   { href: "/signals", label: "Signals" },
   { href: "/quiet", label: "Quiet investors" },
   { href: "/runs", label: "Runs & audit" },

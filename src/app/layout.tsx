@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Pulse } from "@phosphor-icons/react/dist/ssr";
+import { CommandPalette } from "@/components/CommandPalette";
+import { CompareTray } from "@/components/CompareTray";
 import { Nav } from "@/components/Nav";
 import { RunBar } from "@/components/RunBar";
 import { ScrollProgress } from "@/components/motion/ScrollProgress";
@@ -33,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
               <span className="text-[0.95rem] font-semibold tracking-tight">VC Pipeline Intelligence</span>
               <span className="num hidden text-[0.7rem] uppercase tracking-[0.12em] text-muted md:inline">Seed · B2B logistics SaaS</span>
+              <span className="ml-2"><CommandPalette /></span>
             </div>
             <Nav />
           </div>
@@ -41,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="main" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
           {children}
         </main>
+        <CompareTray />
         <footer className="mx-auto max-w-7xl px-4 pb-12 text-xs leading-relaxed text-muted sm:px-6">
           Signals come from public web pages, each linked to its source. Gemini Flash classifies evidence; scores are computed by fixed, documented rules.
         </footer>

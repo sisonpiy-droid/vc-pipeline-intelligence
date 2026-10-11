@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { ACTION_LABEL, SECTOR_LABEL, TIER_LABEL, fmtDate, hostOf } from "@/lib/format";
 import type { Pick } from "@/lib/picks";
+import { CompareToggle } from "./CompareToggle";
 import { CopyButton } from "./CopyButton";
 import { Interactive } from "./motion/Interactive";
 import { Fresh } from "./Fresh";
@@ -90,6 +91,7 @@ function PickCard({ pick, n, big }: { pick: Pick; n: number; big?: boolean }) {
             <div className="mt-4 flex flex-wrap items-center gap-3 text-xs">
               <Link href={`/investors/${r.id}`} className="press inline-flex items-center gap-1 font-medium text-accent hover:underline">Open the evidence <ArrowRight aria-hidden size={12} weight="bold" /></Link>
               <Fresh at={r.last_checked} />
+              <CompareToggle id={r.id} name={r.firm_name} compact />
             </div>
           </div>
         </div>

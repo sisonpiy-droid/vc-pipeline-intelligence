@@ -11,9 +11,9 @@ if (!out) throw new Error("usage: npm run export:signals -- <out.json>");
 const db = getDb();
 const signals = (await db.query(
   `select s.id, i.firm_name, i.entity_type, s.headline, s.source_name, s.url, s.published_at::text as published_at, s.signal_type,
-          s.relevance_score, s.evidence_confidence, s.summary, s.evidence_excerpt, s.relevance_explanation
+          s.relevance_score, s.evidence_confidence, s.summary, s.evidence_excerpt, s.relevance_explanation, s.sector_match, s.firm_acting, s.new_capital, s.verification_status, s.rejection_reason, s.display_headline
      from signals s join investors i on i.id = s.investor_id
-    where s.verification_status = 'verified' and s.duplicate_of is null
+    where s.reviewed_at is not null and s.duplicate_of is null
     order by i.firm_name, s.published_at desc`,
 )).rows;
 const investors = (await db.query(

@@ -106,6 +106,20 @@ export default async function Brief() {
             )}
           </Section>
 
+          {b.followUps.length > 0 && (
+            <Section id="fu-h" title="Follow-ups due" count={b.followUps.length} i={2}>
+              <p className="mb-2 text-xs leading-relaxed text-muted">Investors you already contacted, past the point where silence is normal. Based on the last-contact date you entered.</p>
+              <ul className="divide-y divide-line">
+                {b.followUps.map(({ row, cadence: c }) => (
+                  <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 text-sm">
+                    <Link href={`/investors/${row.id}`} className="font-medium hover:underline">{row.firm_name}</Link>
+                    <Pill tone={c.tone} title={`${row.relationship_status.replace(/_/g, " ")}, last contact ${fmtDate(row.last_contact_date)}`}>{c.label}</Pill>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
           <Section id="new-h" title="New signals this run" count={b.newSignals.length} i={2}>
             {b.newSignals.length === 0 ? (
               <p className="text-sm text-muted">This run found no new verified, relevant signal. Earlier signals are still on each investor's page until they leave the 30-day window.</p>
