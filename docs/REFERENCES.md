@@ -1,30 +1,50 @@
-# Reference products and repositories — what was actually reviewed
+# Reference study — what was inspected, what it teaches, what we do with it
 
-**Depth of review, stated plainly:** for the repositories I read the GitHub metadata (licence, language, last push) and the
-**README only** — I did **not** audit their source code, run them, or copy anything from them. For the websites I did
-**not** open or evaluate them in this build. No code from any reference is in this repository.
+**Method and honesty.** Reviewed 2026-10-11 by this build session.
+- **Websites:** public landing-page text only (fetched and summarised). No logins, no product trials, no source. Everything a site says about itself is a *marketing claim* unless the page shows how it works; claims are flagged as such.
+- **Repositories:** GitHub metadata, full file tree, dependency manifests, and the specific source/docs files named per row. "Source read" means those files only — not an audit of the whole project. Nothing was run. **No code from any reference is in this repository.**
+- **Not accessible:** Capscope (`capscope.vc` — connection refused on two attempts from this machine) and `bjolo-de/investor-intelligence` (GitHub 404; that account's public repos are `b2500-dashboard` and `b2500-pico-bridge`, unrelated).
 
-## Repositories (metadata + README, Oct 2026)
+Decision classes: **A** = adopt a design/workflow pattern · **B** = adapt a specific implementation pattern · **C** = consider for future integration · **D** = do not use.
 
-| Repo | Licence | What it is (from its README) | Idea taken (not code) |
-|---|---|---|---|
-| lalalune/outreachr | Apache-2.0 | local-first, founder-owned fundraising CRM, 192 bundled investor targets, source URLs + observation dates + confidence per datum | **founder-owned data stays founder-owned**; show evidence provenance and confidence next to every score |
-| HlinorAI/funding-intelligence | Apache-2.0 | deterministic, evidence-gated routing engine; "unknown is not evidence", "a transport failure is not CLOSED", a failed gate can't become NOW through a high raw score | the **failed ≠ quiet** state model; decision trace kept with each recommendation; keep fit / readiness / status independent |
-| AkashDeepSinghJassal/first-signal | none stated | evidence-first VC OS: claim-level citations, contradictions stay visible, **abstains with "insufficient evidence"** rather than inventing facts, Tavily-based public search | abstention as a first-class outcome; contradictory dates are surfaced as a rejection reason, not resolved by guessing |
-| schneidavie/fundmomentum | none stated | MCP server over a curated VC-fund dataset, "live investor signals" | confirms the market framing; the dataset is a paid/keyed product and not needed here |
-| adelaidasofia/investor-relations-mcp | MIT | FastMCP raise pipeline tracker syncing from an Obsidian CRM | pipeline-stage / follow-up-compliance vocabulary |
-| suraj-shrivastav/PitchDekh | none stated | LLM + crawling + search investor matching | confirms the search→LLM matching pattern; no licence so no reuse |
-| kunthive-Labs/Arthaive | **AGPL-3.0** | India startup funding tracker | **deliberately not consulted beyond metadata**: AGPL is incompatible with keeping this project's licence open for reuse |
-| bjolo-de/investor-intelligence | — | **404 Not Found** (repository missing or private) | inaccessible; no information |
+## Comparison matrix
 
-## Websites
+| Reference (depth inspected) | Useful features (verified vs claimed) | Relevant architecture patterns | Potential reusable components | Licence & data risks | Integration effort | Decision |
+|---|---|---|---|---|---|---|
+| **Pitchroom Investor Intelligence** (landing page) | Stage/sector/geo/ticket filters; match ranking *with a stated reason*; CRM pipeline, follow-up reminders; **re-approach scheduling after a "no"**; funding-chance score from deck engagement. *Claimed:* 20k+ investors "verified" (method undisclosed). | Match + reason; passed ⇒ scheduled re-approach | None (closed SaaS) | Proprietary; data provenance undisclosed; deck-analytics score needs deck tracking we don't have | n/a | **A**: reason-with-every-match (we have it); re-approach reminder for `passed` investors (future). **D**: deck-engagement score (out of scope) |
+| **Capscope** (not accessible) | — | — | — | — | — | No decision — not reviewed |
+| **Fund Signal** (landing page) | India focus; scans X/LinkedIn/Inc42/YourStory; AI labels *intent* and drops retweets/noise; one card per investor with a suggested opening line; weekly brief; community-suggested investors verified before adding. *Claimed:* 130+ investors, "Deal Velocity"/"Warm Signal" (undefined). | Intent classification; **weekly brief**; Indian startup-news feeds as a source | Brief layout idea | Proprietary; X/LinkedIn scraping is ToS-risky; method undisclosed | Brief: low. News feeds: medium | **A**: weekly brief + one-line opening angle. **B**: news-site RSS as a free source |
+| **Roundkey** (landing page) | Stage pipeline Connected→Wired; **daily action briefing**; follow-up tone by stage; round-health dashboard; fit scoring (thesis, check size, stage, recent activity). $59/mo, no free tier. | State-aware actions (awaiting/passed/committed) | None | Paid; data sources undisclosed | n/a | **A**: action briefing; state-aware action rules (we have). **D**: data room, term analysis, deck tracking (paid/out of scope) |
+| **CapSignal** (landing page) | Public datasets (SEC IAPD Form ADV, PE/VC Atlas, an MIT investor dataset on Hugging Face) with per-record source attribution; 0–100 scores + explanation; exclude list; own-domain email sequences with reply detection. | Source attribution on every record; exclude list | Public datasets (mostly US) | Dataset licences unchecked; email sending = deliverability/spam/ToS risk | Datasets: high | **C**: public datasets to widen the investor universe (licence check first). **D**: email sending |
+| **Startt** (landing page) | Founder-profile-driven matching with % and "why it fits"; investor profile (cheque size, stage, lead partner, recent cheques); warm-intro paths; grants tracker. *Claimed:* 40k investors, "deploying right now" (method undisclosed). | Matching driven by an explicit founder profile | — | Proprietary; warm intros need a LinkedIn graph (ToS) | Profile panel: low | **A**: show the startup profile the scores assume (and make it explicit). **D**: warm-intro graph, grants |
+| **PitchDekh** (tree + `matchPitch.js`; score-computation file not read) | Gemini normalises a pitch to a schema; a **pre-computed score** is passed to Gemini, which only *explains* it (tiers Perfect Fit / Strong / Marginal / Wildcard; actions Priority Reachout / Keep Warm / Do Not Contact; email draft). | Deterministic score first, LLM explains — same split we use | None | **No licence** ⇒ no reuse | n/a | **A**: confirms our split; draft/angle generation. **D**: copying code (no licence) |
+| **Outreachr** (README, tree, `migrations.ts` head, provenance script head) | Founder-owned local CRM; versioned migrations (v12) with CHECK constraints; `normalized_name`; **`origin` per record** (local/seed/import/contribution); source URLs + dates + confidence per datum. | Origin/provenance column; migration table | Patterns only (different stack) | Apache-2.0 (OK to learn from; stack mismatch) | Low | **B**: add `origin` to investors (we have `source_ref`); keep migration table. **D**: desktop/Electron/outreach features |
+| **Investor Relations MCP** (tree + manifests; `server.py` not read) | MCP server over an Obsidian CRM; `pitch_config.yaml`; CI with security audit, PII scrub, dependabot. | **Config-file startup profile**; CI security checks | CI workflow ideas | MIT; needs the Claude plugin ecosystem (not runtime) | Low | **A**: startup profile as a config; **B**: GitHub Actions CI (typecheck, tests, `npm audit`) |
+| **Fund Momentum** (README + 15-file tree; MCP server is hosted, code not public) | **Provenance block per record (source, last-checked date, confidence)**; **`get_changes` incremental sync** (7-day keyless, 30-day with free key); keyless 10 calls/day. "Fund just closed ⇒ has capital to deploy." | Incremental "what changed" view; per-record confidence | Free keyless API as a cross-check | **No licence** on repo; API data licence unstated; 10 calls/day | API: medium | **A**: "changes since last run" + per-record provenance/confidence; **B**: "new fund capital" as a distinct signal. **C**: keyless API cross-check (not now) |
+| **bjolo-de/investor-intelligence** (404) | — | — | — | — | — | No decision — not found |
+| **Funding Intelligence** (README, `scoring_engine.md`, `knowledge-provenance.md`, tree) | Deterministic policy score with components and **penalties**; decision bands NOW/NEXT/LATER; **hard gates** (a failed gate can never be NOW); score labelled `deterministic_policy_score`, quality `not_calibrated`; provenance block (snapshot hash, reviewer, confidence); schema-validated YAML; **golden benchmark cases**. | Gates; honest score semantics; golden regression cases | Pattern: golden cases for the AI step | Apache-2.0 | Low–medium | **A**: label our score as a policy score (not a probability); explicit gate trace. **B**: golden regression cases for the Gemini prompt |
+| **Arthaive** (tree, `06-entity-resolution.md`, migrations 012/013; **read for ideas only**) | **Alias tables** for canonical identity (Peak XV = Sequoia India); 3-step resolver (alias → canonical → fuzzy); **review queue** (auto-approve ≥ 0.80, else pending/approved/rejected/merged/needs_more_info); **pipeline_jobs funnel** (fetched → filtered → extracted → auto-approved → flagged); sources table; RLS. | Alias table; review queue; funnel metrics | None — **do not copy** | **AGPL-3.0 + separate DATA_LICENSE** ⇒ no code, no data | n/a | **A**: alias table, review state, evidence funnel. **D**: any code/data (AGPL) |
+| **FirstSignal** (README, tree, `evidence_claims.py` head) | Claims tied to events with source lineage; independent assessments never averaged; **abstains with "insufficient evidence"**; contradictions stay visible; Postgres + pgvector + MLflow traces. | Claim→event lineage; abstention | None (heavy stack) | **No licence** ⇒ no reuse | n/a | **A**: lineage + abstention (we have verbatim-excerpt lineage and `needs_review`). **D**: code, pgvector, MLflow |
 
-pitchroom.net, capscope.vc, fundsignal.in, roundkey.co, getcapsignal.com, startt.ai — **not reviewed**. The product design
-here follows the assignment brief directly; none of these are dependencies.
+## Most useful patterns (distilled)
 
-## Decisions these informed
+1. **Failed ≠ negative; abstain.** (Funding Intelligence, FirstSignal) — we have this; make it more visible and add a gate trace.
+2. **Score is deterministic; the LLM explains.** (PitchDekh, Funding Intelligence) — we have this; label it honestly as a *policy score*, not a probability.
+3. **Provenance and confidence on every record, with a last-checked date.** (Fund Momentum, Outreachr, CapSignal) — we have most of it; surface freshness everywhere.
+4. **"What changed since last time."** (Fund Momentum `get_changes`, Fund Signal weekly brief, Roundkey daily briefing) — we do not have this and it is the best demo-value gap.
+5. **Entity identity via an alias table; review queue for uncertain items.** (Arthaive) — partially have aliases (from the workbook only).
+6. **Funnel observability per run.** (Arthaive `pipeline_jobs`) — we store the pieces; not shown as a funnel.
+7. **Golden regression cases for the AI step.** (Funding Intelligence) — we changed our prompt after real failures; those failures should become permanent tests.
+8. **Config-driven startup profile; CI security checks.** (Investor Relations MCP, Startt)
 
-1. **Evidence-first**: a signal row always carries source URL, event date, retrieval time, verbatim excerpt, confidence.
-2. **Absence is a state, not a default**: five distinct "no signal" states (see `deriveState`).
-3. **Deterministic prioritisation** with a visible breakdown.
-4. **No dependency was added because it appeared in the list**; none of them is used at runtime.
+## Do not adopt (and why)
+
+| Reference / feature | Why not |
+|---|---|
+| Any Arthaive code or data | AGPL-3.0 + data licence: incompatible with an openly reusable submission |
+| Code from PitchDekh, Fund Momentum, FirstSignal | No licence stated ⇒ all rights reserved |
+| Email sequencing, reply detection (CapSignal) | Needs sending infrastructure; deliverability/spam/ToS risk; outside the brief |
+| Deck tracking, data room, term analysis (Pitchroom, Roundkey, CapSignal) | Paid products' core; outside the brief |
+| Warm-intro graphs, X/LinkedIn scraping (Startt, Fund Signal) | Needs graph data/scraping that platform terms forbid |
+| Firecrawl, Claude API, paid data providers (any reference) | Paid or prohibited; the brief mandates Gemini Flash only |
+| pgvector, MLflow, Electron, MCP servers (FirstSignal, Outreachr, IR-MCP) | Complexity with no requirement behind it |
