@@ -111,6 +111,10 @@ Skipping is never a verdict: skipped investors keep their previous values and an
 
 Useful scripts: `npm run check:live` (real services, ~1 credit) · `npm run check:feeds` (free) · `npm run eval:live` (10 Gemini calls) · `npm run refresh:some -- "Seafund"` (real pipeline for named investors, 1 credit each) · `npm run verify:boundary` (DB role boundary).
 
+## Open demo mode
+
+The live deployment runs with `DEMO_OPEN=1`: the Refresh and Edit buttons need **no passcode**, so the app can be demonstrated freely. Anyone with the link can therefore edit notes and start refreshes; manual refreshes are still limited by a 10-minute cooldown and the monthly search-credit budget, edits can only touch the four founder-owned columns, and nothing a refresh does can overwrite them. **To lock it again:** set `DEMO_OPEN=0` and set `ADMIN_PASSCODE` in Vercel, then redeploy. Verified by `tests/demo.test.ts` (default is closed; only the exact value `1` opens it).
+
 ## Known limitations (stated up front)
 
 - **LinkedIn is searched but never fetched** (its terms forbid it): posts are judged from search snippets, so their confidence is capped at "medium". No LinkedIn profile URLs are stored or guessed; profile pages link to a LinkedIn search instead.
