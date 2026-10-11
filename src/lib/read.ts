@@ -42,6 +42,15 @@ export function deriveState(i: StateInputs, today: string): InvestorState {
 export const effRel = (a: string) =>
   `least(${a}.relevance_score, case ${a}.sector_match ${Object.entries(DEFAULT_CONFIG.sectorCap).map(([k, v]) => `when '${k}' then ${v}`).join(" ")} else 100 end)`;
 
+/**
+ * Which investors a read covers: `false` = real ones only (the default), `true` = synthetic demo accounts only, "all" = both.
+ * The main site lists everything (demo accounts are labelled on every row and card); anything that makes a claim about the real
+ * pipeline (counts, the weekly brief, run history, the "Start here" shortlist) reads real investors only.
+ */
+export type Scope = boolean | "all";
+const scopeKey = (s: Scope) => (s === "all" ? "all" : s ? "demo" : "real");
+const inScope = (p: string, alias = "i") => `(${p}::text = 'all' or ${alias}.is_demo = (${p}::text = 'demo'))`;
+
 export interface LeadSignal {
   headline: string;
   /** The page's own title when `headline` was rewritten by the review pass; null when the title is shown as is. */
@@ -124,7 +133,7 @@ interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" |
 }
 
 /** `demo` selects which universe to read: real investors (default) or the synthetic demo investors. They are never mixed. */
-export async function listPipeline(db: Db, today: string, demo = false): Promise<PipelineRow[]> {
+export async function listPipeline(db: Db, today: string, demo: Scope = false): Promise<PipelineRow[]> {
   const { rows } = await db.query<RawRow>(
     `select i.id, i.firm_name, i.is_demo, i.contact_email, i.entity_type, i.role_title, i.sectors, i.stage_preference, i.geography, i.relationship_status, i.last_contact_date::text as last_contact_date,
             i.follow_up_score, i.recommended_action, i.last_signal_date::text as last_signal_date, i.signal_summary,
@@ -160,8 +169,8 @@ export async function listPipeline(db: Db, today: string, demo = false): Promise
                              and s.published_at >= $1::date and ${effRel("s")} >= ${RELEVANCE_MIN}
                            order by (s.id = sh.lead_signal_id) desc, s.published_at desc, s.relevance_score desc
                            limit 1) ld on true
-      where i.is_demo = $2`,
-    [windowStart(new Date(`${today}T00:00:00Z`)), demo],
+      where ${inScope("$2")}`,
+    [windowStart(new Date(`${today}T00:00:00Z`)), scopeKey(demo)],
   );
 
   return rows.map((r): PipelineRow => {
@@ -263,9 +272,10 @@ export function filterPipeline(rows: PipelineRow[], f: PipelineFilters, today: s
   const byName = (a: PipelineRow, b: PipelineRow) => a.firm_name.localeCompare(b.firm_name);
   const score = (r: PipelineRow) => r.follow_up_score ?? -1;
   const recent = (r: PipelineRow) => r.last_signal_date ?? "";
+  const realFirst = (a: PipelineRow, b: PipelineRow) => Number(a.is_demo) - Number(b.is_demo); // synthetic accounts never outrank real investors
   if (f.sort === "name") out.sort(byName);
-  else if (f.sort === "recent") out.sort((a, b) => recent(b).localeCompare(recent(a)) || score(b) - score(a) || byName(a, b));
-  else out.sort((a, b) => score(b) - score(a) || recent(b).localeCompare(recent(a)) || byName(a, b));
+  else if (f.sort === "recent") out.sort((a, b) => realFirst(a, b) || recent(b).localeCompare(recent(a)) || score(b) - score(a) || byName(a, b));
+  else out.sort((a, b) => realFirst(a, b) || score(b) - score(a) || recent(b).localeCompare(recent(a)) || byName(a, b));
   return out;
 }
 
@@ -312,7 +322,7 @@ export interface FeedFilters {
   show?: string; // "relevant" (default) | "verified" | "review"
 }
 
-export async function listSignals(db: Db, today: string, f: FeedFilters = {}, demo = false): Promise<FeedSignal[]> {
+export async function listSignals(db: Db, today: string, f: FeedFilters = {}, demo: Scope = false): Promise<FeedSignal[]> {
   const show = f.show ?? "relevant";
   const { rows } = await db.query<FeedSignal>(
     `select s.id, s.investor_id, i.firm_name, coalesce(s.display_headline, s.headline) as headline, case when s.display_headline is not null then s.headline end as raw_headline,
@@ -322,7 +332,7 @@ export async function listSignals(db: Db, today: string, f: FeedFilters = {}, de
             s.sector_match, s.firm_acting, s.review_note, i.is_demo,
             (select count(*)::int from signals d where d.duplicate_of = s.id) as duplicates
        from signals s join investors i on i.id = s.investor_id
-      where s.duplicate_of is null and i.is_demo = $5
+      where s.duplicate_of is null and ${inScope("$5")}
         and ( ($1 = 'review' and s.verification_status = 'needs_review')
            or ($1 <> 'review' and s.verification_status = 'verified' and s.published_at >= $2::date
                and ($1 = 'verified' or ${effRel("s")} >= ${RELEVANCE_MIN})) )
@@ -330,7 +340,7 @@ export async function listSignals(db: Db, today: string, f: FeedFilters = {}, de
         and ($4::uuid is null or s.investor_id = $4)
       order by s.published_at desc nulls last, s.relevance_score desc nulls last
       limit 300`,
-    [show, windowStart(new Date(`${today}T00:00:00Z`)), f.category ?? null, f.investor ?? null, demo],
+    [show, windowStart(new Date(`${today}T00:00:00Z`)), f.category ?? null, f.investor ?? null, scopeKey(demo)],
   );
   return rows;
 }
@@ -405,16 +415,19 @@ export async function listRuns(db: Db, limit = 25, demo = false): Promise<RunRow
   return (await db.query<RunRow>(`select ${RUN_COLS} from runs where is_demo = $2 order by started_at desc limit $1`, [limit, demo])).rows;
 }
 
-export async function getOverview(db: Db, today: string, demo = false) {
+export async function getOverview(db: Db, today: string, demo: Scope = false) {
   const pipeline = await listPipeline(db, today, demo);
-  const runs = await listRuns(db, 5, demo);
+  const onlyDemo = demo === true;
+  const runs = await listRuns(db, 5, onlyDemo);
   const active = runs.find((r) => r.status === "running") ?? null;
   const lastGood = (await db.query<{ completed_at: string; status: string }>(
-    `select completed_at::text as completed_at, status from runs where status in ('succeeded','partial') and is_demo = $1 order by completed_at desc limit 1`, [demo],
+    `select completed_at::text as completed_at, status from runs where status in ('succeeded','partial') and is_demo = $1 order by completed_at desc limit 1`, [onlyDemo],
   )).rows[0] ?? null;
+  // Counts describe the REAL pipeline (or the demo universe when viewing only demo): synthetic accounts shown alongside never inflate them.
+  const counted = pipeline.filter((p) => onlyDemo || !p.is_demo);
   const byDisplay = { active: 0, quiet: 0, review: 0, failed: 0 };
-  for (const p of pipeline) byDisplay[displayStatus(p.state)]++;
-  return { pipeline, runs, active, lastGood, counts: { total: pipeline.length, ...byDisplay } };
+  for (const p of counted) byDisplay[displayStatus(p.state)]++;
+  return { pipeline, runs, active, lastGood, counts: { total: counted.length, ...byDisplay }, demoCount: pipeline.length - counted.length };
 }
 
 export async function getCoverageSummary(db: Db, demo = false) {

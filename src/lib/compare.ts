@@ -1,5 +1,5 @@
 import type { Db } from "@/lib/db";
-import { listPipeline, type PipelineRow } from "./read";
+import { listPipeline, type PipelineRow, type Scope } from "./read";
 
 export const MAX_COMPARE = 3;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -19,7 +19,7 @@ export interface CompareItem {
   recent_scores: number[]; // oldest first
 }
 
-export async function getCompare(db: Db, ids: string[], today: string, demo = false): Promise<CompareItem[]> {
+export async function getCompare(db: Db, ids: string[], today: string, demo: Scope = false): Promise<CompareItem[]> {
   if (ids.length === 0) return [];
   const pipeline = await listPipeline(db, today, demo);
   const profiles = (await db.query<{ id: string; stage_preference: string | null; sectors: string[]; geography: string | null; thesis_verified: boolean; role_title: string | null }>(

@@ -17,7 +17,7 @@ export default async function Signals({ searchParams }: Props) {
   const f = pick(await searchParams, ["show", "category"]);
   const show = (f.show && f.show in SHOW ? f.show : "relevant") as keyof typeof SHOW;
   const demo = await isDemoView();
-  const res = await load((db) => listSignals(db, today(), { show, category: f.category }, demo));
+  const res = await load((db) => listSignals(db, today(), { show, category: f.category }, demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
 
   return (

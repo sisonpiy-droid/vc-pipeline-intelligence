@@ -35,9 +35,12 @@ function LedgerRow({ label, hint, value, href, tone }: { label: string; hint: st
 
 export default async function Overview() {
   const demo = await isDemoView();
-  const res = await load((db) => getOverview(db, today(), demo));
+  const res = await load((db) => getOverview(db, today(), demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
-  const { pipeline, counts, active, lastGood, runs } = res.data;
+  const { pipeline: everyone, counts, active, lastGood, runs, demoCount } = res.data;
+  // Synthetic demo accounts are listed in their own labelled section below. They never enter the real shortlist, queue or counts.
+  const pipeline = demo ? everyone : everyone.filter((r) => !r.is_demo);
+  const demoRows = demo ? [] : everyone.filter((r) => r.is_demo);
 
   const hold = pipeline.filter((r) => r.state === "active" && HOLD(r));
   const queue = pipeline
@@ -77,7 +80,7 @@ export default async function Overview() {
         </HeroReveal>
 
         <dl className="reveal divide-y divide-line border-y border-line" style={idx(1)}>
-          <LedgerRow label="Tracked investors" hint={demo ? "6 synthetic demo accounts" : "50 VC firms and 32 angels"} value={counts.total} href="/pipeline" />
+          <LedgerRow label="Tracked investors" hint={demo ? "6 synthetic demo accounts" : `50 VC firms and 32 angels${demoCount ? `; ${demoCount} labelled demo accounts are listed separately` : ""}`} value={counts.total} href="/pipeline" />
           <LedgerRow label="Active signal, last 30 days" hint="verified and relevant" value={counts.active} href="/pipeline?state=active" tone="text-good" />
           <LedgerRow label="No verified signal" hint="every source answered" value={counts.quiet} href="/quiet" />
           <LedgerRow label="Activity unknown" hint="failed or partial, never counted as quiet" value={unknown} href="/quiet" tone={unknown ? "text-warn" : ""} />
@@ -179,6 +182,19 @@ export default async function Overview() {
           </p>
         </aside>
       </div>
+      {demoRows.length > 0 && (
+        <section id="demo-accounts" aria-labelledby="demo-h" className="mt-16 border-t border-line pt-10">
+          <Eyebrow>Demo accounts</Eyebrow>
+          <h2 id="demo-h" className="mt-1 text-lg font-semibold tracking-tight">{demoRows.length} synthetic accounts for testing</h2>
+          <p className="mt-2 max-w-[70ch] text-sm leading-relaxed text-muted">
+            These are not real investors: one account for each situation the product handles (high and low priority, stale, unverified, duplicate and irrelevant signals). They are not counted above and never appear in &ldquo;Start here&rdquo;.
+            Open one and press <strong className="font-medium text-ink">Open in email app</strong> on a draft: it opens in your own mail app, addressed to the test address.
+          </p>
+          <div className="mt-6 space-y-4">
+            {demoRows.map((r) => <InvestorCard key={r.id} r={r} />)}
+          </div>
+        </section>
+      )}
     </>
   );
 }

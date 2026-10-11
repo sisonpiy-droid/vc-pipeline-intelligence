@@ -25,6 +25,7 @@ function Row({ r }: { r: PipelineRow }) {
       <div className="min-w-0">
         <Link href={`/investors/${r.id}`} className="font-medium hover:underline">{r.firm_name}</Link>
         <span className="ml-2 text-xs text-muted">{ENTITY_LABEL[r.entity_type]}</span>
+        {r.is_demo && <span className="ml-2 align-middle"><Pill tone="warn" title="Synthetic demo account: not a real investor">Demo account</Pill></span>}
         {err && (
           <p className="mt-1 text-sm">
             <span className="font-medium text-bad">{err.title}.</span> <span className="text-muted">{err.action}</span>
@@ -43,7 +44,7 @@ function Row({ r }: { r: PipelineRow }) {
 
 export default async function Quiet() {
   const demo = await isDemoView();
-  const res = await load((db) => listPipeline(db, today(), demo));
+  const res = await load((db) => listPipeline(db, today(), demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
   const rows = res.data.filter((r) => r.state !== "active");
   const by = (s: InvestorState) => rows.filter((r) => r.state === s).sort((a, b) => a.firm_name.localeCompare(b.firm_name));

@@ -1,6 +1,7 @@
 import type { Db } from "@/lib/db";
 import { sourceTier } from "@/lib/format";
 import { DEFAULT_CONFIG, type ScoreInput, type ScoredSignal, type ScoringConfig } from "@/lib/scoring/score";
+import type { Scope } from "@/lib/read";
 
 /**
  * What-if scoring. The server hands the browser each checked investor's STORED evidence and profile; the browser re-runs
@@ -69,7 +70,7 @@ interface Raw {
 }
 
 /** Every investor that has been successfully checked at least once (an unchecked investor has no score to simulate). */
-export async function getSimulationInputs(db: Db, demo = false): Promise<SimInvestor[]> {
+export async function getSimulationInputs(db: Db, demo: Scope = false): Promise<SimInvestor[]> {
   const rows = (await db.query<Raw>(
     `select i.id, i.firm_name, i.entity_type, i.website_url, i.stage_preference, i.sectors, i.geography, i.fit_rationale, i.investment_thesis,
             i.relationship_status, i.last_contact_date::text as last_contact_date, i.follow_up_score, i.recommended_action,
@@ -78,8 +79,8 @@ export async function getSimulationInputs(db: Db, demo = false): Promise<SimInve
                                                           'headline', coalesce(nullif(s.summary, ''), s.headline), 'sector_match', s.sector_match, 'new_capital', s.new_capital, 'source_name', s.source_name))
                         from signals s where s.investor_id = i.id and s.verification_status = 'verified' and s.duplicate_of is null and s.published_at is not null), '[]'::jsonb) as signals
        from investors i
-      where i.is_demo = $1 and exists (select 1 from run_items r where r.investor_id = i.id and r.status = 'done')
-      order by i.firm_name`, [demo],
+      where ($1::text = 'all' or i.is_demo = ($1::text = 'demo')) and exists (select 1 from run_items r where r.investor_id = i.id and r.status = 'done')
+      order by i.firm_name`, [demo === "all" ? "all" : demo ? "demo" : "real"],
   )).rows;
   return rows.map((r): SimInvestor => ({
     id: r.id, firm_name: r.firm_name, entity_type: r.entity_type, stored_score: r.follow_up_score, stored_action: r.recommended_action,

@@ -168,8 +168,24 @@ test("the brand in the header takes you to the home screen from any page", async
 });
 
 test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, reset and simulate are demo-only, and real data never appears", async ({ page, request }) => {
-  const live = await (await request.get("/api/palette")).json();
-  expect(live.investors.some((i: { name: string }) => /piyush/i.test(i.name))).toBe(false);
+  // On the main site the demo accounts are listed, but labelled, last, and kept out of the real counts and the "Start here" shortlist.
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("of 82 investors");
+  await expect(page.locator("#picks-h").locator("xpath=ancestor::section[1]")).not.toContainText("Piyush");
+  const demoSection = page.locator("#demo-accounts");
+  await expect(demoSection.getByRole("link", { name: /^Piyush:/ })).toHaveCount(6);
+  await expect(demoSection.getByText("Demo account", { exact: true })).toHaveCount(6);
+  await page.goto("/pipeline");
+  expect(await page.locator("tbody tr").count()).toBe(88);
+  await expect(page.locator("tbody tr").first()).not.toContainText("Demo account"); // real investors first
+  await expect(page.locator("tbody tr").filter({ hasText: "Demo account" })).toHaveCount(6);
+  // Mail: a real investor's draft opens with NO address; a demo account's opens to the test address.
+  await page.goto("/pipeline?q=Seafund");
+  await page.getByRole("link", { name: "Seafund" }).first().click();
+  await expect(page.getByRole("link", { name: "Open in email app" }).first()).toHaveAttribute("href", /^mailto:\?subject=/);
+  await page.goto("/pipeline?q=Piyush: High");
+  await page.getByRole("link", { name: "Piyush: High priority (demo)" }).first().click();
+  await expect(page.getByRole("link", { name: "Open in email app" }).first()).toHaveAttribute("href", /^mailto:sisonpiy@gmail\.com\?subject=/);
 
   await page.goto("/demo/on");
   await expect(page).toHaveURL(/\/$/);
@@ -196,12 +212,11 @@ test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, re
 
   await banner.getByRole("link", { name: "Exit demo mode" }).click();
   await page.goto("/pipeline");
-  await expect(page.getByText(/Piyush/)).toHaveCount(0);
-  // The palette list must follow the mode immediately (a cached demo list once leaked into the real view).
+  // The palette follows the mode immediately (a cached demo-only list once leaked into the other view).
   const names = await page.evaluate(async () => ((await (await fetch("/api/palette")).json()) as { investors: { name: string }[] }).investors.map((i) => i.name));
-  expect(names.some((n) => /piyush/i.test(n))).toBe(false);
-  await expect(page.locator("tbody tr").first()).toBeVisible();
-  expect(await page.locator("tbody tr").count()).toBeGreaterThan(20); // the real investors are back, untouched
+  expect(names.filter((n) => /piyush/i.test(n))).toHaveLength(6);
+  expect(names.length).toBe(88);
+  expect(await page.locator("tbody tr").count()).toBe(88); // the real investors are back, untouched, with the six labelled demo accounts last
 });
 
 for (const path of ["/", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare"]) {

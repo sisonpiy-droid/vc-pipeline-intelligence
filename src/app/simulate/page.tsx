@@ -9,7 +9,7 @@ export const metadata = { title: "What-if ranking" };
 
 export default async function SimulatePage() {
   const demo = await isDemoView();
-  const res = await load((db) => getSimulationInputs(db, demo));
+  const res = await load((db) => getSimulationInputs(db, demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
   return (
     <>

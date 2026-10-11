@@ -77,6 +77,7 @@ export const DEMO_SPECS: DemoSpec[] = [
       sig({ slug: "dup-original", headline: "Piyush co-invests in a warehouse-robotics startup", host: "demo-press.example", daysAgo: 3, type: "portfolio_investment", relevance: 80, confidence: "high", sector: "logistics", dateSource: "page", why: `${DEMO_TEXT} The same event was reported by two sources; the repeat is merged, not counted twice.` }),
       sig({ slug: "dup-repeat", headline: "Warehouse-robotics startup raises seed round, Piyush among investors", host: "demo-wire.example", daysAgo: 3, type: "portfolio_investment", relevance: 80, confidence: "high", sector: "logistics", dateSource: "page", status: "rejected", reason: "duplicate_event", duplicateOf: "dup-original" }),
     ],
+    angle: `${DEMO_TEXT} I saw that Piyush co-invested in a warehouse-robotics startup. I am raising a Seed round for a B2B logistics SaaS and would value your view on what we are building.`,
   },
   {
     key: "irrelevant", criterion: "Irrelevant signal", name: "Piyush: Irrelevant signal (demo)",

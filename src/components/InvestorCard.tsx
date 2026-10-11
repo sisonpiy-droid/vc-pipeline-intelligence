@@ -5,7 +5,9 @@ import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, SE
 import { cadence } from "@/lib/cadence";
 import { displayStatus, type PipelineRow } from "@/lib/read";
 import { CopyButton } from "./CopyButton";
+import { templateDraft } from "@/lib/draft";
 import { EmailDraft } from "./EmailDraft";
+import { TemplateDraft } from "./TemplateDraft";
 import { Interactive } from "./motion/Interactive";
 import { Fresh } from "./Fresh";
 import { Bar, Card, ExternalLink, Pill, ScoreBadge } from "./ui";
@@ -86,6 +88,11 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
                 <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified signal above only. Edit before using; nothing is sent.</p>
               </div>
             )}
+
+            {!r.angle && (() => {
+              const body = templateDraft(r);
+              return body ? <TemplateDraft to={r.contact_email} body={body} demo={r.is_demo} /> : null;
+            })()}
 
             {r.explanation && (
               <details className="group mt-4 border-t border-line pt-3 text-sm">

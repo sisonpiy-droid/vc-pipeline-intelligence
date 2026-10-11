@@ -14,11 +14,11 @@ const WORTH = new Set(["reach_out_now", "prepare_targeted_outreach", "research_f
 
 export default async function BoardPage() {
   const demo = await isDemoView();
-  const res = await load((db) => listPipeline(db, today(), demo));
+  const res = await load((db) => listPipeline(db, today(), demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
   const t = today();
   const toCard = (r: PipelineRow): BoardCard => ({
-    id: r.id, firm_name: r.firm_name, entity_type: r.entity_type, score: r.follow_up_score, action: r.recommended_action, status: r.relationship_status,
+    id: r.id, firm_name: r.firm_name, demo: r.is_demo, entity_type: r.entity_type, score: r.follow_up_score, action: r.recommended_action, status: r.relationship_status,
     last_contact_date: r.last_contact_date, headline: r.lead?.headline ?? null, cadence: (() => { const c = cadence(r.relationship_status, r.last_contact_date, t); return c ? { label: c.label, tone: c.tone === "info" ? "neutral" : c.tone, due: c.due } : null; })(),
   });
   const started = res.data.filter((r) => r.relationship_status !== "not_contacted");

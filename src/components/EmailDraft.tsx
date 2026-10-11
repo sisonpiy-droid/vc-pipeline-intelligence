@@ -18,9 +18,9 @@ export function introDraft(angle: string) {
   return { subject: "Introduction: Seed-stage B2B logistics SaaS", body: `${angle}\n\n[Your name]` };
 }
 
-export function EmailDraft({ to, angle, demo = false }: { to?: string | null; angle: string; demo?: boolean }) {
+export function EmailDraft({ to, angle, body, demo = false }: { to?: string | null; angle: string; body?: string; demo?: boolean }) {
   const d = introDraft(angle);
-  const { mailto, gmail } = draftLinks({ to, subject: demo ? `[DEMO] ${d.subject}` : d.subject, body: d.body });
+  const { mailto, gmail } = draftLinks({ to, subject: demo ? `[DEMO] ${d.subject}` : d.subject, body: body ?? d.body });
   const cls = "press inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted hover:text-ink";
   return (
     <span className="inline-flex flex-wrap items-center gap-1" title="Opens your own mail app with this draft. This application never sends email.">

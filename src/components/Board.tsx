@@ -10,6 +10,7 @@ import { Pill } from "./ui";
 export interface BoardCard {
   id: string;
   firm_name: string;
+  demo?: boolean;
   entity_type: string;
   score: number | null;
   action: string | null;
@@ -126,7 +127,7 @@ export function Board({ cards: initial, needPass, hiddenInFirst }: { cards: Boar
                       <Link href={`/investors/${c.id}`} className="font-medium leading-snug hover:underline">{c.firm_name}</Link>
                       <span className="num text-lg font-medium leading-none">{c.score ?? "–"}</span>
                     </div>
-                    <p className="mt-0.5 text-[0.7rem] text-muted">{ENTITY_LABEL[c.entity_type]}</p>
+                    <p className="mt-0.5 flex items-center gap-1.5 text-[0.7rem] text-muted">{ENTITY_LABEL[c.entity_type]}{c.demo && <Pill tone="warn" title="Synthetic demo account: not a real investor">Demo account</Pill>}</p>
                     {c.headline && <p className="mt-2 line-clamp-2 text-xs leading-snug text-muted">{c.headline}</p>}
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {c.action && <Pill tone={ACTION_TONE[c.action]}>{ACTION_LABEL[c.action]}</Pill>}

@@ -30,7 +30,7 @@ function Field({ label, name, value, children }: { label: string; name: string; 
 export default async function Pipeline({ searchParams }: Props) {
   const f = pick(await searchParams, ["q", "entity", "sector", "stage", "relationship", "category", "freshness", "priority", "state", "action", "sort"]);
   const demo = await isDemoView();
-  const res = await load((db) => listPipeline(db, today(), demo));
+  const res = await load((db) => listPipeline(db, today(), demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
   const all = res.data;
   const rows = filterPipeline(all, f, today());
@@ -127,7 +127,7 @@ export default async function Pipeline({ searchParams }: Props) {
                 return (
                   <ClickableRow as="tr" key={r.id} href={`/investors/${r.id}`} className="align-top hover:bg-neutral-soft/50">
                     <th scope="row" className="px-4 py-3 font-medium">
-                      <Link href={`/investors/${r.id}`} className="hover:underline">{r.firm_name}</Link>
+                      <Link href={`/investors/${r.id}`} className="hover:underline">{r.firm_name}</Link>{r.is_demo && <span className="ml-2 align-middle"><Pill tone="warn" title="Synthetic demo account: not a real investor">Demo account</Pill></span>}
                       <div className="mt-0.5 text-xs font-normal text-muted"><Link href={`/pipeline?entity=${r.entity_type}`} className="hover:text-ink hover:underline">{ENTITY_LABEL[r.entity_type]}</Link>{r.role_title ? ` · ${r.role_title}` : ""}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 font-normal"><Fresh at={r.last_checked} /><CompareToggle id={r.id} name={r.firm_name} compact /></div>
                     </th>

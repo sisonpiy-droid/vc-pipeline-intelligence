@@ -33,7 +33,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const sp = await searchParams;
   const ids = parseIds(first(sp.ids));
   const demo = await isDemoView();
-  const res = await load((db) => getCompare(db, ids, today(), demo));
+  const res = await load((db) => getCompare(db, ids, today(), demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
   const items = res.data;
   const t = today();

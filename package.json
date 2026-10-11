@@ -21,6 +21,7 @@
     "portfolio:backfill": "tsx --env-file=.env scripts/portfolio-backfill.ts",
     "test:e2e": "playwright test",
     "eval:accuracy": "tsx --env-file=.env scripts/eval-accuracy.ts",
+    "demo:seed": "tsx --env-file=.env scripts/demo-seed.ts",
     "chaos": "tsx scripts/chaos.ts",
     "check:portfolio": "tsx --env-file=.env scripts/check-portfolio.ts",
     "check:feeds": "tsx --env-file=.env scripts/check-feeds.ts",

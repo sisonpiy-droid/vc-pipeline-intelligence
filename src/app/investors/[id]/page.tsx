@@ -5,6 +5,8 @@ import { CaretLeft, Globe, LinkedinLogo, LockSimple, MagnifyingGlass } from "@ph
 import { CompareToggle } from "@/components/CompareToggle";
 import { CopyButton } from "@/components/CopyButton";
 import { EmailDraft } from "@/components/EmailDraft";
+import { TemplateDraft } from "@/components/TemplateDraft";
+import { templateDraft } from "@/lib/draft";
 import { FounderEdit } from "@/components/FounderEdit";
 import { ScoreTrend } from "@/components/ScoreTrend";
 import { SignalCard } from "@/components/SignalCard";
@@ -137,6 +139,11 @@ export default async function InvestorPage({ params }: Props) {
               <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified evidence only. Edit before using; nothing is sent.</p>
             </div>
           )}
+          {!(outcome?.angle && action === "reach_out_now") && (() => {
+            const lead = verified.find((l) => (l.relevance_score ?? 0) >= 40 && l.published_at);
+            const body = lead ? templateDraft({ relationship_status: String(i.relationship_status), lead: { headline: lead.headline, summary: lead.summary, published_at: lead.published_at! } }) : null;
+            return body ? <div className="max-w-[62ch]"><TemplateDraft to={i.contact_email as string | null} body={body} demo={!!i.is_demo} /></div> : null;
+          })()}
           {failedErr && (
             <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-bad">
               {failedErr.title}. <span className="text-muted">{failedErr.action}</span>

@@ -5,7 +5,7 @@ import { draftLinks, EmailDraft } from "@/components/EmailDraft";
 import type { Db } from "@/lib/db";
 import { DEMO_EMAIL, DEMO_SPECS, DEMO_TEXT, resetDemo, simulateRun } from "@/lib/demoData/seed";
 import { applyFounderEdit } from "@/lib/founder";
-import { getOverview, getRunBar, listAudit, listPipeline, listRuns, listSignals } from "@/lib/read";
+import { filterPipeline, getOverview, getRunBar, listAudit, listPipeline, listRuns, listSignals } from "@/lib/read";
 import { planRun } from "@/lib/refresh/plan";
 import { rescoreAll } from "@/lib/refresh/rescore";
 import { runChunk, startRun } from "@/lib/refresh/run";
@@ -112,6 +112,24 @@ describe("demo and real data are never mixed", () => {
     expect((await getSimulationInputs(db, true)).length).toBe(6);
     expect((await listAudit(db, 100)).every((a) => !/demo/i.test(a.event))).toBe(true);
     expect((await listAudit(db, 100, true)).some((a) => a.event === "demo_reset")).toBe(true);
+  });
+
+  it("the main site can list both, labelled; counts, picks and run history still describe only the real pipeline, and demo accounts sort after real ones", async () => {
+    const all = await listPipeline(db, TODAY, "all");
+    expect(all).toHaveLength(7);
+    expect(all.filter((r) => r.is_demo)).toHaveLength(6);
+    const ov = await getOverview(db, TODAY, "all");
+    expect(ov.counts.total).toBe(1); // the one real investor: synthetic accounts are never counted
+    expect(ov.demoCount).toBe(6);
+    expect(ov.runs.every((r) => !/demo/i.test(r.summary ?? ""))).toBe(true);
+    // default (score) and recency sorts both keep real investors first, even though a demo account scores 95
+    expect(filterPipeline(all, {}, TODAY)[0]!.is_demo).toBe(false);
+    expect(filterPipeline(all, { sort: "recent" }, TODAY)[0]!.is_demo).toBe(false);
+    expect((await listSignals(db, TODAY, { show: "verified" }, "all")).some((s) => s.is_demo)).toBe(true);
+    expect((await getSimulationInputs(db, "all")).length).toBe(7); // 1 real + 6 demo accounts, all with a completed run_item
+    expect((await getSimulationInputs(db)).length).toBe(1); // the default stays real-only
+    // the high-priority demo account can still be found by filtering on priority, labelled as demo
+    expect(filterPipeline(all, { priority: "high" }, TODAY).some((r) => r.is_demo && /High priority/.test(r.firm_name))).toBe(true);
   });
 
   it("a REAL refresh never plans, searches or scores a demo investor", async () => {

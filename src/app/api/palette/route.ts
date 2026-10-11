@@ -10,7 +10,7 @@ export async function GET() {
     const demo = await isDemoView();
     const { rows } = await getDb().query<{ id: string; name: string; type: string; score: number | null; action: string | null }>(
       `select id, firm_name as name, entity_type as type, follow_up_score as score, recommended_action as action
-         from investors where is_demo = $1 order by follow_up_score desc nulls last, firm_name`, [demo],
+         from investors where ($1::text = 'all' or is_demo = ($1::text = 'demo')) order by is_demo, follow_up_score desc nulls last, firm_name`, [demo ? "demo" : "all"],
     );
     // The answer depends on the demo/real cookie, so it must never be reused across modes.
     return NextResponse.json({ investors: rows }, { headers: { "cache-control": "private, no-store", vary: "cookie" } });
