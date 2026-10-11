@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClickableRow } from "@/components/ClickableRow";
 import { isDemoView } from "@/lib/demoData/mode";
 import { Card, Empty, PageTitle, Pill, SetupError } from "@/components/ui";
 import { ENTITY_LABEL, ago, explainError, fmtDate } from "@/lib/format";
@@ -20,7 +21,7 @@ const GROUPS: { state: InvestorState; title: string; tone: "bad" | "warn" | "neu
 function Row({ r }: { r: PipelineRow }) {
   const err = r.state === "failed" ? explainError(r.last_error) : null;
   return (
-    <li className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1 px-4 py-3">
+    <ClickableRow as="li" href={`/investors/${r.id}`} className="flex flex-wrap items-start justify-between gap-x-6 gap-y-1 px-4 py-3 hover:bg-neutral-soft/50">
       <div className="min-w-0">
         <Link href={`/investors/${r.id}`} className="font-medium hover:underline">{r.firm_name}</Link>
         <span className="ml-2 text-xs text-muted">{ENTITY_LABEL[r.entity_type]}</span>
@@ -36,7 +37,7 @@ function Row({ r }: { r: PipelineRow }) {
         {r.last_checked ? <>Last checked {ago(r.last_checked)}</> : "Never checked"}
         {r.follow_up_score !== null && <div>Score {r.follow_up_score} (unchanged)</div>}
       </div>
-    </li>
+    </ClickableRow>
   );
 }
 

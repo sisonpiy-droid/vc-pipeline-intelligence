@@ -147,6 +147,19 @@ test("the API reference lists every route", async ({ page }) => {
   for (const p of ["/api/health", "/api/cron/refresh", "/api/refresh", "/api/rescore", "/api/investors/[id]/founder"]) await expect(page.getByRole("heading", { name: p, exact: true })).toBeVisible();
 });
 
+test("pipeline rows open the investor when clicked anywhere, while the controls inside a row keep working", async ({ page }) => {
+  await page.goto("/pipeline?q=Blume");
+  const row = page.locator("tbody tr").first();
+  await row.getByRole("button", { name: /Compare/ }).click(); // a control inside the row: must NOT navigate
+  await expect(page).toHaveURL(/\/pipeline/);
+  await row.locator("td").nth(1).click(); // the score cell: plain text, so the row handles the click
+  await expect(page).toHaveURL(/\/investors\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Blume Ventures" })).toBeVisible();
+  await page.goto("/quiet");
+  await page.locator("li[data-row-href]").first().click();
+  await expect(page).toHaveURL(/\/investors\//);
+});
+
 test("the brand in the header takes you to the home screen from any page", async ({ page }) => {
   await page.goto("/runs");
   await page.getByRole("link", { name: /go to the home screen/i }).click();

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { isDemoView } from "@/lib/demoData/mode";
+import { ClickableRow } from "@/components/ClickableRow";
 import { CompareToggle } from "@/components/CompareToggle";
 import { Fresh } from "@/components/Fresh";
 import { LiveSearch } from "@/components/LiveSearch";
@@ -124,7 +125,7 @@ export default async function Pipeline({ searchParams }: Props) {
               {rows.map((r) => {
                 const st = STATE_META[r.state];
                 return (
-                  <tr key={r.id} className="align-top hover:bg-neutral-soft/50">
+                  <ClickableRow as="tr" key={r.id} href={`/investors/${r.id}`} className="align-top hover:bg-neutral-soft/50">
                     <th scope="row" className="px-4 py-3 font-medium">
                       <Link href={`/investors/${r.id}`} className="hover:underline">{r.firm_name}</Link>
                       <div className="mt-0.5 text-xs font-normal text-muted"><Link href={`/pipeline?entity=${r.entity_type}`} className="hover:text-ink hover:underline">{ENTITY_LABEL[r.entity_type]}</Link>{r.role_title ? ` · ${r.role_title}` : ""}</div>
@@ -144,7 +145,7 @@ export default async function Pipeline({ searchParams }: Props) {
                     </td>
                     <td className="px-3 py-3">{r.recommended_action ? <Pill tone={ACTION_TONE[r.recommended_action]} href={`/pipeline?action=${r.recommended_action}`}>{ACTION_LABEL[r.recommended_action]}</Pill> : <span className="text-muted">–</span>}</td>
                     <td className="px-3 py-3 text-muted"><Link href={`/pipeline?relationship=${r.relationship_status}`} className="hover:text-ink hover:underline">{REL_LABEL[r.relationship_status]}</Link></td>
-                  </tr>
+                  </ClickableRow>
                 );
               })}
             </tbody>
