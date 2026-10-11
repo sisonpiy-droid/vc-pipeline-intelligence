@@ -3,11 +3,12 @@ import type { Db } from "@/lib/db";
 import { createPageFetcher } from "@/lib/providers/fetchPage";
 import { createTavily } from "@/lib/providers/tavily";
 import type { Deps } from "./research";
+import type { PlanOptions } from "./plan";
 import { runChunk, startRun, type ChunkOptions, type StartState } from "./run";
 
 /** Real providers. Credentials are read from the environment at call time, so a missing key is a typed run error, not a crash. */
 export function productionDeps(): Deps {
-  return { search: createTavily(), pages: createPageFetcher(), ai: createGemini(), now: () => new Date(), linkedin: process.env.SEARCH_LINKEDIN !== "0" };
+  return { search: createTavily(), pages: createPageFetcher(), ai: createGemini(), now: () => new Date() }; // whether LinkedIn is searched is a per-run choice
 }
 
 /** A manual refresh costs search credits and Gemini calls; one per 10 minutes is plenty for a human. */
@@ -15,7 +16,19 @@ export const MANUAL_COOLDOWN_MIN = 10;
 
 export type TriggerResult = { run_id: string; state: StartState } | { state: "throttled"; retry_after_s: number };
 
-export async function triggerRefresh(rdb: Db, trigger: "cron" | "manual"): Promise<TriggerResult> {
+/** Free-tier guard rails, from the environment. Defaults keep a free Tavily plan (~1,000 credits/month) safe. */
+export function planFromEnv(opts: { linkedin?: boolean } = {}): PlanOptions {
+  const num = (k: string, d: number) => (Number.isFinite(Number(process.env[k])) && process.env[k] !== undefined && process.env[k] !== "" ? Number(process.env[k]) : d);
+  return {
+    creditBudget: num("TAVILY_MONTHLY_BUDGET", 900),
+    creditsBaseline: num("TAVILY_CREDITS_BASELINE", 0),
+    linkedin: opts.linkedin ?? false,
+    recentHours: num("RECENT_CHECK_HOURS", 36),
+    coldDays: num("COLD_CHECK_DAYS", 6.5),
+  };
+}
+
+export async function triggerRefresh(rdb: Db, trigger: "cron" | "manual", plan: PlanOptions = planFromEnv()): Promise<TriggerResult> {
   if (trigger === "manual") {
     const active = (await rdb.query(`select 1 from runs where status = 'running'`)).rowCount > 0;
     if (!active) {
@@ -27,7 +40,7 @@ export async function triggerRefresh(rdb: Db, trigger: "cron" | "manual"): Promi
       if (wait !== undefined && wait > 0) return { state: "throttled", retry_after_s: wait };
     }
   }
-  return startRun(rdb, trigger);
+  return startRun(rdb, trigger, plan);
 }
 
 export const MAX_CHAIN = 20; // 82 investors ≈ 3 chunks; this only stops a runaway loop

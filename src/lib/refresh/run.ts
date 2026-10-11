@@ -1,4 +1,5 @@
 import type { Db } from "@/lib/db";
+import { planRun, type PlanOptions } from "./plan";
 import { processInvestor, zeroCounters, type ItemResult } from "./process";
 import type { Deps, InvestorRow } from "./research";
 
@@ -12,9 +13,9 @@ export const ITEM_MAX_ATTEMPTS = 3;
 export const STALE_ITEM_SECS = 300; // an item "running" this long belongs to a dead invocation
 export const STALE_RUN_SECS = 600; // a run with no heartbeat this long is interrupted → resumable
 
-export type StartState = "started" | "resumed" | "already_running";
+export type StartState = "started" | "resumed" | "already_running" | "nothing_due";
 
-export async function startRun(rdb: Db, trigger: "cron" | "manual"): Promise<{ run_id: string; state: StartState }> {
+export async function startRun(rdb: Db, trigger: "cron" | "manual", plan?: PlanOptions): Promise<{ run_id: string; state: StartState }> {
   const active = (await rdb.query<{ id: string; stale: boolean }>(
     `select id, heartbeat_at < now() - make_interval(secs => $1) as stale from runs where status = 'running'`,
     [STALE_RUN_SECS],
@@ -31,11 +32,25 @@ export async function startRun(rdb: Db, trigger: "cron" | "manual"): Promise<{ r
   }
   try {
     return await rdb.tx(async (q) => {
-      const run = (await q.query<{ id: string }>(`insert into runs (trigger_type) values ($1) returning id`, [trigger])).rows[0]!;
-      const n = await q.query(`insert into run_items (run_id, investor_id) select $1, id from investors`, [run.id]);
-      await q.query(`update runs set investors_total = $2 where id = $1`, [run.id, n.rowCount]);
-      await q.query(`insert into audit_logs (run_id, event, detail) values ($1, 'run_started', $2::jsonb)`, [run.id, JSON.stringify({ trigger, investors: n.rowCount })]);
-      return { run_id: run.id, state: "started" as const };
+      // Without plan options every investor is searched (tests, ad-hoc use). Production passes a plan so that
+      // free-tier search credits go where they are worth spending.
+      const everyone = plan ? null : (await q.query<{ id: string }>(`select id from investors`)).rows.map((r) => r.id);
+      const p = plan ? await planRun(q, plan) : { ids: everyone!, skipped: { recent: 0, cold: 0, budget: 0 }, cost: everyone!.length, remaining: null };
+      const skipped = p.skipped.recent + p.skipped.cold + p.skipped.budget;
+      const nothing = p.ids.length === 0;
+      const run = (await q.query<{ id: string }>(
+        `insert into runs (trigger_type, include_linkedin, skipped, plan, status, completed_at, summary)
+         values ($1, $2, $3, $4::jsonb, $5, $6, $7) returning id`,
+        [
+          trigger, !!plan?.linkedin, skipped, JSON.stringify({ ...p.skipped, expected_searches: p.cost, credits_remaining_before: p.remaining }),
+          nothing ? "succeeded" : "running", nothing ? new Date().toISOString() : null,
+          nothing ? `Nothing due: ${skipped} investor${skipped === 1 ? " was" : "s were"} checked recently or are cold (no credits used)` : null,
+        ],
+      )).rows[0]!;
+      if (!nothing) await q.query(`insert into run_items (run_id, investor_id) select $1, unnest($2::uuid[])`, [run.id, p.ids]);
+      await q.query(`update runs set investors_total = $2 where id = $1`, [run.id, p.ids.length]);
+      await q.query(`insert into audit_logs (run_id, event, detail) values ($1, 'run_started', $2::jsonb)`, [run.id, JSON.stringify({ trigger, investors: p.ids.length, skipped: p.skipped, expected_searches: p.cost, linkedin: !!plan?.linkedin })]);
+      return { run_id: run.id, state: nothing ? ("nothing_due" as const) : ("started" as const) };
     });
   } catch (e) {
     // Lost a race with a concurrent start: the partial unique index guarantees a single active run.
@@ -69,6 +84,12 @@ export async function runChunk(rdb: Db, deps: Deps, runId: string, o: ChunkOptio
   const maxItems = o.maxItems ?? Infinity;
   const deadline = Date.now() + budget;
   let claimedTotal = 0;
+
+  // The run decides whether LinkedIn is searched (an explicit deps.linkedin, as in tests, wins).
+  if (deps.linkedin === undefined) {
+    const flag = (await rdb.query<{ include_linkedin: boolean }>(`select include_linkedin from runs where id = $1`, [runId])).rows[0];
+    deps = { ...deps, linkedin: !!flag?.include_linkedin };
+  }
 
   await rdb.query(
     `update run_items set status = 'pending', error = 'interrupted; re-queued'
@@ -127,7 +148,7 @@ async function processOne(rdb: Db, deps: Deps, runId: string, investorId: string
     `update runs set heartbeat_at = now(),
         investors_processed = investors_processed + $2, sources_checked = sources_checked + $3,
         signals_discovered = signals_discovered + $4, signals_accepted = signals_accepted + $5,
-        duplicates_removed = duplicates_removed + $6, records_updated = records_updated + $7,
+        duplicates_removed = duplicates_removed + $6, records_updated = records_updated + $7, search_calls = search_calls + $10,
         error_count = error_count + $8,
         error_details = case when $8 = 1 and jsonb_array_length(error_details) < 100
                              then error_details || $9::jsonb else error_details end
@@ -136,6 +157,7 @@ async function processOne(rdb: Db, deps: Deps, runId: string, investorId: string
       runId, terminal ? 1 : 0, c.sources_checked, c.signals_discovered, c.signals_accepted, c.duplicates_removed, c.records_updated,
       result.ok ? 0 : 1,
       JSON.stringify([{ investor_id: investorId, attempt: attempts, error: result.error, final: terminal }]),
+      c.search_calls,
     ],
   );
 }

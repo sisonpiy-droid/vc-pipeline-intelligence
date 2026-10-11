@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const rdb = asRefresh(getDb());
   const r = await triggerRefresh(rdb, "cron");
   if (r.state === "throttled") return NextResponse.json(r, { status: 429 }); // never true for cron; keeps the type honest
-  if (r.state === "already_running") return NextResponse.json(r, { status: 200 }); // an overlapping trigger is a no-op
+  if (r.state === "already_running" || r.state === "nothing_due") return NextResponse.json(r, { status: 200 }); // overlap, or nothing worth searching
   after(() => work(rdb, productionDeps(), r.run_id, req.nextUrl.origin));
   return NextResponse.json(r, { status: 202 });
 }

@@ -73,6 +73,8 @@ export interface ResearchResult {
   pageFetchFailures: number;
   /** Things that really limited what we could judge (a page we needed but could not read, a secondary search that failed). Only these make coverage 'partial'. */
   incompleteSources: number;
+  /** Metered search calls made (1 main + 1 if LinkedIn). Failed calls count: the provider may still bill them. */
+  searchCalls: number;
 }
 
 const MAX_HITS = 8;
@@ -107,12 +109,13 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
   const now = deps.now();
   const rejected: Rejected[] = [];
   const coverage: CoverageEntry[] = [];
-  const base = { rejected, coverage, skippedKnown: 0, sourcesChecked: 0, pageFetchFailures: 0, incompleteSources: 0 };
+  const base = { rejected, coverage, skippedKnown: 0, sourcesChecked: 0, pageFetchFailures: 0, incompleteSources: 0, searchCalls: 0 };
   const officialHost = inv.website_url ? hostOf(inv.website_url) : null;
 
   let hits: SearchHit[];
   try {
     base.sourcesChecked++;
+    base.searchCalls++;
     hits = await deps.search.search({ query: buildQuery(inv), startDate: windowStart(now), endDate: isoDay(now), maxResults: MAX_HITS });
     coverage.push({ source: `${deps.search.name}_search`, status: hits.length ? "ok" : "empty", result_count: hits.length, error_category: null, note: null });
   } catch (e) {
@@ -124,6 +127,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
   if (deps.linkedin) {
     try {
       base.sourcesChecked++;
+      base.searchCalls++;
       const li = await deps.search.search({
         query: buildQuery(inv), startDate: windowStart(now), endDate: isoDay(now), maxResults: MAX_LINKEDIN_HITS, includeDomains: ["linkedin.com"], allowUndated: true,
       });

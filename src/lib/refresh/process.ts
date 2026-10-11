@@ -13,8 +13,10 @@ export interface Counters {
   duplicates_removed: number;
   records_updated: number;
   ai_calls: number;
+  /** Metered search-provider calls made (the free-tier credit cost). */
+  search_calls: number;
 }
-export const zeroCounters = (): Counters => ({ sources_checked: 0, signals_discovered: 0, signals_accepted: 0, duplicates_removed: 0, records_updated: 0, ai_calls: 0 });
+export const zeroCounters = (): Counters => ({ sources_checked: 0, signals_discovered: 0, signals_accepted: 0, duplicates_removed: 0, records_updated: 0, ai_calls: 0, search_calls: 0 });
 
 export interface ItemResult {
   ok: boolean;
@@ -125,6 +127,7 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
 
   const res = await research(deps, inv, known);
   counters.sources_checked += res.sourcesChecked;
+  counters.search_calls += res.searchCalls;
   counters.signals_discovered = res.candidates.length + res.rejected.length;
   counters.duplicates_removed = res.rejected.filter((r) => r.reason === "duplicate_event").length;
 

@@ -23,7 +23,7 @@ import { asRefresh } from "@/lib/refresh/write";
 
 const SECRET = "cron-secret-value-123";
 const PASS = "let-me-in-please";
-const ENV = { DATABASE_URL: "postgres://x", GEMINI_API_KEY: "g-key-AAA", TAVILY_API_KEY: "t-key-BBB", CRON_SECRET: SECRET, ADMIN_PASSCODE: PASS };
+const ENV = { DATABASE_URL: "postgres://x", GEMINI_API_KEY: "g-key-AAA", TAVILY_API_KEY: "t-key-BBB", CRON_SECRET: SECRET, ADMIN_PASSCODE: PASS, RECENT_CHECK_HOURS: "0", COLD_CHECK_DAYS: "0", TAVILY_MONTHLY_BUDGET: "100000" };
 const saved: Record<string, string | undefined> = {};
 
 const req = (path: string, init: { method?: string; headers?: Record<string, string>; body?: unknown } = {}) =>

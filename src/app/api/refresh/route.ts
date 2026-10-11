@@ -2,7 +2,7 @@ import { after, NextRequest, NextResponse } from "next/server";
 import { checkAdmin, clientIp } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { missingEnv, REFRESH_ENV } from "@/lib/env";
-import { productionDeps, triggerRefresh, work } from "@/lib/refresh/service";
+import { planFromEnv, productionDeps, triggerRefresh, work } from "@/lib/refresh/service";
 import { asRefresh } from "@/lib/refresh/write";
 
 export const maxDuration = 300;
@@ -22,9 +22,11 @@ export async function POST(req: NextRequest) {
   if (missing.length) return NextResponse.json({ error: "server_misconfigured", missing }, { status: 500 });
 
   const rdb = asRefresh(getDb());
-  const r = await triggerRefresh(rdb, "manual");
+  // Optional JSON body {"linkedin": true}: also search LinkedIn (roughly doubles the credits this run uses).
+  const body = (await req.json().catch(() => null)) as { linkedin?: unknown } | null;
+  const r = await triggerRefresh(rdb, "manual", planFromEnv({ linkedin: body?.linkedin === true }));
   if (r.state === "throttled") return NextResponse.json(r, { status: 429, headers: { "retry-after": String(r.retry_after_s) } });
-  if (r.state === "already_running") return NextResponse.json(r, { status: 200 });
+  if (r.state === "already_running" || r.state === "nothing_due") return NextResponse.json(r, { status: 200 });
   after(() => work(rdb, productionDeps(), r.run_id, req.nextUrl.origin));
   return NextResponse.json(r, { status: 202 });
 }
