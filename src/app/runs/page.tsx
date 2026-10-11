@@ -6,6 +6,7 @@ import { getBudget, getFunnel } from "@/lib/brief";
 import { isOpenDemo } from "@/lib/demo";
 import { load } from "@/lib/page";
 import { getCoverageSummary, getFailedItems, listAudit, listRuns, type RunRow } from "@/lib/read";
+import { getProviderHealth } from "@/lib/refresh/telemetry";
 import { CRON_SCHEDULE, nextScheduledRun } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
@@ -23,10 +24,10 @@ export default async function Runs() {
     const runs = await listRuns(db, 25);
     const processed = runs.find((r) => r.investors_total > 0);
     const budget = await getBudget(db, Number(process.env.TAVILY_MONTHLY_BUDGET ?? 900), Number(process.env.TAVILY_CREDITS_BASELINE ?? 0));
-    return { runs, budget, funnel: processed ? await getFunnel(db, processed.id) : null, funnelRun: processed ?? null, coverage: await getCoverageSummary(db), audit: await listAudit(db, 40), failed: runs[0] ? await getFailedItems(db, runs[0].id) : [] };
+    return { runs, budget, funnel: processed ? await getFunnel(db, processed.id) : null, funnelRun: processed ?? null, health: await getProviderHealth(db, 7), coverage: await getCoverageSummary(db), audit: await listAudit(db, 40), failed: runs[0] ? await getFailedItems(db, runs[0].id) : [] };
   });
   if (!res.ok) return <SetupError message={res.error} />;
-  const { runs, coverage, audit, failed, budget, funnel, funnelRun } = res.data;
+  const { runs, coverage, audit, failed, budget, funnel, funnelRun, health } = res.data;
   const latest = runs[0];
   const lastGood = runs.find((r) => r.status === "succeeded" || r.status === "partial");
   const sources = [...new Set(coverage.map((c) => c.source))];
@@ -44,6 +45,43 @@ export default async function Runs() {
         <Stat label="Next scheduled" value={fmtDateIST(nextScheduledRun(new Date()))} hint={`${fmtDateTime(nextScheduledRun(new Date())).split(", ")[1]} · cron ${CRON_SCHEDULE} (UTC) · Vercel Hobby may start up to ~1 h late`} />
         <Stat label="Errors in latest run" value={latest?.error_count ?? 0} tone={latest?.error_count ? "bad" : undefined} hint={latest ? `${failed.length} investor${failed.length === 1 ? "" : "s"} failed after retries` : undefined} />
       </div>
+
+      <section aria-labelledby="health-h" className="mt-10">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="health-h" className="text-lg font-semibold tracking-tight">Provider health, last 7 days</h2>
+          <span className="text-xs text-muted">Measured on every external call a refresh makes</span>
+        </div>
+        {health.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">No calls measured yet. Health is recorded from the next refresh onward.</p>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[40rem] text-left text-sm">
+              <caption className="sr-only">Calls, failure rate and latency per external provider</caption>
+              <thead className="border-b border-line text-xs uppercase tracking-wide text-muted">
+                <tr><th scope="col" className="py-2 pr-3 font-medium">Provider</th><th scope="col" className="px-3 py-2 text-right font-medium">Calls</th><th scope="col" className="px-3 py-2 font-medium">Success</th><th scope="col" className="px-3 py-2 text-right font-medium">Median</th><th scope="col" className="px-3 py-2 text-right font-medium">95th pct</th><th scope="col" className="px-3 py-2 font-medium">Most common failure</th></tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {health.map((h) => {
+                  const okPct = Math.round(((h.calls - h.failed) / h.calls) * 100);
+                  return (
+                    <tr key={h.provider}>
+                      <th scope="row" className="py-3 pr-3 font-medium">{{ tavily: "Tavily search", gemini: "Gemini Flash", page_fetch: "Page fetch (direct HTTP)" }[h.provider] ?? h.provider}</th>
+                      <td className="num px-3 py-3 text-right">{h.calls}</td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-2"><span className="num w-10">{okPct}%</span><span className="h-1.5 w-24 overflow-hidden rounded-full bg-neutral-soft"><span className={`block h-full rounded-full ${okPct >= 95 ? "bg-accent" : okPct >= 80 ? "bg-warn" : "bg-bad"}`} style={{ width: `${okPct}%` }} /></span></div>
+                      </td>
+                      <td className="num px-3 py-3 text-right">{h.p50_ms} ms</td>
+                      <td className="num px-3 py-3 text-right">{h.p95_ms} ms</td>
+                      <td className="px-3 py-3 text-xs text-muted">{h.top_errors.length ? h.top_errors.map((e) => `${e.category.replace(/_/g, " ")} ×${e.n}`).join(", ") : "none"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs leading-relaxed text-muted">Page fetches fail more often by design: some sites block automated access and the fetcher honours robots.txt, so a failed fetch is expected and is handled per investor (it never counts as "quiet").</p>
+          </div>
+        )}
+      </section>
 
       <section aria-labelledby="budget-h" className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">

@@ -3,6 +3,7 @@ import { planRun, type PlanOptions } from "./plan";
 import { processInvestor, zeroCounters, type ItemResult } from "./process";
 import { loadInvestor, rescoreAll } from "./rescore";
 import type { Deps } from "./research";
+import { flushCalls, instrument, type CallRecord } from "./telemetry";
 
 /**
  * Run lifecycle. A "run" is a row in `runs` plus one `run_items` row per investor — a durable queue.
@@ -124,13 +125,15 @@ export async function runChunk(rdb: Db, deps: Deps, runId: string, o: ChunkOptio
 
 async function processOne(rdb: Db, deps: Deps, runId: string, investorId: string, attempts: number): Promise<void> {
   let result: ItemResult = { ok: false, retryable: true, error: "unknown", counters: zeroCounters() };
+  const calls: CallRecord[] = [];
   try {
     const inv = await loadInvestor(rdb, investorId); // explicit column list: the refresh role cannot read personal_notes / contact_history
     if (!inv) throw new Error("investor no longer exists");
-    result = await processInvestor(rdb, deps, runId, inv);
+    result = await processInvestor(rdb, instrument(deps, (r) => calls.push(r)), runId, inv);
   } catch (e) {
     result = { ok: false, retryable: true, error: `internal:${String((e as Error).message ?? e).slice(0, 200)}`, counters: zeroCounters() };
   }
+  await flushCalls(rdb, runId, calls); // measured latency and outcome of every external call this item made
 
   const terminal = result.ok || !result.retryable || attempts >= ITEM_MAX_ATTEMPTS;
   if (!result.ok) {
