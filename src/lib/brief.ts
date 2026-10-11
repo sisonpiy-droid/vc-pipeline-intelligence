@@ -58,13 +58,13 @@ export interface Brief {
 
 const MOVE_MIN = 5; // points; smaller changes are noise between runs
 
-export async function getBrief(db: Db, today: string): Promise<Brief> {
+export async function getBrief(db: Db, today: string, demo = false): Promise<Brief> {
   const runs = (await db.query<BriefRun>(
     `select id, trigger_type, status, completed_at::text as completed_at, investors_total, skipped, search_calls
-       from runs where status in ('succeeded', 'partial') and investors_total > 0 order by completed_at desc limit 2`,
+       from runs where status in ('succeeded', 'partial') and investors_total > 0 and is_demo = $1 order by completed_at desc limit 2`, [demo],
   )).rows;
   const run = runs[0] ?? null;
-  const pipeline = await listPipeline(db, today);
+  const pipeline = await listPipeline(db, today, demo);
 
   let movers: Mover[] = [];
   let newSignals: NewSignal[] = [];

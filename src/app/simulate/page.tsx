@@ -1,4 +1,5 @@
 import { Simulator } from "@/components/Simulator";
+import { isDemoView } from "@/lib/demoData/mode";
 import { Empty, PageTitle, SetupError } from "@/components/ui";
 import { load, today } from "@/lib/page";
 import { getSimulationInputs } from "@/lib/simulate";
@@ -7,7 +8,8 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "What-if ranking" };
 
 export default async function SimulatePage() {
-  const res = await load((db) => getSimulationInputs(db));
+  const demo = await isDemoView();
+  const res = await load((db) => getSimulationInputs(db, demo));
   if (!res.ok) return <SetupError message={res.error} />;
   return (
     <>

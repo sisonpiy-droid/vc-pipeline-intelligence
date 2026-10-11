@@ -62,7 +62,7 @@ export async function reviewInvestorSignals(
 export async function reviewStored(rdb: Db, ai: AiClient, now: Date): Promise<ReviewSummary> {
   const invs = (await rdb.query<{ id: string; firm_name: string; aliases: string[]; entity_type: string }>(
     `select distinct i.id, i.firm_name, i.aliases, i.entity_type from investors i join signals s on s.investor_id = i.id
-      where s.verification_status = 'verified' and s.duplicate_of is null and s.reviewed_at is null and s.relevance_score >= ${RELEVANCE_MIN} and s.published_at >= $1::date
+      where not i.is_demo and s.verification_status = 'verified' and s.duplicate_of is null and s.reviewed_at is null and s.relevance_score >= ${RELEVANCE_MIN} and s.published_at >= $1::date
       order by i.firm_name`,
     [windowStart(now)],
   )).rows;

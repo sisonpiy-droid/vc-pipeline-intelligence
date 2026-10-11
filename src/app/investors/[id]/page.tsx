@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CaretLeft, Globe, LinkedinLogo, LockSimple, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { CompareToggle } from "@/components/CompareToggle";
 import { CopyButton } from "@/components/CopyButton";
+import { EmailDraft } from "@/components/EmailDraft";
 import { FounderEdit } from "@/components/FounderEdit";
 import { ScoreTrend } from "@/components/ScoreTrend";
 import { SignalCard } from "@/components/SignalCard";
@@ -114,6 +115,7 @@ export default async function InvestorPage({ params }: Props) {
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(state)}`}>{st.label}</Pill>
             {action && <Pill tone={ACTION_TONE[action]} href={`/pipeline?action=${action}`}>{ACTION_LABEL[action]}</Pill>}
+            {i.is_demo ? <Pill tone="warn" title="Synthetic demo investor: not real intelligence">Demo account</Pill> : null}
             {latest?.status === "failed" && <Pill tone="bad">Last refresh failed</Pill>}
             <CompareToggle id={String(i.id)} name={String(i.firm_name)} />
           </div>
@@ -129,7 +131,7 @@ export default async function InvestorPage({ params }: Props) {
             <div className="mt-5 max-w-[62ch] rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Suggested opening angle</p>
-                <CopyButton text={outcome.angle} />
+                <span className="flex items-center gap-1"><EmailDraft to={i.contact_email as string | null} angle={outcome.angle} demo={!!i.is_demo} /><CopyButton text={outcome.angle} /></span>
               </div>
               <p className="mt-1.5 text-sm leading-relaxed">{outcome.angle}</p>
               <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified evidence only. Edit before using; nothing is sent.</p>
@@ -333,7 +335,7 @@ export default async function InvestorPage({ params }: Props) {
                 />
               )}
               {!hide && (
-                <FounderEdit id={String(i.id)} status={String(i.relationship_status)} lastContact={(i.last_contact_date as string | null) ?? null} notes={(i.personal_notes as string | null) ?? null} needPass={!isOpenDemo()} />
+                <FounderEdit id={String(i.id)} status={String(i.relationship_status)} lastContact={(i.last_contact_date as string | null) ?? null} notes={(i.personal_notes as string | null) ?? null} needPass={!isOpenDemo()} demo={!!i.is_demo} />
               )}
             </div>
           </section>

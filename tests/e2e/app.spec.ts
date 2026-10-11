@@ -147,6 +147,47 @@ test("the API reference lists every route", async ({ page }) => {
   for (const p of ["/api/health", "/api/cron/refresh", "/api/refresh", "/api/rescore", "/api/investors/[id]/founder"]) await expect(page.getByRole("heading", { name: p, exact: true })).toBeVisible();
 });
 
+test("the brand in the header takes you to the home screen from any page", async ({ page }) => {
+  await page.goto("/runs");
+  await page.getByRole("link", { name: /go to the home screen/i }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("investors have a fresh, relevant signal");
+});
+
+test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, reset and simulate are demo-only, and real data never appears", async ({ page, request }) => {
+  const live = await (await request.get("/api/palette")).json();
+  expect(live.investors.some((i: { name: string }) => /piyush/i.test(i.name))).toBe(false);
+
+  await page.goto("/demo/on");
+  await expect(page).toHaveURL(/\/$/);
+  const banner = page.getByRole("region", { name: "Demo mode" });
+  await expect(banner).toContainText("This is a demo account");
+
+  await page.goto("/pipeline");
+  await expect(page.locator("tbody tr")).toHaveCount(6);
+  for (const c of ["High priority", "Low priority", "Stale signal", "Unverified signal", "Duplicate signal", "Irrelevant signal"]) await expect(page.getByRole("link", { name: `Piyush: ${c} (demo)` })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Blume Ventures" })).toHaveCount(0); // real investors are not mixed in
+
+  await page.getByRole("link", { name: "Piyush: High priority (demo)" }).click();
+  await expect(page.getByText("Demo account").first()).toBeVisible();
+  const mail = page.getByRole("link", { name: "Open in email app" });
+  await expect(mail).toHaveAttribute("href", /^mailto:sisonpiy@gmail\.com\?subject=%5BDEMO%5D/);
+  await expect(page.getByRole("link", { name: /Open in Gmail/ })).toHaveAttribute("href", /to=sisonpiy%40gmail\.com/);
+  await page.getByRole("button", { name: "Edit relationship" }).click();
+  await expect(page.getByLabel("Personal notes")).toHaveAttribute("placeholder", "This is a demo account");
+
+  await banner.getByRole("button", { name: "Run simulated refresh" }).click();
+  await expect(banner.getByRole("status")).toContainText("No searches or AI calls were made");
+  await banner.getByRole("button", { name: "Reset demo data" }).click();
+  await expect(banner.getByRole("status")).toContainText("Real data was not touched");
+
+  await banner.getByRole("link", { name: "Exit demo mode" }).click();
+  await page.goto("/pipeline");
+  await expect(page.getByText(/Piyush/)).toHaveCount(0);
+  await expect(page.locator("tbody tr").first()).toBeVisible();
+  expect(await page.locator("tbody tr").count()).toBeGreaterThan(20); // the real investors are back, untouched
+});
+
 for (const path of ["/", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare"]) {
   test(`phone width: ${path} has no horizontal page scroll and no console errors`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });

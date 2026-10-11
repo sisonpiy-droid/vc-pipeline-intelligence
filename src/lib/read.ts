@@ -61,6 +61,10 @@ export interface LeadSignal {
 export interface PipelineRow {
   id: string;
   firm_name: string;
+  /** Synthetic demo investor (never real intelligence). */
+  is_demo: boolean;
+  /** Where a draft can be opened in the founder's own mail app. Null for real investors: contact details are never invented. */
+  contact_email: string | null;
   entity_type: string;
   role_title: string | null;
   sectors: string[];
@@ -119,9 +123,10 @@ interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" |
   lead_relevance: number | null;
 }
 
-export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]> {
+/** `demo` selects which universe to read: real investors (default) or the synthetic demo investors. They are never mixed. */
+export async function listPipeline(db: Db, today: string, demo = false): Promise<PipelineRow[]> {
   const { rows } = await db.query<RawRow>(
-    `select i.id, i.firm_name, i.entity_type, i.role_title, i.sectors, i.stage_preference, i.geography, i.relationship_status, i.last_contact_date::text as last_contact_date,
+    `select i.id, i.firm_name, i.is_demo, i.contact_email, i.entity_type, i.role_title, i.sectors, i.stage_preference, i.geography, i.relationship_status, i.last_contact_date::text as last_contact_date,
             i.follow_up_score, i.recommended_action, i.last_signal_date::text as last_signal_date, i.signal_summary,
             i.website_url, i.verification_status,
             li.status as latest_status, li.error as latest_error, li.finished_at as latest_finished, li.outcome as latest_outcome,
@@ -154,8 +159,9 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
                            where s.investor_id = i.id and s.verification_status = 'verified' and s.duplicate_of is null
                              and s.published_at >= $1::date and ${effRel("s")} >= ${RELEVANCE_MIN}
                            order by (s.id = sh.lead_signal_id) desc, s.published_at desc, s.relevance_score desc
-                           limit 1) ld on true`,
-    [windowStart(new Date(`${today}T00:00:00Z`))],
+                           limit 1) ld on true
+      where i.is_demo = $2`,
+    [windowStart(new Date(`${today}T00:00:00Z`)), demo],
   );
 
   return rows.map((r): PipelineRow => {
@@ -295,6 +301,7 @@ export interface FeedSignal {
   sector_match: SectorMatch | null;
   firm_acting: boolean | null;
   review_note: string | null;
+  is_demo: boolean;
   /** The page's own title, when `headline` was rewritten by the review pass. */
   raw_headline: string | null;
 }
@@ -305,17 +312,17 @@ export interface FeedFilters {
   show?: string; // "relevant" (default) | "verified" | "review"
 }
 
-export async function listSignals(db: Db, today: string, f: FeedFilters = {}): Promise<FeedSignal[]> {
+export async function listSignals(db: Db, today: string, f: FeedFilters = {}, demo = false): Promise<FeedSignal[]> {
   const show = f.show ?? "relevant";
   const { rows } = await db.query<FeedSignal>(
     `select s.id, s.investor_id, i.firm_name, coalesce(s.display_headline, s.headline) as headline, case when s.display_headline is not null then s.headline end as raw_headline,
             s.source_name, s.url, s.published_at::text as published_at,
             s.retrieved_at::text as retrieved_at, s.signal_type, s.evidence_excerpt, s.summary, s.relevance_explanation,
             s.relevance_score, s.evidence_confidence, s.date_source, s.verification_status, s.rejection_reason, s.new_capital, i.website_url as investor_website,
-            s.sector_match, s.firm_acting, s.review_note,
+            s.sector_match, s.firm_acting, s.review_note, i.is_demo,
             (select count(*)::int from signals d where d.duplicate_of = s.id) as duplicates
        from signals s join investors i on i.id = s.investor_id
-      where s.duplicate_of is null
+      where s.duplicate_of is null and i.is_demo = $5
         and ( ($1 = 'review' and s.verification_status = 'needs_review')
            or ($1 <> 'review' and s.verification_status = 'verified' and s.published_at >= $2::date
                and ($1 = 'verified' or ${effRel("s")} >= ${RELEVANCE_MIN})) )
@@ -323,7 +330,7 @@ export async function listSignals(db: Db, today: string, f: FeedFilters = {}): P
         and ($4::uuid is null or s.investor_id = $4)
       order by s.published_at desc nulls last, s.relevance_score desc nulls last
       limit 300`,
-    [show, windowStart(new Date(`${today}T00:00:00Z`)), f.category ?? null, f.investor ?? null],
+    [show, windowStart(new Date(`${today}T00:00:00Z`)), f.category ?? null, f.investor ?? null, demo],
   );
   return rows;
 }
@@ -336,7 +343,7 @@ export async function getInvestor(db: Db, id: string, today: string) {
             fit_rationale, sectors, stage_preference, geography, notable_investments, source_urls, source_ref, verification_status,
             verification_note, data_flags, partner_name, partner_profile_url, last_contact_date::text as last_contact_date,
             relationship_status, contact_history, personal_notes, last_signal_date::text as last_signal_date, signal_summary,
-            follow_up_score, recommended_action
+            follow_up_score, recommended_action, is_demo, contact_email
        from investors where id = $1`,
     [id],
   )).rows[0] as Record<string, unknown> | undefined;
@@ -345,7 +352,7 @@ export async function getInvestor(db: Db, id: string, today: string) {
     `select s.id, s.investor_id, i.firm_name, coalesce(s.display_headline, s.headline) as headline, case when s.display_headline is not null then s.headline end as raw_headline,
             s.source_name, s.url, s.published_at::text as published_at, s.retrieved_at::text as retrieved_at,
             s.signal_type, s.evidence_excerpt, s.summary, s.relevance_explanation, s.relevance_score, s.evidence_confidence, s.date_source,
-            s.verification_status, s.rejection_reason, s.new_capital, i.website_url as investor_website, s.sector_match, s.firm_acting, s.review_note,
+            s.verification_status, s.rejection_reason, s.new_capital, i.website_url as investor_website, s.sector_match, s.firm_acting, s.review_note, i.is_demo,
             (select count(*)::int from signals d where d.duplicate_of = s.id) as duplicates
        from signals s join investors i on i.id = s.investor_id
       where s.investor_id = $1 and s.duplicate_of is null
@@ -394,25 +401,25 @@ export interface RunRow {
 const RUN_COLS = `id, trigger_type, status, started_at::text as started_at, heartbeat_at::text as heartbeat_at, completed_at::text as completed_at,
   investors_total, investors_processed, sources_checked, signals_discovered, signals_accepted, duplicates_removed, records_updated, error_count, search_calls, skipped, summary, error_details`;
 
-export async function listRuns(db: Db, limit = 25): Promise<RunRow[]> {
-  return (await db.query<RunRow>(`select ${RUN_COLS} from runs order by started_at desc limit $1`, [limit])).rows;
+export async function listRuns(db: Db, limit = 25, demo = false): Promise<RunRow[]> {
+  return (await db.query<RunRow>(`select ${RUN_COLS} from runs where is_demo = $2 order by started_at desc limit $1`, [limit, demo])).rows;
 }
 
-export async function getOverview(db: Db, today: string) {
-  const pipeline = await listPipeline(db, today);
-  const runs = await listRuns(db, 5);
+export async function getOverview(db: Db, today: string, demo = false) {
+  const pipeline = await listPipeline(db, today, demo);
+  const runs = await listRuns(db, 5, demo);
   const active = runs.find((r) => r.status === "running") ?? null;
   const lastGood = (await db.query<{ completed_at: string; status: string }>(
-    `select completed_at::text as completed_at, status from runs where status in ('succeeded','partial') order by completed_at desc limit 1`,
+    `select completed_at::text as completed_at, status from runs where status in ('succeeded','partial') and is_demo = $1 order by completed_at desc limit 1`, [demo],
   )).rows[0] ?? null;
   const byDisplay = { active: 0, quiet: 0, review: 0, failed: 0 };
   for (const p of pipeline) byDisplay[displayStatus(p.state)]++;
   return { pipeline, runs, active, lastGood, counts: { total: pipeline.length, ...byDisplay } };
 }
 
-export async function getCoverageSummary(db: Db) {
+export async function getCoverageSummary(db: Db, demo = false) {
   return (await db.query<{ source: string; status: string; n: number }>(
-    `select source, status, count(*)::int as n from source_coverage group by source, status order by source, status`,
+    `select c.source, c.status, count(*)::int as n from source_coverage c join investors i on i.id = c.investor_id where i.is_demo = $1 group by c.source, c.status order by c.source, c.status`, [demo],
   )).rows;
 }
 
@@ -425,12 +432,12 @@ export async function getFailedItems(db: Db, runId: string) {
 }
 
 /** Small query for the global status bar: current run and last completed refresh. */
-export async function getRunBar(db: Db) {
-  const [run] = await listRuns(db, 1);
+export async function getRunBar(db: Db, demo = false) {
+  const [run] = await listRuns(db, 1, demo);
   const lastGood = (await db.query<{ completed_at: string; status: string; error_count: number }>(
-    `select completed_at::text as completed_at, status, error_count from runs where status in ('succeeded','partial') order by completed_at desc limit 1`,
+    `select completed_at::text as completed_at, status, error_count from runs where status in ('succeeded','partial') and is_demo = $1 order by completed_at desc limit 1`, [demo],
   )).rows[0] ?? null;
-  const total = (await db.query<{ n: number }>(`select count(*)::int as n from investors`)).rows[0]!.n;
+  const total = (await db.query<{ n: number }>(`select count(*)::int as n from investors where is_demo = $1`, [demo])).rows[0]!.n;
   return { latest: run ?? null, active: run?.status === "running" ? run : null, lastGood, total };
 }
 
@@ -439,10 +446,11 @@ export interface AuditRow {
 }
 
 /** Recent audit events. `detail` never contains notes or contact history (nothing in the pipeline can read them). */
-export async function listAudit(db: Db, limit = 40): Promise<AuditRow[]> {
+export async function listAudit(db: Db, limit = 40, demo = false): Promise<AuditRow[]> {
   return (await db.query<AuditRow>(
     `select a.id::text as id, a.at::text as at, a.run_id, i.firm_name, a.level, a.event, a.detail
-       from audit_logs a left join investors i on i.id = a.investor_id order by a.at desc, a.id desc limit $1`,
-    [limit],
+       from audit_logs a left join investors i on i.id = a.investor_id left join runs r on r.id = a.run_id
+      where coalesce(i.is_demo, r.is_demo, false) = $2 order by a.at desc, a.id desc limit $1`,
+    [limit, demo],
   )).rows;
 }

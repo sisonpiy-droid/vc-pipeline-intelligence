@@ -76,6 +76,20 @@ export const ENDPOINTS: Endpoint[] = [
     limits: "Cannot write any signal-derived, profile or identity column. Audited by field name only, never by content. History is append-only.",
   },
   {
+    method: "POST", path: "/api/demo/reset",
+    summary: "Demo mode: deletes the synthetic demo investors (and only those, with the runs and audit lines they produced) and recreates the six labelled Piyush accounts. Real investors, signals, runs, notes and contact history are never touched.",
+    auth: { kind: "admin_passcode", detail: "Header x-admin-passcode; not required in open demo mode." },
+    responses: [{ status: 200, meaning: "{ removed, created, demo: true }" }, { status: 401, meaning: "Wrong passcode." }, { status: 429, meaning: "Too many wrong passcodes." }, { status: 503, meaning: "Not enabled on this server." }],
+    limits: "Every statement is scoped by the is_demo flag. No search credits or model calls.",
+  },
+  {
+    method: "POST", path: "/api/demo/simulate",
+    summary: "Demo mode: a simulated refresh. Re-scores the demo investors from their stored synthetic evidence and records a run labelled as simulated.",
+    auth: { kind: "admin_passcode", detail: "Header x-admin-passcode; not required in open demo mode." },
+    responses: [{ status: 200, meaning: "{ run_id, investors, changed, action_changes, simulated: true }" }, { status: 401, meaning: "Wrong passcode." }, { status: 429, meaning: "Too many wrong passcodes." }, { status: 503, meaning: "Not enabled on this server." }],
+    limits: "Writes only the four signal columns, as the restricted refresh role, and only on demo investors. No search credits or model calls.",
+  },
+  {
     method: "GET", path: "/api/palette",
     summary: "Investor names, scores and actions for the Ctrl+K search palette: the same facts the pipeline page shows.",
     auth: { kind: "none", detail: "Public read of dashboard facts; never notes or contact history." },

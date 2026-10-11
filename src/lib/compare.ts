@@ -19,9 +19,9 @@ export interface CompareItem {
   recent_scores: number[]; // oldest first
 }
 
-export async function getCompare(db: Db, ids: string[], today: string): Promise<CompareItem[]> {
+export async function getCompare(db: Db, ids: string[], today: string, demo = false): Promise<CompareItem[]> {
   if (ids.length === 0) return [];
-  const pipeline = await listPipeline(db, today);
+  const pipeline = await listPipeline(db, today, demo);
   const profiles = (await db.query<{ id: string; stage_preference: string | null; sectors: string[]; geography: string | null; thesis_verified: boolean; role_title: string | null }>(
     `select id, stage_preference, sectors, geography, thesis_verified, role_title from investors where id = any($1::uuid[])`, [ids],
   )).rows;

@@ -1,4 +1,5 @@
 import { Board, type BoardCard } from "@/components/Board";
+import { isDemoView } from "@/lib/demoData/mode";
 import { PageTitle, SetupError } from "@/components/ui";
 import { cadence } from "@/lib/cadence";
 import { isOpenDemo } from "@/lib/demo";
@@ -12,7 +13,8 @@ export const metadata = { title: "Outreach board" };
 const WORTH = new Set(["reach_out_now", "prepare_targeted_outreach", "research_further"]);
 
 export default async function BoardPage() {
-  const res = await load((db) => listPipeline(db, today()));
+  const demo = await isDemoView();
+  const res = await load((db) => listPipeline(db, today(), demo));
   if (!res.ok) return <SetupError message={res.error} />;
   const t = today();
   const toCard = (r: PipelineRow): BoardCard => ({

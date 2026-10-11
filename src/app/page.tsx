@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isDemoView } from "@/lib/demoData/mode";
 import type { CSSProperties } from "react";
 import { InvestorCard } from "@/components/InvestorCard";
 import { TopPicks } from "@/components/TopPicks";
@@ -33,7 +34,8 @@ function LedgerRow({ label, hint, value, href, tone }: { label: string; hint: st
 }
 
 export default async function Overview() {
-  const res = await load((db) => getOverview(db, today()));
+  const demo = await isDemoView();
+  const res = await load((db) => getOverview(db, today(), demo));
   if (!res.ok) return <SetupError message={res.error} />;
   const { pipeline, counts, active, lastGood, runs } = res.data;
 
@@ -69,13 +71,13 @@ export default async function Overview() {
             Ranked by a transparent follow-up score. Every recommendation links to the public evidence behind it, and investors with no verified signal are listed rather than hidden.
           </p>
           <div data-hero className="js-hide mt-6 flex flex-wrap items-center gap-3">
-            <Magnetic><RefreshButton needPass={!isOpenDemo()} /></Magnetic>
+            {demo ? <span className="text-sm text-muted">Demo mode: use “Run simulated refresh” in the banner above.</span> : <Magnetic><RefreshButton needPass={!isOpenDemo()} /></Magnetic>}
             <Link href="/signals" className="press rounded-lg px-3 py-1.5 text-sm font-medium text-muted hover:text-ink">Browse all signals</Link>
           </div>
         </HeroReveal>
 
         <dl className="reveal divide-y divide-line border-y border-line" style={idx(1)}>
-          <LedgerRow label="Tracked investors" hint="50 VC firms and 32 angels" value={counts.total} href="/pipeline" />
+          <LedgerRow label="Tracked investors" hint={demo ? "6 synthetic demo accounts" : "50 VC firms and 32 angels"} value={counts.total} href="/pipeline" />
           <LedgerRow label="Active signal, last 30 days" hint="verified and relevant" value={counts.active} href="/pipeline?state=active" tone="text-good" />
           <LedgerRow label="No verified signal" hint="every source answered" value={counts.quiet} href="/quiet" />
           <LedgerRow label="Activity unknown" hint="failed or partial, never counted as quiet" value={unknown} href="/quiet" tone={unknown ? "text-warn" : ""} />
@@ -111,7 +113,7 @@ export default async function Overview() {
             {rest.length > 0 && <span className="num text-xs text-muted">{rest.length} more to act on</span>}
           </div>
           {never ? (
-            <Empty title="No refresh has run yet" action={<RefreshButton label="Run the first refresh" needPass={!isOpenDemo()} />}>
+            <Empty title="No refresh has run yet" action={demo ? undefined : <RefreshButton label="Run the first refresh" needPass={!isOpenDemo()} />}>
               {counts.total} investors are imported. The first refresh searches public sources for activity in the last 30 days and scores each investor. Nothing is shown as a placeholder.
             </Empty>
           ) : rest.length === 0 && picks.length === 0 ? (

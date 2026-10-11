@@ -8,10 +8,10 @@ import { Pill } from "./ui";
 const STALE_MS = 10 * 60_000;
 
 /** Global status strip: what is running, when data was last refreshed, when it refreshes next. */
-export async function RunBar() {
+export async function RunBar({ demo = false }: { demo?: boolean }) {
   let d: Awaited<ReturnType<typeof getRunBar>>;
   try {
-    d = await getRunBar(getDb());
+    d = await getRunBar(getDb(), demo);
   } catch {
     return null; // pages show the actual error; the strip just stays quiet
   }
@@ -39,7 +39,7 @@ export async function RunBar() {
             )
           ) : d.latest ? (
             <Pill tone={d.latest.status === "succeeded" ? "good" : d.latest.status === "partial" ? "warn" : "bad"}>
-              {d.latest.status === "succeeded" ? "Last run succeeded" : d.latest.status === "partial" ? "Last run partial" : "Last run failed"}
+              {demo ? "Last simulated run " : "Last run "}{d.latest.status === "succeeded" ? "succeeded" : d.latest.status === "partial" ? "partial" : "failed"}
             </Pill>
           ) : (
             <Pill tone="neutral">No run yet</Pill>
@@ -55,8 +55,7 @@ export async function RunBar() {
           )}
         </Item>
         <Item k="Next">
-          <span className="font-medium">{fmtDateTime(nextScheduledRun(now))}</span>
-          <span className="text-muted"> · Mon &amp; Thu, ±1 h</span>
+          {demo ? <span className="font-medium text-muted">none: demo runs are simulated on request</span> : <><span className="font-medium">{fmtDateTime(nextScheduledRun(now))}</span><span className="text-muted"> · Mon &amp; Thu, ±1 h</span></>}
         </Item>
       </div>
     </div>

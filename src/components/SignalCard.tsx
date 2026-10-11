@@ -16,6 +16,7 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
         {sourceTier(s.source_name, s.investor_website) === "social" && <Pill tone="warn" title="A social-media post: counts less as evidence and cannot alone justify a cold approach">Social post</Pill>}
         {s.sector_match && <Pill tone={SECTOR_LABEL[s.sector_match]!.tone} title={SECTOR_LABEL[s.sector_match]!.help}>{SECTOR_LABEL[s.sector_match]!.label}</Pill>}
         {s.new_capital && <Pill tone="good" title="The investor announced a new fund, a close, or a larger cheque ceiling: capital is available to deploy">New fund capital</Pill>}
+        {s.is_demo && <Pill tone="warn" title="Synthetic: no real page exists behind this link">Synthetic</Pill>}
         {needsReview ? (
           <Pill tone="warn" title="Evidence was found but could not be verified yet">Needs review{s.rejection_reason ? `: ${s.rejection_reason.replace(/_/g, " ")}` : ""}</Pill>
         ) : (

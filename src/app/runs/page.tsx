@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isDemoView } from "@/lib/demoData/mode";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Card, Empty, PageTitle, Pill, SetupError, Stat } from "@/components/ui";
 import { ago, explainError, fmtDateIST, fmtDateTime } from "@/lib/format";
@@ -20,11 +21,12 @@ const duration = (r: RunRow) => {
 };
 
 export default async function Runs() {
+  const demo = await isDemoView();
   const res = await load(async (db) => {
-    const runs = await listRuns(db, 25);
+    const runs = await listRuns(db, 25, demo);
     const processed = runs.find((r) => r.investors_total > 0);
     const budget = await getBudget(db, Number(process.env.TAVILY_MONTHLY_BUDGET ?? 900), Number(process.env.TAVILY_CREDITS_BASELINE ?? 0));
-    return { runs, budget, funnel: processed ? await getFunnel(db, processed.id) : null, funnelRun: processed ?? null, health: await getProviderHealth(db, 7), coverage: await getCoverageSummary(db), audit: await listAudit(db, 40), failed: runs[0] ? await getFailedItems(db, runs[0].id) : [] };
+    return { runs, budget, funnel: processed ? await getFunnel(db, processed.id) : null, funnelRun: processed ?? null, health: await getProviderHealth(db, 7), coverage: await getCoverageSummary(db, demo), audit: await listAudit(db, 40, demo), failed: runs[0] ? await getFailedItems(db, runs[0].id) : [] };
   });
   if (!res.ok) return <SetupError message={res.error} />;
   const { runs, coverage, audit, failed, budget, funnel, funnelRun, health } = res.data;
@@ -36,7 +38,7 @@ export default async function Runs() {
   return (
     <>
       <PageTitle title="Run monitoring & audit" sub="Every refresh, what it queried, what it found, and what went wrong. Success is only reported after every investor has finished.">
-        <RefreshButton needPass={!isOpenDemo()} />
+        {demo ? <span className="text-sm text-muted">Demo mode: simulated runs only (see the banner).</span> : <RefreshButton needPass={!isOpenDemo()} />}
       </PageTitle>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

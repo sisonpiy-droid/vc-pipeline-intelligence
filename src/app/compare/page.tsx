@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isDemoView } from "@/lib/demoData/mode";
 import type { ReactNode } from "react";
 import { Empty, ExternalLink, PageTitle, Pill, ScoreBadge, SetupError } from "@/components/ui";
 import { cadence } from "@/lib/cadence";
@@ -31,7 +32,8 @@ const Best = ({ on, children }: { on: boolean; children: ReactNode }) => (
 export default async function ComparePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
   const ids = parseIds(first(sp.ids));
-  const res = await load((db) => getCompare(db, ids, today()));
+  const demo = await isDemoView();
+  const res = await load((db) => getCompare(db, ids, today(), demo));
   if (!res.ok) return <SetupError message={res.error} />;
   const items = res.data;
   const t = today();

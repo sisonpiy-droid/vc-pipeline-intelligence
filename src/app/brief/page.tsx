@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isDemoView } from "@/lib/demoData/mode";
 import type { CSSProperties } from "react";
 import { ArrowDown, ArrowRight, ArrowUp } from "@phosphor-icons/react/dist/ssr";
 import { Fresh } from "@/components/Fresh";
@@ -70,7 +71,8 @@ function PersonRow({ r }: { r: PipelineRow }) {
 }
 
 export default async function Brief() {
-  const res = await load((db) => getBrief(db, today()));
+  const demo = await isDemoView();
+  const res = await load((db) => getBrief(db, today(), demo));
   if (!res.ok) return <SetupError message={res.error} />;
   const b = res.data;
 

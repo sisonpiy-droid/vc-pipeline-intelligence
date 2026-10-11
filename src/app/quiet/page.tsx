@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isDemoView } from "@/lib/demoData/mode";
 import { Card, Empty, PageTitle, Pill, SetupError } from "@/components/ui";
 import { ENTITY_LABEL, ago, explainError, fmtDate } from "@/lib/format";
 import { load, today } from "@/lib/page";
@@ -40,7 +41,8 @@ function Row({ r }: { r: PipelineRow }) {
 }
 
 export default async function Quiet() {
-  const res = await load((db) => listPipeline(db, today()));
+  const demo = await isDemoView();
+  const res = await load((db) => listPipeline(db, today(), demo));
   if (!res.ok) return <SetupError message={res.error} />;
   const rows = res.data.filter((r) => r.state !== "active");
   const by = (s: InvestorState) => rows.filter((r) => r.state === s).sort((a, b) => a.firm_name.localeCompare(b.firm_name));

@@ -5,6 +5,7 @@ import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, SE
 import { cadence } from "@/lib/cadence";
 import { displayStatus, type PipelineRow } from "@/lib/read";
 import { CopyButton } from "./CopyButton";
+import { EmailDraft } from "./EmailDraft";
 import { Interactive } from "./motion/Interactive";
 import { Fresh } from "./Fresh";
 import { Bar, Card, ExternalLink, Pill, ScoreBadge } from "./ui";
@@ -27,6 +28,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
               <Link href={`/investors/${r.id}`} className="text-[1.05rem] font-semibold tracking-tight hover:underline">{r.firm_name}</Link>
               <Pill href={`/pipeline?entity=${r.entity_type}`}>{ENTITY_LABEL[r.entity_type] ?? r.entity_type}</Pill>
               <Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(r.state)}`}>{st.label}</Pill>
+              {r.is_demo && <Pill tone="warn" title="Synthetic demo investor: not real intelligence">Demo account</Pill>}
               {r.relationship_status !== "not_contacted" && <Pill tone="info" href={`/pipeline?relationship=${r.relationship_status}`}>{REL_LABEL[r.relationship_status]}</Pill>}
             </div>
 
@@ -78,7 +80,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
               <div className="mt-4 rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Suggested opening angle</p>
-                  <CopyButton text={r.angle} />
+                  <span className="flex items-center gap-1"><EmailDraft to={r.contact_email} angle={r.angle} demo={r.is_demo} /><CopyButton text={r.angle} /></span>
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed">{r.angle}</p>
                 <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified signal above only. Edit before using; nothing is sent.</p>

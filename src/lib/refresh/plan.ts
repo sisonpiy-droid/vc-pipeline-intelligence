@@ -65,6 +65,7 @@ export async function planRun(q: Queryable, o: PlanOptions = {}): Promise<RunPla
             coalesce(bool_or(coalesce((r.outcome->>'relevant_signals')::int, 0) > 0) filter (where r.rn = 1), false) as active,
             count(r.rn)::int as checked
        from investors i left join ranked r on r.investor_id = i.id and r.rn <= 2
+      where not i.is_demo
       group by i.id, i.follow_up_score`,
   )).rows;
 

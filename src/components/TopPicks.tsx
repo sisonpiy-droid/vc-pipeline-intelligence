@@ -5,6 +5,7 @@ import { ACTION_LABEL, SECTOR_LABEL, TIER_LABEL, fmtDate, hostOf } from "@/lib/f
 import type { Pick } from "@/lib/picks";
 import { CompareToggle } from "./CompareToggle";
 import { CopyButton } from "./CopyButton";
+import { EmailDraft } from "./EmailDraft";
 import { Interactive } from "./motion/Interactive";
 import { Fresh } from "./Fresh";
 import { Eyebrow, ExternalLink, Pill, ScoreBadge } from "./ui";
@@ -68,6 +69,7 @@ function PickCard({ pick, n, big }: { pick: Pick; n: number; big?: boolean }) {
             <div className="flex flex-wrap items-center gap-2">
               <span className="num text-xs text-muted">{String(n).padStart(2, "0")}</span>
               <Link href={`/investors/${r.id}`} className="text-xl font-semibold tracking-tight hover:underline">{r.firm_name}</Link>
+              {r.is_demo && <Pill tone="warn" title="Synthetic demo investor: not real intelligence">Demo account</Pill>}
               {pick.basis === "prepare_targeted_outreach" && <Pill tone="info" title="No investor clears 'reach out now' yet; this is the strongest case for preparing a message">Prepare first</Pill>}
             </div>
             {l && (
@@ -85,7 +87,7 @@ function PickCard({ pick, n, big }: { pick: Pick; n: number; big?: boolean }) {
               <div className="mt-4 rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Opening line</p>
-                  <CopyButton text={r.angle} />
+                  <span className="flex items-center gap-1"><EmailDraft to={r.contact_email} angle={r.angle} demo={r.is_demo} /><CopyButton text={r.angle} /></span>
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed">{r.angle}</p>
               </div>

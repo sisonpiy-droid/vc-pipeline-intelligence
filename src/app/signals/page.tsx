@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isDemoView } from "@/lib/demoData/mode";
 import { SignalCard } from "@/components/SignalCard";
 import { Empty, PageTitle, SetupError } from "@/components/ui";
 import { TYPE_LABEL } from "@/lib/format";
@@ -15,7 +16,8 @@ const SHOW = { relevant: "Relevant to logistics / B2B SaaS", verified: "All veri
 export default async function Signals({ searchParams }: Props) {
   const f = pick(await searchParams, ["show", "category"]);
   const show = (f.show && f.show in SHOW ? f.show : "relevant") as keyof typeof SHOW;
-  const res = await load((db) => listSignals(db, today(), { show, category: f.category }));
+  const demo = await isDemoView();
+  const res = await load((db) => listSignals(db, today(), { show, category: f.category }, demo));
   if (!res.ok) return <SetupError message={res.error} />;
 
   return (

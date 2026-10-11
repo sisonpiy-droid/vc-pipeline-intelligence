@@ -16,7 +16,7 @@ const STATUSES: [string, string][] = [
 type Msg = { tone: "good" | "bad" | "warn"; text: string };
 
 /** Edit the founder-owned fields. The passcode is sent as a header and kept only in component state. */
-export function FounderEdit({ id, status, lastContact, notes, needPass = true }: { id: string; status: string; lastContact: string | null; notes: string | null; needPass?: boolean }) {
+export function FounderEdit({ id, status, lastContact, notes, needPass = true, demo = false }: { id: string; status: string; lastContact: string | null; notes: string | null; needPass?: boolean; demo?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pass, setPass] = useState("");
@@ -83,12 +83,12 @@ export function FounderEdit({ id, status, lastContact, notes, needPass = true }:
             <legend className="px-1 text-xs font-medium text-muted">Add a contact-history entry</legend>
             <div className="grid grid-cols-2 gap-2">
               <input type="date" aria-label="Entry date" value={cDate} onChange={(e) => setCDate(e.target.value)} className={`${field} mt-0 text-ink`} />
-              <input aria-label="Channel" placeholder="email, call…" maxLength={40} value={cChannel} onChange={(e) => setCChannel(e.target.value)} className={`${field} mt-0 text-ink`} />
+              <input aria-label="Channel" placeholder={demo ? "This is a demo account" : "email, call…"} maxLength={40} value={cChannel} onChange={(e) => setCChannel(e.target.value)} className={`${field} mt-0 text-ink`} />
             </div>
-            <textarea aria-label="What happened" placeholder="What happened?" maxLength={500} rows={2} value={cNote} onChange={(e) => setCNote(e.target.value)} className={`${field} text-ink`} />
+            <textarea aria-label="What happened" placeholder={demo ? "This is a demo account" : "What happened?"} maxLength={500} rows={2} value={cNote} onChange={(e) => setCNote(e.target.value)} className={`${field} text-ink`} />
           </fieldset>
           <label className="block text-xs font-medium text-muted">Personal notes
-            <textarea rows={4} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} className={`${field} text-ink`} />
+            <textarea rows={4} maxLength={5000} placeholder={demo ? "This is a demo account" : undefined} value={text} onChange={(e) => setText(e.target.value)} className={`${field} text-ink`} />
           </label>
           {needPass && (
             <label className="block text-xs font-medium text-muted">Admin passcode

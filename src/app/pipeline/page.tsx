@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isDemoView } from "@/lib/demoData/mode";
 import { CompareToggle } from "@/components/CompareToggle";
 import { Fresh } from "@/components/Fresh";
 import { LiveSearch } from "@/components/LiveSearch";
@@ -27,7 +28,8 @@ function Field({ label, name, value, children }: { label: string; name: string; 
 
 export default async function Pipeline({ searchParams }: Props) {
   const f = pick(await searchParams, ["q", "entity", "sector", "stage", "relationship", "category", "freshness", "priority", "state", "action", "sort"]);
-  const res = await load((db) => listPipeline(db, today()));
+  const demo = await isDemoView();
+  const res = await load((db) => listPipeline(db, today(), demo));
   if (!res.ok) return <SetupError message={res.error} />;
   const all = res.data;
   const rows = filterPipeline(all, f, today());

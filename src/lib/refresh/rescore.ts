@@ -110,9 +110,10 @@ export interface RescoreSummary {
  * It writes exactly the four signal columns, through the same allowlist and role as a refresh. Investors that were
  * never successfully checked are left alone: scoring them would turn "never looked" into a number.
  */
-export async function rescoreAll(rdb: Db, now: Date, opts: { ai?: AiClient; only?: Set<string>; skip?: Set<string> } = {}): Promise<RescoreSummary> {
+export async function rescoreAll(rdb: Db, now: Date, opts: { ai?: AiClient; only?: Set<string>; skip?: Set<string>; demo?: boolean; runId?: string } = {}): Promise<RescoreSummary> {
   const ids = (await rdb.query<{ id: string }>(
-    `select i.id from investors i where exists (select 1 from run_items r where r.investor_id = i.id and r.status = 'done') order by i.firm_name`,
+    `select i.id from investors i where i.is_demo = $1 and exists (select 1 from run_items r where r.investor_id = i.id and r.status = 'done') order by i.firm_name`,
+    [opts.demo ?? false],
   )).rows.map((r) => r.id);
   const sum: RescoreSummary = { investors: 0, changed: 0, action_changes: 0, angles: 0, skipped: 0 };
 
@@ -151,6 +152,6 @@ export async function rescoreAll(rdb: Db, now: Date, opts: { ai?: AiClient; only
       await rdb.query(`insert into audit_logs (investor_id, level, event, detail) values ($1, 'error', 'rescore_failed', $2::jsonb)`, [id, JSON.stringify({ message: String((e as Error).message ?? e).slice(0, 200) })]);
     }
   }
-  await rdb.query(`insert into audit_logs (event, detail) values ('rescore', $1::jsonb)`, [JSON.stringify({ ...sum, fields: SIGNAL_COLUMNS })]);
+  await rdb.query(`insert into audit_logs (run_id, event, detail) values ($1, 'rescore', $2::jsonb)`, [opts.runId ?? null, JSON.stringify({ ...sum, fields: SIGNAL_COLUMNS })]);
   return sum;
 }

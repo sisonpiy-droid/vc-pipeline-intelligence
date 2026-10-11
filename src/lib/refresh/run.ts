@@ -36,7 +36,7 @@ export async function startRun(rdb: Db, trigger: "cron" | "manual", plan?: PlanO
     return await rdb.tx(async (q) => {
       // Without plan options every investor is searched (tests, ad-hoc use). Production passes a plan so that
       // free-tier search credits go where they are worth spending.
-      const everyone = plan ? null : (await q.query<{ id: string }>(`select id from investors`)).rows.map((r) => r.id);
+      const everyone = plan ? null : (await q.query<{ id: string }>(`select id from investors where not is_demo`)).rows.map((r) => r.id);
       const p = plan ? await planRun(q, plan) : { ids: everyone!, skipped: { recent: 0, cold: 0, budget: 0 }, cost: everyone!.length, remaining: null };
       const skipped = p.skipped.recent + p.skipped.cold + p.skipped.budget;
       const nothing = p.ids.length === 0;
