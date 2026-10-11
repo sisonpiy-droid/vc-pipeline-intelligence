@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CONFIDENCE_TONE, TYPE_LABEL, fmtDate, fmtDateTime } from "@/lib/format";
+import { CONFIDENCE_TONE, TYPE_LABEL, fmtDate, fmtDateTime, platformOf } from "@/lib/format";
 import type { FeedSignal } from "@/lib/read";
 import { Card, ExternalLink, Pill } from "./ui";
 
@@ -9,7 +9,8 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-center gap-2">
-        {s.signal_type && <Pill tone="info">{TYPE_LABEL[s.signal_type] ?? s.signal_type}</Pill>}
+        {s.signal_type && <Pill tone="info" href={`/signals?category=${s.signal_type}`}>{TYPE_LABEL[s.signal_type] ?? s.signal_type}</Pill>}
+        {platformOf(s.source_name) && <Pill tone="neutral" title="Where this appeared">{platformOf(s.source_name)}</Pill>}
         {needsReview ? (
           <Pill tone="warn" title="Evidence was found but could not be verified yet">Needs review{s.rejection_reason ? `: ${s.rejection_reason.replace(/_/g, " ")}` : ""}</Pill>
         ) : (
@@ -31,6 +32,7 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
           </>
         )}
         {s.source_name ?? "unknown source"} · event/publication date <span className="font-medium text-ink">{fmtDate(s.published_at)}</span>
+        {s.date_source === "post_id" && <span title="LinkedIn post IDs embed a timestamp; the date was decoded from the post URL"> (from post ID)</span>}
         {s.date_source === "search_estimate" && <span title="The page itself had no readable date; the search provider's estimate was used (it may be later than the true date)"> (estimated)</span>}
         {" · "}retrieved {fmtDateTime(s.retrieved_at)}
       </p>

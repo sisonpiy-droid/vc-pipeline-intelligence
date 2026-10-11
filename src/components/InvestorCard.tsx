@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate, hostOf } from "@/lib/format";
-import type { PipelineRow } from "@/lib/read";
+import { displayStatus, type PipelineRow } from "@/lib/read";
 import { Bar, Card, ExternalLink, Pill, ScoreBadge } from "./ui";
 
 const ORDER = ["recency", "relevance", "evidence", "fit", "relationship"];
@@ -20,16 +20,16 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
               {rank !== undefined && <span className="num text-xs text-muted">{String(rank).padStart(2, "0")}</span>}
               <Link href={`/investors/${r.id}`} className="text-[1.05rem] font-semibold tracking-tight hover:underline">{r.firm_name}</Link>
-              <Pill>{ENTITY_LABEL[r.entity_type] ?? r.entity_type}</Pill>
-              <Pill tone={st.tone} title={st.help}>{st.label}</Pill>
-              {r.relationship_status !== "not_contacted" && <Pill tone="info">{REL_LABEL[r.relationship_status]}</Pill>}
+              <Pill href={`/pipeline?entity=${r.entity_type}`}>{ENTITY_LABEL[r.entity_type] ?? r.entity_type}</Pill>
+              <Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(r.state)}`}>{st.label}</Pill>
+              {r.relationship_status !== "not_contacted" && <Pill tone="info" href={`/pipeline?relationship=${r.relationship_status}`}>{REL_LABEL[r.relationship_status]}</Pill>}
             </div>
 
             {r.lead ? (
               <div className="mt-3">
                 <p className="text-[0.95rem] font-medium leading-snug">{r.lead.headline}</p>
                 <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                  <span>{TYPE_LABEL[r.lead.signal_type ?? "other"] ?? "Signal"}</span>
+                  <Link href={`/signals?category=${r.lead.signal_type ?? "other"}`} className="hover:text-ink hover:underline">{TYPE_LABEL[r.lead.signal_type ?? "other"] ?? "Signal"}</Link>
                   <span aria-hidden>·</span>
                   <span className="num">{fmtDate(r.lead.published_at)}</span>
                   <span aria-hidden>·</span>
@@ -44,7 +44,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
             {r.lead?.why && <p className="mt-3 max-w-[70ch] text-sm leading-relaxed text-muted"><span className="font-medium text-ink">Why it matters. </span>{r.lead.why}</p>}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              {r.recommended_action && <Pill tone={ACTION_TONE[r.recommended_action]}>{ACTION_LABEL[r.recommended_action]}</Pill>}
+              {r.recommended_action && <Pill tone={ACTION_TONE[r.recommended_action]} href={`/pipeline?action=${r.recommended_action}`}>{ACTION_LABEL[r.recommended_action]}</Pill>}
               {r.refresh_failed && <Pill tone="bad" title="The most recent refresh failed; showing the last good result">Last refresh failed</Pill>}
             </div>
 

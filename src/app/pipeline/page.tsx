@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card, Empty, PageTitle, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate } from "@/lib/format";
 import { load, pick, today } from "@/lib/page";
-import { PRIORITY, filterPipeline, listPipeline, sectorOptions } from "@/lib/read";
+import { PRIORITY, displayStatus, filterPipeline, listPipeline, sectorOptions } from "@/lib/read";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Pipeline" };
@@ -23,7 +23,7 @@ function Field({ label, name, value, children }: { label: string; name: string; 
 }
 
 export default async function Pipeline({ searchParams }: Props) {
-  const f = pick(await searchParams, ["q", "entity", "sector", "stage", "relationship", "category", "freshness", "priority", "state", "sort"]);
+  const f = pick(await searchParams, ["q", "entity", "sector", "stage", "relationship", "category", "freshness", "priority", "state", "action", "sort"]);
   const res = await load((db) => listPipeline(db, today()));
   if (!res.ok) return <SetupError message={res.error} />;
   const all = res.data;
@@ -46,6 +46,10 @@ export default async function Pipeline({ searchParams }: Props) {
             <option value="quiet">Quiet</option>
             <option value="review">Needs review</option>
             <option value="failed">Failed refresh</option>
+          </Field>
+          <Field label="Recommended action" name="action" value={f.action}>
+            <option value="">All</option>
+            {Object.entries(ACTION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </Field>
           <Field label="Priority" name="priority" value={f.priority}>
             <option value="">All</option>
@@ -121,22 +125,22 @@ export default async function Pipeline({ searchParams }: Props) {
                   <tr key={r.id} className="align-top hover:bg-neutral-soft/50">
                     <th scope="row" className="px-4 py-3 font-medium">
                       <Link href={`/investors/${r.id}`} className="hover:underline">{r.firm_name}</Link>
-                      <div className="mt-0.5 text-xs font-normal text-muted">{ENTITY_LABEL[r.entity_type]}{r.role_title ? ` · ${r.role_title}` : ""}</div>
+                      <div className="mt-0.5 text-xs font-normal text-muted"><Link href={`/pipeline?entity=${r.entity_type}`} className="hover:text-ink hover:underline">{ENTITY_LABEL[r.entity_type]}</Link>{r.role_title ? ` · ${r.role_title}` : ""}</div>
                     </th>
-                    <td className="px-3 py-3"><Pill tone={st.tone} title={st.help}>{st.label}</Pill></td>
+                    <td className="px-3 py-3"><Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(r.state)}`}>{st.label}</Pill></td>
                     <td className="px-3 py-3 text-right tabular-nums">{r.follow_up_score ?? <span className="text-muted">–</span>}</td>
                     <td className="max-w-xs px-3 py-3">
                       {r.lead ? (
                         <>
                           <div className="line-clamp-2">{r.lead.headline}</div>
-                          <div className="mt-0.5 text-xs text-muted">{TYPE_LABEL[r.lead.signal_type ?? "other"]} · {fmtDate(r.lead.published_at)}</div>
+                          <div className="mt-0.5 text-xs text-muted"><Link href={`/signals?category=${r.lead.signal_type ?? "other"}`} className="hover:text-ink hover:underline">{TYPE_LABEL[r.lead.signal_type ?? "other"]}</Link> · {fmtDate(r.lead.published_at)}</div>
                         </>
                       ) : (
                         <span className="text-muted">{r.last_signal_date ? `Last: ${fmtDate(r.last_signal_date)}` : "None in window"}</span>
                       )}
                     </td>
-                    <td className="px-3 py-3">{r.recommended_action ? <Pill tone={ACTION_TONE[r.recommended_action]}>{ACTION_LABEL[r.recommended_action]}</Pill> : <span className="text-muted">–</span>}</td>
-                    <td className="px-3 py-3 text-muted">{REL_LABEL[r.relationship_status]}</td>
+                    <td className="px-3 py-3">{r.recommended_action ? <Pill tone={ACTION_TONE[r.recommended_action]} href={`/pipeline?action=${r.recommended_action}`}>{ACTION_LABEL[r.recommended_action]}</Pill> : <span className="text-muted">–</span>}</td>
+                    <td className="px-3 py-3 text-muted"><Link href={`/pipeline?relationship=${r.relationship_status}`} className="hover:text-ink hover:underline">{REL_LABEL[r.relationship_status]}</Link></td>
                   </tr>
                 );
               })}

@@ -27,7 +27,8 @@ export function fakeSearch(byFirm: Record<string, Reply>): SearchProvider & { qu
     async search(q) {
       queries.push(q.query);
       const firm = Object.keys(byFirm).filter((f) => q.query.includes(f)).sort((a, b) => b.length - a.length)[0];
-      const r = firm ? byFirm[firm]! : [];
+      const key = firm && q.includeDomains?.includes("linkedin.com") ? `${firm}@linkedin` : firm;
+      const r = key ? (byFirm[key] ?? []) : [];
       if (r instanceof Error) throw r;
       return r;
     },

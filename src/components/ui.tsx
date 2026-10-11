@@ -14,12 +14,23 @@ const TONE: Record<Tone, string> = {
 const ICON = { good: CheckCircle, warn: Warning, bad: XCircle, info: Info, neutral: Circle } as const;
 
 /** Status pill: tinted fill + icon + text, so meaning never depends on colour alone. */
-export function Pill({ tone = "neutral", children, title }: { tone?: Tone; children: ReactNode; title?: string }) {
+export function Pill({ tone = "neutral", children, title, href }: { tone?: Tone; children: ReactNode; title?: string; href?: string }) {
   const Icon = ICON[tone];
-  return (
-    <span title={title} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TONE[tone]}`}>
+  const cls = `inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TONE[tone]}`;
+  const inner = (
+    <>
       <Icon aria-hidden size={12} weight="bold" />
       {children}
+    </>
+  );
+  // With an href the pill is a real link (keyboard-focusable) that filters the list it belongs to.
+  return href ? (
+    <Link href={href} title={title ? `${title} — click to filter` : "Click to filter"} className={`${cls} press hover:brightness-95 hover:ring-1 hover:ring-current/30`}>
+      {inner}
+    </Link>
+  ) : (
+    <span title={title} className={cls}>
+      {inner}
     </span>
   );
 }

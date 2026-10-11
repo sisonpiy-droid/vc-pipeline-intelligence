@@ -85,6 +85,23 @@ export function safeHref(url: string | null | undefined): string | null {
   }
 }
 
+/** Platforms worth naming on an evidence card (where the signal appeared). */
+export function platformOf(host: string | null | undefined): string | null {
+  const h = (host ?? "").replace(/^www\./, "").toLowerCase();
+  if (h.endsWith("linkedin.com")) return "LinkedIn";
+  if (h.endsWith("youtube.com") || h === "youtu.be") return "YouTube";
+  if (h.endsWith("instagram.com")) return "Instagram";
+  if (h.endsWith("x.com") || h.endsWith("twitter.com")) return "X";
+  if (h.endsWith("facebook.com")) return "Facebook";
+  return null;
+}
+
+/** No LinkedIn URL is stored for any investor and none is guessed: this opens a LinkedIn search for them. */
+export const linkedinSearchUrl = (name: string, entityType: string) =>
+  `https://www.linkedin.com/search/results/${entityType === "angel" ? "people" : "companies"}/?keywords=${encodeURIComponent(name)}`;
+
+export const webSearchUrl = (name: string) => `https://www.google.com/search?q=${encodeURIComponent(name)}`;
+
 export const hostOf = (url: string) => {
   try {
     return new URL(url).hostname.replace(/^www\./, "");

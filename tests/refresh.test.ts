@@ -3,7 +3,7 @@ import type { Db } from "@/lib/db";
 import { ProviderError } from "@/lib/providers/types";
 import { applySignalUpdate, asRefresh } from "@/lib/refresh/write";
 import { runChunk, startRun } from "@/lib/refresh/run";
-import { article, daysAgo, fakeAi, fakePages, fakeSearch, hit, mkDeps } from "./helpers/fakes";
+import { EXCERPT, article, daysAgo, fakeAi, fakePages, fakeSearch, hit, mkDeps } from "./helpers/fakes";
 import { makeTestDb } from "./helpers/testDb";
 
 let db: Db; // owner connection (what the dashboard uses)
@@ -210,6 +210,56 @@ describe("pipeline behaviour", () => {
     expect(pages.fetched).toEqual([]);
     expect(ai.calls).toBe(0);
     expect((await db.query(`select rejection_reason from signals where canonical_url like '%crunchbase%'`)).rows).toEqual([{ rejection_reason: "profile_or_directory_page" }]);
+  });
+
+  describe("LinkedIn (via the search provider only)", () => {
+    const post = "https://www.linkedin.com/posts/alpha-ventures_seed-round-activity-123";
+    const prof = "https://www.linkedin.com/company/alpha";
+    const run = async (search: ReturnType<typeof fakeSearch>) => {
+      const pages = fakePages({});
+      const ai = fakeAi();
+      const { run_id } = await startRun(rdb, "manual");
+      await runChunk(rdb, { ...mkDeps(search, pages, ai), linkedin: true }, run_id, { batchEstimateMs: 0 });
+      return { run_id, pages, ai };
+    };
+
+    it("a LinkedIn post is judged from the search snippet: never fetched by us, confidence capped, profile pages rejected", async () => {
+      const li = { ...hit(post, "Alpha", daysAgo(3)), snippet: `Alpha ${EXCERPT}. Excited to share this with our network.` };
+      const search = fakeSearch({ Alpha: [], "Alpha@linkedin": [li, hit(prof, "Alpha", daysAgo(2))], Beta: [], Gamma: [] });
+      const out = await run(search);
+      expect(out.pages.fetched).toEqual([]); // LinkedIn's terms forbid automated fetching
+      const s = (await db.query(`select evidence_confidence, date_source, verification_status from signals where canonical_url like '%linkedin.com/posts/%'`)).rows[0];
+      expect(s).toEqual({ evidence_confidence: "medium", date_source: "search_estimate", verification_status: "verified" });
+      expect((await db.query(`select rejection_reason from signals where canonical_url like '%linkedin.com/company/%'`)).rows).toEqual([{ rejection_reason: "profile_or_directory_page" }]);
+      expect((await db.query(`select status from source_coverage where investor_id=$1 and source='fake_linkedin_search'`, [ids.Alpha])).rows[0]).toEqual({ status: "ok" });
+    });
+
+    it("an undated LinkedIn post is dated from its post ID and tagged as such; one with no ID stays rejected as undated", async () => {
+      const dated = `https://www.linkedin.com/posts/alpha_seed-activity-${String(BigInt(Date.parse(daysAgo(4))) << 22n)}-zz`;
+      const noId = "https://www.linkedin.com/posts/alpha_nothing-to-see";
+      const snip = `Alpha ${EXCERPT}. A longer note so it clears the minimum content check.`;
+      const search = fakeSearch({ Alpha: [], "Alpha@linkedin": [{ ...hit(dated, "Alpha", daysAgo(0)), published_date: null, snippet: snip }, { ...hit(noId, "Alpha", daysAgo(0)), published_date: null, snippet: snip }], Beta: [], Gamma: [] });
+      await run(search);
+      const rows = (await db.query(`select canonical_url, verification_status s, rejection_reason r, date_source, published_at::text d from signals where canonical_url like '%linkedin.com/posts/%'`)).rows as Record<string, string>[];
+      const ok = rows.find((r) => r.canonical_url!.includes("activity-"))!;
+      expect(ok).toMatchObject({ s: "verified", date_source: "post_id", d: daysAgo(4) });
+      expect(rows.find((r) => r.canonical_url!.includes("nothing-to-see"))).toMatchObject({ s: "rejected", r: "missing_date" });
+    });
+
+    it("a failed LinkedIn search does not fail the investor, but makes an empty result inconclusive (partial)", async () => {
+      const search = fakeSearch({ Alpha: [], "Alpha@linkedin": new ProviderError("rate_limited", "429"), Beta: [], Gamma: [] });
+      const { run_id } = await run(search);
+      const item = (await db.query(`select status, outcome->>'coverage' c from run_items where run_id=$1 and investor_id=$2`, [run_id, ids.Alpha])).rows[0];
+      expect(item).toEqual({ status: "done", c: "partial" });
+      expect((await db.query(`select status, error_category from source_coverage where investor_id=$1 and source='fake_linkedin_search'`, [ids.Alpha])).rows[0]).toEqual({ status: "error", error_category: "rate_limited" });
+    });
+
+    it("LinkedIn is only searched when enabled", async () => {
+      const search = fakeSearch({ Alpha: [], Beta: [], Gamma: [] });
+      const { run_id } = await startRun(rdb, "manual");
+      await runChunk(rdb, mkDeps(search, fakePages({}), fakeAi()), run_id, { batchEstimateMs: 0 });
+      expect((await db.query(`select 1 from source_coverage where source='fake_linkedin_search'`)).rowCount).toBe(0);
+    });
   });
 
   it("missing evidence: with no candidates there is no AI call, and no signal is invented", async () => {

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { CaretLeft, LockSimple } from "@phosphor-icons/react/dist/ssr";
+import { CaretLeft, Globe, LinkedinLogo, LockSimple, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { SignalCard } from "@/components/SignalCard";
 import { Bar, Card, Eyebrow, ExternalLink, Pill, ScoreBadge, SetupError } from "@/components/ui";
-import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, ago, explainError, fmtDate, fmtDateTime, hostOf } from "@/lib/format";
+import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, ago, explainError, fmtDate, fmtDateTime, hostOf, linkedinSearchUrl, safeHref, webSearchUrl } from "@/lib/format";
 import { load, today } from "@/lib/page";
-import { getInvestor } from "@/lib/read";
+import { displayStatus, getInvestor } from "@/lib/read";
 
 export const dynamic = "force-dynamic";
 
@@ -78,18 +78,32 @@ export default async function InvestorPage({ params }: Props) {
       <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         <div className="reveal">
           <Eyebrow>
-            {ENTITY_LABEL[i.entity_type as string]}
+            <Link href={`/pipeline?entity=${i.entity_type}`} className="hover:text-ink hover:underline">{ENTITY_LABEL[i.entity_type as string]}</Link>
             {i.role_title ? ` · ${String(i.role_title)}` : ""}
           </Eyebrow>
           <h1 className="mt-3 text-3xl font-semibold leading-[1.08] tracking-tight md:text-[2.75rem]">{String(i.firm_name)}</h1>
-          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            {i.website_url ? <ExternalLink href={i.website_url as string}>{hostOf(i.website_url as string)}</ExternalLink> : null}
-            {i.profile_url ? <ExternalLink href={i.profile_url as string}>profile</ExternalLink> : null}
-          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+            {safeHref(i.website_url as string) ? (
+              <a href={safeHref(i.website_url as string)!} target="_blank" rel="noopener noreferrer" className="press inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 font-medium hover:border-accent">
+                <Globe aria-hidden size={15} weight="bold" /> Website <span className="font-normal text-muted">{hostOf(i.website_url as string)}</span>
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            ) : (
+              <a href={webSearchUrl(String(i.firm_name))} target="_blank" rel="noopener noreferrer" title="No website is on record; this searches the web for one" className="press inline-flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 font-medium text-muted hover:border-accent hover:text-ink">
+                <MagnifyingGlass aria-hidden size={15} weight="bold" /> Find website
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            )}
+            <a href={linkedinSearchUrl(String(i.firm_name), i.entity_type as string)} target="_blank" rel="noopener noreferrer" title="No LinkedIn URL is stored (none is guessed); this opens a LinkedIn search for them" className="press inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 font-medium hover:border-accent">
+              <LinkedinLogo aria-hidden size={15} weight="bold" /> LinkedIn
+              <span className="sr-only"> search (opens in a new tab)</span>
+            </a>
+            {i.profile_url ? <ExternalLink href={i.profile_url as string}>source profile</ExternalLink> : null}
+          </div>
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <Pill tone={st.tone} title={st.help}>{st.label}</Pill>
-            {action && <Pill tone={ACTION_TONE[action]}>{ACTION_LABEL[action]}</Pill>}
+            <Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(state)}`}>{st.label}</Pill>
+            {action && <Pill tone={ACTION_TONE[action]} href={`/pipeline?action=${action}`}>{ACTION_LABEL[action]}</Pill>}
             {latest?.status === "failed" && <Pill tone="bad">Last refresh failed</Pill>}
           </div>
 
@@ -183,7 +197,7 @@ export default async function InvestorPage({ params }: Props) {
               <Ledger
                 rows={[
                   ["Stage", (i.stage_preference as string) ?? <span className="text-muted">unknown</span>],
-                  ["Sectors", sectors.length ? <span className="flex flex-wrap gap-1">{sectors.map((s) => <Pill key={s}>{s}</Pill>)}</span> : <span className="text-muted">none recorded</span>],
+                  ["Sectors", sectors.length ? <span className="flex flex-wrap gap-1">{sectors.map((s) => <Pill key={s} href={`/pipeline?sector=${encodeURIComponent(s)}`}>{s}</Pill>)}</span> : <span className="text-muted">none recorded</span>],
                   ["Geography", (i.geography as string) ?? <span className="text-muted">unknown</span>],
                   [
                     "Thesis",
@@ -237,7 +251,7 @@ export default async function InvestorPage({ params }: Props) {
                     [
                       "Status",
                       <>
-                        <Pill tone="info">{REL_LABEL[i.relationship_status as string]}</Pill>
+                        <Pill tone="info" href={`/pipeline?relationship=${i.relationship_status}`}>{REL_LABEL[i.relationship_status as string]}</Pill>
                         {untouched && flags.includes("relationship_status_placeholder") && <span className="mt-1.5 block text-xs text-muted">Workbook default. Replace with real data.</span>}
                       </>,
                     ],

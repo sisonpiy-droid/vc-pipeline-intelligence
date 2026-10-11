@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dedupeSignals, headlineSimilarity } from "@/lib/signals/dedupe";
 import { mentionsInvestor } from "@/lib/signals/match";
+import { linkedinPostDate } from "@/lib/signals/linkedin";
 import { ageInDays, checkWindow, parseDate, windowStart } from "@/lib/signals/window";
 
 const NOW = new Date("2026-10-11T12:00:00Z");
@@ -100,5 +101,28 @@ describe("dedupeSignals", () => {
     expect(s).toBe(headlineSimilarity("Raaho gets Blume investment", "Blume invests in Raaho"));
     expect(s).toBeGreaterThanOrEqual(0);
     expect(s).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("linkedinPostDate (date decoded from the post ID)", () => {
+  const id = (iso: string) => String(BigInt(Date.parse(iso)) << 22n);
+  it("agrees in direction with the search provider's own (later-biased) estimate for a real post", () => {
+    // Inc42 post: Tavily reported "Sat, 15 Nov 2025", and documents that its date can be LATER than the true date.
+    // The ID decodes to 13 Nov 2025: on or before the estimate, within a few days — the consistent direction.
+    const decoded = linkedinPostDate("https://www.linkedin.com/posts/inc42_news-inc42-peakxv-activity-7394731971735674882-osA8", NOW)!;
+    expect(decoded).toBe("2025-11-13");
+    expect(decoded <= "2025-11-15").toBe(true);
+    expect(ageInDays(decoded, new Date("2025-11-15T12:00:00Z"))).toBeLessThanOrEqual(3);
+  });
+  it("round-trips constructed IDs in the activity, ugcPost and urn forms", () => {
+    expect(linkedinPostDate(`https://www.linkedin.com/posts/x_y-activity-${id("2026-10-08T10:00:00Z")}-abcd`, NOW)).toBe("2026-10-08");
+    expect(linkedinPostDate(`https://www.linkedin.com/feed/update/urn:li:activity:${id("2026-10-02T10:00:00Z")}`, NOW)).toBe("2026-10-02");
+    expect(linkedinPostDate(`https://www.linkedin.com/posts/x-ugcPost-${id("2026-09-20T10:00:00Z")}-q`, NOW)).toBe("2026-09-20");
+  });
+  it("returns null — never a guess — for no ID, short numbers, pre-2010 and future IDs", () => {
+    expect(linkedinPostDate("https://www.linkedin.com/company/peakxvpartners", NOW)).toBeNull();
+    expect(linkedinPostDate("https://www.linkedin.com/posts/x-activity-12345", NOW)).toBeNull();
+    expect(linkedinPostDate(`https://www.linkedin.com/posts/x-activity-${id("2005-01-01T00:00:00Z")}-a`, NOW)).toBeNull();
+    expect(linkedinPostDate(`https://www.linkedin.com/posts/x-activity-${id("2027-06-01T00:00:00Z")}-a`, NOW)).toBeNull();
   });
 });

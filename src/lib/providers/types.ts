@@ -13,6 +13,10 @@ export interface SearchQuery {
   startDate: string; // YYYY-MM-DD, inclusive
   endDate: string;
   maxResults: number;
+  /** Restrict results to these domains (e.g. ["linkedin.com"]). */
+  includeDomains?: string[];
+  /** Keep results the provider could not date (the caller must then establish a date itself or reject). */
+  allowUndated?: boolean;
 }
 
 export interface SearchHit {

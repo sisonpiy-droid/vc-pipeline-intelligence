@@ -159,6 +159,7 @@ export interface PipelineFilters {
   freshness?: string; // "7" | "14" | "30" | "none"
   priority?: string; // "high" | "medium" | "low" | "unscored"
   state?: string; // "active" | "quiet" | "review" | "failed"
+  action?: string; // a recommended_action value
   sort?: string; // "score" | "recent" | "name"
 }
 
@@ -198,6 +199,7 @@ export function filterPipeline(rows: PipelineRow[], f: PipelineFilters, today: s
     if (f.relationship && r.relationship_status !== f.relationship) return false;
     if (f.category && r.lead?.signal_type !== f.category) return false;
     if (f.priority && priorityOf(r.follow_up_score) !== f.priority) return false;
+    if (f.action && r.recommended_action !== f.action) return false;
     if (f.state && displayStatus(r.state) !== f.state) return false;
     if (f.freshness === "none") { if (r.lead) return false; }
     else if (f.freshness) {

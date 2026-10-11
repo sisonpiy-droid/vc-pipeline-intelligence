@@ -27,6 +27,14 @@ describe("tavily adapter", () => {
     expect(init.body as string).not.toContain("tvly-k");
   });
 
+  it("restricts results to the requested domains (used for LinkedIn)", async () => {
+    const f = vi.fn(async () => json({ results: [] }));
+    await createTavily({ apiKey: "k", fetchImpl: f as never }).search({ ...q, includeDomains: ["linkedin.com"] });
+    expect(JSON.parse((f.mock.calls[0] as unknown as [string, RequestInit])[1].body as string).include_domains).toEqual(["linkedin.com"]);
+    await createTavily({ apiKey: "k", fetchImpl: f as never }).search(q);
+    expect(JSON.parse((f.mock.calls[1] as unknown as [string, RequestInit])[1].body as string)).not.toHaveProperty("include_domains");
+  });
+
   it("fails fast and clearly without credentials", async () => {
     const prev = process.env.TAVILY_API_KEY;
     delete process.env.TAVILY_API_KEY;

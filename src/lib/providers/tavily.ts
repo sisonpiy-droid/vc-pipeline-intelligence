@@ -44,7 +44,8 @@ export function createTavily(opts: TavilyOptions = {}): SearchProvider {
         start_date: q.startDate,
         end_date: q.endDate,
         include_published_date: true,
-        filter_by_published_date: true,
+        filter_by_published_date: !q.allowUndated,
+        ...(q.includeDomains?.length ? { include_domains: q.includeDomains } : {}),
       });
 
       let last: ProviderError | undefined;

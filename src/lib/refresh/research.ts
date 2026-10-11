@@ -5,6 +5,7 @@ import { ProviderError, type PageFetcher, type SearchHit, type SearchProvider } 
 import { canonicalUrl } from "@/lib/normalize";
 import { dedupeSignals } from "@/lib/signals/dedupe";
 import { mentionsInvestor } from "@/lib/signals/match";
+import { linkedinPostDate } from "@/lib/signals/linkedin";
 import { checkWindow, isoDay, parseDate, windowStart } from "@/lib/signals/window";
 
 /** Everything the pipeline needs about an investor. Deliberately excludes personal_notes / contact_history. */
@@ -26,6 +27,8 @@ export interface InvestorRow {
 }
 
 export interface Deps {
+  /** Also search LinkedIn (public posts/articles via the search provider only; LinkedIn pages are never fetched by us). */
+  linkedin?: boolean;
   search: SearchProvider;
   pages: PageFetcher;
   ai: AiClient;
@@ -45,7 +48,7 @@ export interface Rejected {
 export interface ResearchCandidate extends AiCandidate {
   canonical_url: string;
   source_name: string;
-  date_source: "page" | "search_estimate";
+  date_source: "page" | "search_estimate" | "post_id";
   fetched: boolean; // false → we only had the search snippet, so confidence is capped
   authority: number;
 }
@@ -68,11 +71,12 @@ export interface ResearchResult {
   /** provider calls made (search + page fetches), for the run's "sources queried" counter */
   sourcesChecked: number;
   pageFetchFailures: number;
-  /** Fetch failures that actually prevented a decision (no usable date or text without the page). Only these make coverage 'partial'. */
-  lostToFetchFailure: number;
+  /** Things that really limited what we could judge (a page we needed but could not read, a secondary search that failed). Only these make coverage 'partial'. */
+  incompleteSources: number;
 }
 
 const MAX_HITS = 8;
+const MAX_LINKEDIN_HITS = 5;
 const MAX_CANDIDATES = 6;
 const MIN_PAGE_TEXT = 200; // shorter than this = JS-rendered shell; fall back to the search snippet
 
@@ -90,6 +94,8 @@ export function buildQuery(inv: Pick<InvestorRow, "firm_name" | "aliases" | "ent
 /** Static profile / directory pages describe an investor; they are not events. Rejected before any fetch or AI cost. */
 const PROFILE_URL = /(crunchbase\.com\/(organization|person|funding_round)\/|pitchbook\.com\/profiles\/|tracxn\.com\/d\/|cbinsights\.com\/(investor|company)\/|linkedin\.com\/(company|in|school)\/|wikipedia\.org\/|zaubacorp\.|theorg\.com\/|owler\.com\/company\/)/i;
 
+const LINKEDIN_HOST = /(^|\.)linkedin\.com$/i;
+
 const hostOf = (u: string) => new URL(u).hostname.replace(/^www\./, "");
 
 /**
@@ -101,7 +107,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
   const now = deps.now();
   const rejected: Rejected[] = [];
   const coverage: CoverageEntry[] = [];
-  const base = { rejected, coverage, skippedKnown: 0, sourcesChecked: 0, pageFetchFailures: 0, lostToFetchFailure: 0 };
+  const base = { rejected, coverage, skippedKnown: 0, sourcesChecked: 0, pageFetchFailures: 0, incompleteSources: 0 };
   const officialHost = inv.website_url ? hostOf(inv.website_url) : null;
 
   let hits: SearchHit[];
@@ -115,11 +121,27 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
     return { ...base, candidates: [], searchFailed: true, searchError: pe };
   }
 
+  if (deps.linkedin) {
+    try {
+      base.sourcesChecked++;
+      const li = await deps.search.search({
+        query: buildQuery(inv), startDate: windowStart(now), endDate: isoDay(now), maxResults: MAX_LINKEDIN_HITS, includeDomains: ["linkedin.com"], allowUndated: true,
+      });
+      coverage.push({ source: `${deps.search.name}_linkedin_search`, status: li.length ? "ok" : "empty", result_count: li.length, error_category: null, note: null });
+      hits = [...hits, ...li];
+    } catch (e) {
+      // A failed secondary source never fails the investor, but it does make "no signal" inconclusive.
+      const pe = e instanceof ProviderError ? e : new ProviderError("http_5xx", "linkedin search failed");
+      coverage.push({ source: `${deps.search.name}_linkedin_search`, status: "error", result_count: 0, error_category: pe.category, note: pe.message });
+      base.incompleteSources++;
+    }
+  }
+
   const seen = new Set<string>();
   const accepted: ResearchCandidate[] = [];
   let pagesTried = 0;
 
-  for (const hit of hits.slice(0, MAX_HITS)) {
+  for (const hit of hits.slice(0, MAX_HITS + MAX_LINKEDIN_HITS)) {
     const canon = canonicalUrl(hit.url);
     const reject = (reason: string, extra: Partial<Rejected> = {}) =>
       rejected.push({ url: hit.url, canonical_url: canon ?? hit.url, title: hit.title || hit.url, reason, published_at: null, source_name: canon ? hostOf(canon) : null, ...extra });
@@ -131,23 +153,28 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
     if (!mentionsInvestor(`${hit.title}\n${hit.snippet}`, inv)) { reject("entity_not_mentioned"); continue; }
 
     // Fetch the page itself: dates and quotes must come from the source, not from a search snippet.
+    // LinkedIn is the exception: its terms forbid automated fetching, so LinkedIn evidence is the search
+    // provider's snippet only (confidence is capped because the page was not independently read).
     let page: ExtractedPage | null = null;
     let fetchFailed = false;
-    pagesTried++;
-    base.sourcesChecked++;
-    try {
-      page = extractPage((await deps.pages.fetch(hit.url)).html);
-    } catch {
-      base.pageFetchFailures++;
-      fetchFailed = true;
+    if (!LINKEDIN_HOST.test(hostOf(canon))) {
+      pagesTried++;
+      base.sourcesChecked++;
+      try {
+        page = extractPage((await deps.pages.fetch(hit.url)).html);
+      } catch {
+        base.pageFetchFailures++;
+        fetchFailed = true;
+      }
     }
     // A failed fetch only costs coverage when the search snippet could not stand in for the page.
-    const lose = (reason: string) => { if (fetchFailed && (reason === 'missing_date' || reason === 'insufficient_content')) base.lostToFetchFailure++; };
+    const lose = (reason: string) => { if (fetchFailed && (reason === 'missing_date' || reason === 'insufficient_content')) base.incompleteSources++; };
 
     if (page?.date_conflict) { reject("contradictory_dates", { title: page.title || hit.title }); continue; }
     const pageDate = page?.published_at ?? null;
+    const postDate = linkedinPostDate(hit.url, now); // LinkedIn posts: date decoded from the post ID
     const searchDate = parseDate(hit.published_date);
-    const date = pageDate ?? searchDate;
+    const date = pageDate ?? postDate ?? searchDate;
     const verdict = checkWindow(date, now);
     if (!verdict.ok) { lose(verdict.reason); reject(verdict.reason, { published_at: date, title: page?.title || hit.title }); continue; }
 
@@ -165,7 +192,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
       text,
       published_at: date!,
       source_name: hostOf(canon),
-      date_source: pageDate ? "page" : "search_estimate",
+      date_source: pageDate ? "page" : postDate ? "post_id" : "search_estimate",
       fetched: usePage,
       authority: officialHost && hostOf(canon).endsWith(officialHost) ? 5 : 1,
     });
@@ -188,7 +215,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
       status: failed === pagesTried ? "error" : "ok",
       result_count: pagesTried - failed,
       error_category: failed === pagesTried ? "unfetchable" : null,
-      note: failed ? `${failed} of ${pagesTried} pages could not be fetched (${base.lostToFetchFailure} could not be judged without the page; the rest were judged from the search snippet)` : null,
+      note: failed ? `${failed} of ${pagesTried} pages could not be fetched (${base.incompleteSources} could not be judged without the page; the rest were judged from the search snippet)` : null,
     });
   }
   return { ...base, candidates, searchFailed: false, skippedKnown: base.skippedKnown };
