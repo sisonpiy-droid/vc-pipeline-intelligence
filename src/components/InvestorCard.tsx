@@ -4,6 +4,7 @@ import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate, hostOf } from "@/lib/format";
 import { displayStatus, type PipelineRow } from "@/lib/read";
 import { CopyButton } from "./CopyButton";
+import { Interactive } from "./motion/Interactive";
 import { Fresh } from "./Fresh";
 import { Bar, Card, ExternalLink, Pill, ScoreBadge } from "./ui";
 
@@ -15,6 +16,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
   const i = rank ?? 0;
   return (
     <div className="reveal" style={{ "--i": Math.min(i, 8) } as CSSProperties}>
+      <Interactive>
       <Card className="p-5 transition-colors hover:border-accent/50 sm:p-6">
         <div className="flex gap-5 sm:gap-7">
           <ScoreBadge score={r.follow_up_score} index={i} />
@@ -81,6 +83,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
           </div>
         </div>
       </Card>
+      </Interactive>
     </div>
   );
 }

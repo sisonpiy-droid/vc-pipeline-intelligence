@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ArrowUpRight, CheckCircle, Circle, Info, Warning, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { safeHref, type Tone } from "@/lib/format";
+import { CountUp } from "./motion/CountUp";
 import { ACTION_THRESHOLDS } from "@/lib/scoring/score";
 
 const TONE: Record<Tone, string> = {
@@ -61,7 +62,7 @@ export function Stat({ label, value, hint, href, tone }: { label: string; value:
   const body = (
     <div className="border-t border-line pt-3">
       <div className="text-xs font-medium uppercase tracking-wide text-muted">{label}</div>
-      <div className={`num mt-1 text-3xl font-medium ${tone ? TONE[tone].split(" ")[1] : ""}`}>{value}</div>
+      <div className={`num mt-1 text-3xl font-medium ${tone ? TONE[tone].split(" ")[1] : ""}`}>{typeof value === "number" ? <CountUp value={value} /> : value}</div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}
     </div>
   );

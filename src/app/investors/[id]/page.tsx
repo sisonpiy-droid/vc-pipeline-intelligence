@@ -5,6 +5,7 @@ import { CaretLeft, Globe, LinkedinLogo, LockSimple, MagnifyingGlass } from "@ph
 import { CopyButton } from "@/components/CopyButton";
 import { FounderEdit } from "@/components/FounderEdit";
 import { SignalCard } from "@/components/SignalCard";
+import { TimelineLine } from "@/components/motion/TimelineLine";
 import { Bar, Card, Eyebrow, ExternalLink, Pill, ScoreBadge, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, ago, explainError, fmtDate, fmtDateTime, hostOf, linkedinSearchUrl, safeHref, webSearchUrl } from "@/lib/format";
 import { load, today } from "@/lib/page";
@@ -174,6 +175,7 @@ export default async function InvestorPage({ params }: Props) {
             </div>
           ) : (
             <ol className="relative space-y-6 border-l border-line pl-6 sm:pl-8">
+              <TimelineLine />
               {timeline.map((s, n) => (
                 <li key={s.id} className="reveal relative" style={idx(Math.min(n, 6))}>
                   <span aria-hidden className={`absolute -left-[1.9rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-bg sm:-left-[2.4rem] ${s.verification_status === "needs_review" ? "bg-warn" : "bg-accent"}`} />

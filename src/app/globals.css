@@ -139,6 +139,28 @@ summary {
 @media (prefers-color-scheme: dark) {
   .skeleton::after { background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent); }
 }
+/* Hero items start hidden and are revealed by GSAP; if the script never runs they un-hide themselves after 1.2 s. */
+.js-hide {
+  opacity: 0;
+  animation: unhide 0.01s linear 1.2s forwards;
+}
+@keyframes unhide {
+  to { opacity: 1; }
+}
+/* Pointer spotlight (position driven by --mx/--my from Interactive.tsx). */
+.spot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  background: radial-gradient(360px circle at var(--mx, 50%) var(--my, 50%), color-mix(in srgb, var(--accent) 12%, transparent), transparent 65%);
+}
+.spot:hover::after {
+  opacity: 1;
+}
 .press {
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s, border-color 0.18s;
 }

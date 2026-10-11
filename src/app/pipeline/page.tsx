@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Fresh } from "@/components/Fresh";
+import { LiveSearch } from "@/components/LiveSearch";
 import { Card, Empty, PageTitle, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate } from "@/lib/format";
 import { load, pick, today } from "@/lib/page";
@@ -37,10 +38,7 @@ export default async function Pipeline({ searchParams }: Props) {
 
       <form method="get" className="mb-4 rounded-xl border border-line bg-surface p-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
-          <label className="col-span-2 block text-xs font-medium text-muted md:col-span-2">
-            Search
-            <input name="q" defaultValue={f.q ?? ""} placeholder="Firm or person" className={`${SELECT} mt-1 text-ink`} />
-          </label>
+          <LiveSearch initial={f.q ?? ""} />
           <Field label="Status" name="state" value={f.state}>
             <option value="">All</option>
             <option value="active">Active signal</option>

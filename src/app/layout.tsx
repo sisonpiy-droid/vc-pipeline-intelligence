@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Pulse } from "@phosphor-icons/react/dist/ssr";
 import { Nav } from "@/components/Nav";
 import { RunBar } from "@/components/RunBar";
+import { ScrollProgress } from "@/components/motion/ScrollProgress";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist", display: "swap" });
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <header className="sticky top-0 z-30 border-b border-line bg-surface/85 backdrop-blur-md">
+          <ScrollProgress />
           <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 pt-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div className="flex items-center gap-2.5">
               <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-white dark:text-black">

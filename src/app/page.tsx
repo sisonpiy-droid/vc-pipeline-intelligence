@@ -2,6 +2,9 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { InvestorCard } from "@/components/InvestorCard";
 import { RefreshButton } from "@/components/RefreshButton";
+import { CountUp } from "@/components/motion/CountUp";
+import { HeroReveal } from "@/components/motion/HeroReveal";
+import { Magnetic } from "@/components/motion/Magnetic";
 import { Empty, Eyebrow, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, REL_LABEL, ago, fmtDateTime } from "@/lib/format";
 import { load, today } from "@/lib/page";
@@ -21,7 +24,7 @@ function LedgerRow({ label, hint, value, href, tone }: { label: string; hint: st
         <span className="block text-sm font-medium">{label}</span>
         <span className="block text-xs text-muted">{hint}</span>
       </span>
-      <span className={`num text-3xl font-medium transition-transform duration-300 group-hover:-translate-x-0.5 ${tone ?? ""}`}>{value}</span>
+      <span className={`num text-3xl font-medium transition-transform duration-300 group-hover:-translate-x-0.5 ${tone ?? ""}`}><CountUp value={value} /></span>
     </Link>
   );
 }
@@ -43,9 +46,9 @@ export default async function Overview() {
     <>
       {/* Hero: the answer on the left, the arithmetic behind it as a ledger on the right */}
       <section className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end">
-        <div className="reveal">
-          <Eyebrow>This week</Eyebrow>
-          <h1 className="mt-3 max-w-[22ch] text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.6rem]">
+        <HeroReveal>
+          <div data-hero className="js-hide"><Eyebrow>This week</Eyebrow></div>
+          <h1 data-hero className="js-hide mt-3 max-w-[22ch] text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.6rem]">
             {never ? (
               "Nothing to rank until the first refresh runs"
             ) : counts.active === 0 ? (
@@ -56,14 +59,14 @@ export default async function Overview() {
               </>
             )}
           </h1>
-          <p className="mt-4 max-w-[58ch] text-sm leading-relaxed text-muted">
+          <p data-hero className="js-hide mt-4 max-w-[58ch] text-sm leading-relaxed text-muted">
             Ranked by a transparent follow-up score. Every recommendation links to the public evidence behind it, and investors with no verified signal are listed rather than hidden.
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <RefreshButton />
+          <div data-hero className="js-hide mt-6 flex flex-wrap items-center gap-3">
+            <Magnetic><RefreshButton /></Magnetic>
             <Link href="/signals" className="press rounded-lg px-3 py-1.5 text-sm font-medium text-muted hover:text-ink">Browse all signals</Link>
           </div>
-        </div>
+        </HeroReveal>
 
         <dl className="reveal divide-y divide-line border-y border-line" style={idx(1)}>
           <LedgerRow label="Tracked investors" hint="50 VC firms and 32 angels" value={counts.total} href="/pipeline" />
