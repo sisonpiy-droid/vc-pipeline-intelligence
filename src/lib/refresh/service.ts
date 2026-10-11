@@ -8,7 +8,7 @@ import { runChunk, startRun, type ChunkOptions, type StartState } from "./run";
 
 /** Real providers. Credentials are read from the environment at call time, so a missing key is a typed run error, not a crash. */
 export function productionDeps(): Deps {
-  return { search: createTavily(), pages: createPageFetcher(), ai: createGemini(), now: () => new Date(), officialFeeds: process.env.OFFICIAL_FEEDS !== "0" }; // whether LinkedIn is searched is a per-run choice
+  return { search: createTavily(), pages: createPageFetcher(), ai: createGemini(), now: () => new Date(), officialFeeds: process.env.OFFICIAL_FEEDS !== "0", portfolio: process.env.PORTFOLIO_CHECK !== "0" }; // whether LinkedIn is searched is a per-run choice
 }
 
 /** A manual refresh costs search credits and Gemini calls; one per 10 minutes is plenty for a human. */

@@ -86,11 +86,16 @@ export interface PipelineRow {
   angle: string | null;
   /** Reasons a score high enough for "reach out now" was held at a lower action. */
   capped_by: string[];
+  /** What the investor already backs, from its own portfolio page (informational; null = not checked or unreadable). */
+  portfolio: { total: number; logistics: number; direct: number } | null;
   last_checked: string | null;
   last_error: string | null; // why the latest refresh failed, if it did
 }
 
-interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" | "explanation" | "breakdown" | "angle" | "capped_by" | "last_checked" | "last_error"> {
+interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" | "explanation" | "breakdown" | "angle" | "capped_by" | "portfolio" | "last_checked" | "last_error"> {
+  pf_total: number;
+  pf_logistics: number;
+  pf_direct: number;
   latest_status: string | null;
   latest_error: string | null;
   latest_finished: Date | string | null;
@@ -120,6 +125,7 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
             i.follow_up_score, i.recommended_action, i.last_signal_date::text as last_signal_date, i.signal_summary,
             i.website_url, i.verification_status,
             li.status as latest_status, li.error as latest_error, li.finished_at as latest_finished, li.outcome as latest_outcome,
+            pf.total as pf_total, pf.logistics as pf_logistics, pf.direct as pf_direct,
             sh.explanation as h_explanation, sh.breakdown as h_breakdown, sh.angle as h_angle, sh.capped_by as h_capped,
             coalesce(sg.relevant_30d, 0)::int as relevant_30d, coalesce(sg.needs_review, 0)::int as needs_review_signals,
             sg.last_relevant::text as last_relevant,
@@ -137,6 +143,8 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
                          max(published_at) filter (where verification_status = 'verified' and duplicate_of is null
                                             and ${effRel("signals")} >= ${RELEVANCE_MIN}) as last_relevant
                     from signals group by investor_id) sg on sg.investor_id = i.id
+       left join (select investor_id, count(*)::int as total, (count(*) filter (where logistics_related))::int as logistics, (count(*) filter (where competitor_risk = 'direct'))::int as direct
+                    from portfolio_companies group by investor_id) pf on pf.investor_id = i.id
        left join (select distinct on (investor_id) investor_id, explanation, breakdown, lead_signal_id, capped_by, angle
                     from score_history order by investor_id, at desc, id desc) sh on sh.investor_id = i.id
        -- The lead shown on the card is the signal the SCORE was computed from; if that has aged out, the newest relevant one.
@@ -163,7 +171,7 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
       today,
     );
     const { latest_status, latest_error, latest_finished, latest_outcome, last_relevant, lead_headline, lead_summary, lead_published, lead_type, lead_url, lead_why, lead_conf, lead_relevance,
-      h_explanation, h_breakdown, h_angle, h_capped, lead_raw_headline, lead_sector, lead_new_capital, lead_source, ...rest } = r;
+      h_explanation, h_breakdown, h_angle, h_capped, lead_raw_headline, lead_sector, lead_new_capital, lead_source, pf_total, pf_logistics, pf_direct, ...rest } = r;
     void latest_status; void last_relevant;
     return {
       ...rest,
@@ -179,6 +187,7 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
       breakdown: h_breakdown ?? latest_outcome?.breakdown ?? null,
       angle: r.recommended_action === "reach_out_now" ? h_angle : null,
       capped_by: h_capped ?? [],
+      portfolio: pf_total ? { total: pf_total, logistics: pf_logistics, direct: pf_direct } : null,
       last_checked: latest_finished ? new Date(latest_finished).toISOString() : null,
       last_error: latestFailed ? latest_error : null,
     };
@@ -366,7 +375,12 @@ export async function getInvestor(db: Db, id: string, today: string) {
     `select at::text as at, source, score, action, explanation, breakdown, capped_by, angle from score_history where investor_id = $1 order by at desc, id desc limit 40`,
     [id],
   )).rows;
-  return { inv, signals, latest, coverage, state, history };
+  const portfolio = (await db.query<{ company: string; description: string | null; logistics_related: boolean; competitor_risk: "direct" | "adjacent" | "none"; evidence: string | null; source_url: string; checked_at: string }>(
+    `select company, description, logistics_related, competitor_risk, evidence, source_url, checked_at::text as checked_at from portfolio_companies
+      where investor_id = $1 order by (competitor_risk = 'direct') desc, logistics_related desc, company`,
+    [id],
+  )).rows;
+  return { inv, signals, latest, coverage, state, history, portfolio };
 }
 
 // ───────────────────────────── runs / overview ─────────────────────────────

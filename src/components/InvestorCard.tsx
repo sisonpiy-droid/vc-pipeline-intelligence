@@ -61,6 +61,13 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
               <Fresh at={r.last_checked} />
             </div>
 
+            {r.portfolio && r.portfolio.logistics > 0 && (
+              <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted">
+                <Pill tone="info" title="Companies on the investor's own portfolio page that are in logistics or supply chain">Backs {r.portfolio.logistics} logistics {r.portfolio.logistics === 1 ? "company" : "companies"}</Pill>
+                {r.portfolio.direct > 0 && <Pill tone="warn" title="At least one portfolio company sells software for logistics operations, like you. Check for a conflict before pitching.">{r.portfolio.direct} possible competitor{r.portfolio.direct > 1 ? "s" : ""}</Pill>}
+              </p>
+            )}
+
             {r.capped_by.length > 0 && (
               <p role="note" className="mt-3 max-w-[70ch] rounded-lg border border-warn/30 bg-warn-soft/60 px-3 py-2 text-xs leading-relaxed text-warn">
                 <strong className="font-semibold">Not “reach out now” yet:</strong> {r.capped_by.join("; ")}.

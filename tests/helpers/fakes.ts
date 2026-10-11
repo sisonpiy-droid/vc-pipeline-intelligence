@@ -71,7 +71,7 @@ export interface ReviewRule {
  * `review` answers the second-pass review calls (default: the firm is acting and the topic is logistics);
  * pass a function of the item's title to vary it, or an Error to make that call fail.
  */
-export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage" | "down" | "malicious" = "ok", angle: string | Error = "Congratulations on backing a freight marketplace; we are building software for the same trucking fleets.", review: ((item: { index: number; title: string; summary: string }) => ReviewRule) | Error = () => ({})): AiClient & { calls: number; prompts: string[] } {
+export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage" | "down" | "malicious" = "ok", angle: string | Error = "Congratulations on backing a freight marketplace; we are building software for the same trucking fleets.", review: ((item: { index: number; title: string; summary: string }) => ReviewRule) | Error = () => ({}), portfolio: ((pageText: string) => { is_portfolio_list: boolean; companies: object[] }) | Error = () => ({ is_portfolio_list: false, companies: [] })): AiClient & { calls: number; prompts: string[] } {
   const state = { calls: 0, prompts: [] as string[] };
   return {
     get calls() { return state.calls; },
@@ -83,6 +83,10 @@ export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage
       if ("angle" in ((req.responseSchema as { properties?: object }).properties ?? {})) {
         if (angle instanceof Error) throw angle;
         return { angle };
+      }
+      if ("is_portfolio_list" in ((req.responseSchema as { properties?: object }).properties ?? {})) {
+        if (portfolio instanceof Error) throw portfolio;
+        return portfolio(req.prompt);
       }
       if ("reviews" in ((req.responseSchema as { properties?: object }).properties ?? {})) {
         if (review instanceof Error) throw review;

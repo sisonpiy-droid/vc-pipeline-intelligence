@@ -50,6 +50,8 @@ function Chips({ pick }: { pick: Pick }) {
       {sector && <Pill tone={sector.tone} title={sector.help}>{sector.label}</Pill>}
       {l.new_capital && <Pill tone="good" title="The investor announced a new fund, a close, or a bigger cheque ceiling">New capital</Pill>}
       <Pill tone={tier.tone} title={tier.help}>{tier.label}</Pill>
+      {pick.row.portfolio && pick.row.portfolio.logistics > 0 && <Pill tone="info" title="Logistics companies on the investor's own portfolio page">Backs {pick.row.portfolio.logistics} in logistics</Pill>}
+      {pick.row.portfolio && pick.row.portfolio.direct > 0 && <Pill tone="warn" title="A portfolio company sells logistics software, like you">{pick.row.portfolio.direct} possible competitor{pick.row.portfolio.direct > 1 ? "s" : ""}</Pill>}
     </span>
   );
 }

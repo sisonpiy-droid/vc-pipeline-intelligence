@@ -4,6 +4,7 @@ import { generateAngle, type AngleEvidence } from "@/lib/ai/angle";
 import { pickDisplayHeadline, reviewSignals, type ReviewInput } from "@/lib/ai/review";
 import type { Db, Queryable } from "@/lib/db";
 import { RELEVANCE_MIN, type Confidence, type SectorMatch } from "@/lib/scoring/score";
+import { checkPortfolio, portfolioDue, storePortfolio } from "./portfolio";
 import { previousAngle, scoreAndWrite } from "./rescore";
 import { research, type CoverageEntry, type Deps, type InvestorRow, type ResearchCandidate, type Rejected } from "./research";
 import { sanitizeSummary, SIGNAL_COLUMNS } from "./write";
@@ -248,6 +249,21 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
     counters.ai_calls++;
     const angle = await generateAngle(deps.ai, inv.firm_name, outcome.angleFor);
     if (angle) await rdb.query(`update score_history set angle = $2 where id = $1`, [outcome.historyId, angle]);
+  }
+
+  // Portfolio check: monthly per investor, from its own site. Best effort: a problem is recorded as coverage and never fails the investor.
+  if (deps.portfolio) {
+    try {
+      if (await portfolioDue(rdb, inv.id, deps.now())) {
+        const pr = await checkPortfolio(deps, inv);
+        if (pr.kind !== "skip") {
+          counters.ai_calls += pr.ai_calls;
+          await storePortfolio(rdb, runId, inv.id, pr);
+        }
+      }
+    } catch (e) {
+      await audit(rdb, runId, inv.id, "warn", "portfolio_check_failed", { message: String((e as Error).message ?? e).slice(0, 200) }).catch(() => {});
+    }
   }
 
   counters.records_updated = outcome.changed ? 1 : 0;

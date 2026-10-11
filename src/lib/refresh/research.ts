@@ -32,6 +32,8 @@ export interface Deps {
   linkedin?: boolean;
   /** Read the investor's own RSS/Atom feed (free, no search credits). */
   officialFeeds?: boolean;
+  /** Check what the investor already backs, from its own portfolio page (monthly; free of search credits). */
+  portfolio?: boolean;
   search: SearchProvider;
   pages: PageFetcher;
   ai: AiClient;

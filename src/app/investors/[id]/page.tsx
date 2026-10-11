@@ -57,7 +57,7 @@ export default async function InvestorPage({ params }: Props) {
   const res = await load((db) => getInvestor(db, id, today()));
   if (!res.ok) return <SetupError message={res.error} />;
   if (!res.data) notFound();
-  const { inv: i, signals, latest, coverage, state, history: scoreHistory } = res.data;
+  const { inv: i, signals, latest, coverage, state, history: scoreHistory, portfolio } = res.data;
   const st = STATE_META[state];
   const hide = process.env.HIDE_PRIVATE_NOTES === "1";
 
@@ -262,6 +262,35 @@ export default async function InvestorPage({ params }: Props) {
               </div>
             )}
           </section>
+
+          {portfolio.length > 0 && (
+            <section aria-labelledby="pf-h" className="reveal" style={idx(3)}>
+              <Eyebrow>Portfolio check</Eyebrow>
+              <h2 id="pf-h" className="sr-only">Portfolio check</h2>
+              <p className="mt-2 text-xs leading-relaxed text-muted">
+                {portfolio.length} companies from <ExternalLink href={portfolio[0]!.source_url}>the investor's own portfolio page</ExternalLink>, read {ago(portfolio[0]!.checked_at)}.
+                {" "}{portfolio.filter((p) => p.logistics_related).length} are in logistics, each backed by a quote from the page. Informational: it does not change the score.
+              </p>
+              {portfolio.some((p) => p.competitor_risk === "direct") && (
+                <p role="note" className="mt-3 rounded-lg border border-warn/30 bg-warn-soft/60 px-3 py-2 text-xs leading-relaxed text-warn">
+                  <strong className="font-semibold">Possible conflict:</strong> a portfolio company sells software for logistics operations. Worth checking before you pitch.
+                </p>
+              )}
+              <ul className="mt-3 divide-y divide-line border-y border-line text-sm">
+                {portfolio.filter((p) => p.logistics_related).map((p) => (
+                  <li key={p.company} className="py-2.5">
+                    <div className="flex items-center justify-between gap-3"><span className="font-medium">{p.company}</span><Pill tone={p.competitor_risk === "direct" ? "warn" : "info"}>{p.competitor_risk === "direct" ? "possible competitor" : "logistics"}</Pill></div>
+                    {p.evidence && <p className="mt-1 text-xs italic leading-relaxed text-muted">“{p.evidence}”</p>}
+                  </li>
+                ))}
+                {portfolio.filter((p) => !p.logistics_related).length > 0 && (
+                  <li className="py-2.5 text-xs leading-relaxed text-muted">
+                    <span className="font-medium text-ink">Also backs: </span>{portfolio.filter((p) => !p.logistics_related).map((p) => p.company).join(", ")}
+                  </li>
+                )}
+              </ul>
+            </section>
+          )}
 
           <section aria-labelledby="rel-h" className="reveal" style={idx(3)}>
             <Eyebrow>Relationship &amp; notes</Eyebrow>
