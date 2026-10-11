@@ -92,7 +92,8 @@ export function Board({ cards: initial, needPass, hiddenInFirst }: { cards: Boar
         </label>
       )}
       <p role="status" aria-live="polite" className={`mb-4 min-h-5 text-sm ${toast ? tone[toast.tone] : ""}`}>{toast?.text}</p>
-      <div className="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
+      {/* `relative` is load-bearing: the sr-only labels inside the cards are absolutely positioned, and only a positioned ancestor clips them; without it they widen the whole page on a phone. */}
+      <div className="relative -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-4 sm:mx-0 sm:px-0">
         {COLUMNS.map((col) => {
           const all = cards.filter((c) => c.status === col);
           const list = col === "not_contacted" ? all.slice(0, FIRST_COLUMN_LIMIT) : all;

@@ -1,0 +1,162 @@
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * Real browser, production build, throwaway database seeded by the real pipeline over canned providers.
+ * The fixture (scripts/dev-fixture.ts) gives a known world: Blume Ventures (strong signal), Peak XV (founder is awaiting a
+ * reply, with private notes), Matrix (passed), Accel India (search FAILED), Lightspeed (page unreadable: coverage partial).
+ */
+const failOnConsoleErrors = (page: Page) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => { if (m.type() === "error" && !/favicon|Failed to load resource/.test(m.text())) errors.push(m.text()); });
+  return () => expect(errors, errors.join("\n")).toEqual([]);
+};
+
+test.describe.configure({ mode: "serial" });
+
+test("the server cannot reach any paid or external provider (empty API keys), and says so", async ({ request }) => {
+  const h = await (await request.get("/api/health")).json();
+  expect(h.ok).toBe(true);
+  expect(h.configured).toMatchObject({ database: true, gemini: false, search: false, open_demo: true });
+});
+
+test("overview: the answer first, with evidence behind every recommendation", async ({ page }) => {
+  const done = failOnConsoleErrors(page);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("investors have a fresh, relevant signal");
+  await expect(page.getByRole("heading", { name: /investors? to email this week/ })).toBeVisible();
+  const first = page.locator("#picks-h").locator("xpath=ancestor::section[1]");
+  await expect(first.getByRole("link", { name: "Blume Ventures" }).first()).toBeVisible();
+  await expect(first.getByText(/Logistics fit/).first()).toBeVisible(); // topic chip
+  const evidence = first.getByRole("link", { name: /fixture\.example\.com/ }).first();
+  await expect(evidence).toHaveAttribute("rel", /noopener/);
+  await expect(evidence).toHaveAttribute("target", "_blank");
+  // Peak XV: the founder is awaiting a reply, so it is on the "don't chase" list, not the to-do list
+  await expect(page.getByRole("heading", { name: "Investors to hold off on", includeHidden: true })).toBeAttached();
+  await expect(page.locator("aside").getByRole("link", { name: "Peak XV Partners" })).toBeVisible();
+  done();
+});
+
+test("a failed search is never shown as quiet; partial coverage is its own state", async ({ page }) => {
+  await page.goto("/quiet");
+  const failed = page.getByRole("heading", { name: "Search failed" }).locator("xpath=ancestor::section[1]");
+  await expect(failed).toContainText("Accel India");
+  await expect(failed).toContainText("This is not inactivity");
+  const partial = page.getByRole("heading", { name: /coverage incomplete/ }).locator("xpath=ancestor::section[1]");
+  await expect(partial).toContainText("Lightspeed India Partners");
+  const quiet = page.getByRole("heading", { name: "Searched — no relevant signal found" }).locator("xpath=ancestor::section[1]");
+  await expect(quiet).not.toContainText("Accel India");
+  await expect(quiet).not.toContainText("Lightspeed India Partners");
+});
+
+test("investor page: score breakdown, evidence with a verbatim quote, and the founder's data is read-only until edited", async ({ page }) => {
+  await page.goto("/pipeline?q=Blume");
+  await page.getByRole("link", { name: "Blume Ventures" }).first().click();
+  await expect(page.getByRole("heading", { level: 1, name: "Blume Ventures" })).toBeVisible();
+  for (const f of ["recency", "relevance", "evidence", "fit", "relationship"]) await expect(page.getByText(f, { exact: true }).first()).toBeVisible(); // the DOM text is lower-case; CSS capitalises it
+  await expect(page.getByText("Computed by fixed rules, not by the AI")).toBeVisible();
+  await expect(page.locator("blockquote").first()).toContainText("five million dollar Seed round");
+  await expect(page.getByText("Score over time")).toBeVisible();
+});
+
+test("editing the founder's notes works, persists, and needs no passcode in open demo mode", async ({ page }) => {
+  await page.goto("/pipeline?q=Peak");
+  await page.getByRole("link", { name: "Peak XV Partners" }).first().click();
+  await expect(page.getByText("Sent deck on Mon")).toBeVisible(); // the founder's note from the fixture
+  await page.getByRole("button", { name: "Edit relationship" }).click();
+  await page.getByLabel("Personal notes").fill("Partner replied Tuesday: wants the metrics pack.");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Saved" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("wants the metrics pack")).toBeVisible();
+});
+
+test("outreach board: moving a card changes the founder-owned status, persists, and starts the follow-up clock", async ({ page }) => {
+  await page.goto("/board");
+  const card = page.locator("[data-card]").filter({ hasText: "Blume Ventures" });
+  await expect(card).toBeVisible();
+  await card.getByRole("combobox").selectOption("contacted");
+  await expect(page.getByText(/Blume Ventures → Contacted/)).toBeVisible();
+  await page.reload();
+  const col = page.getByRole("region", { name: /^Contacted,/ });
+  await expect(col.getByRole("link", { name: "Blume Ventures" })).toBeVisible();
+  await expect(col.getByText(/Contacted \d+ days? ago/)).toBeVisible(); // cadence chip appears
+});
+
+test("outreach board: drag and drop works too", async ({ page }) => {
+  await page.goto("/board");
+  const card = page.locator("[data-card]").filter({ has: page.getByRole("link", { name: "Nithin Kamath" }) });
+  // Grab the card by its title link (a link is draggable and the drag bubbles to the card).
+  await card.getByRole("link", { name: "Nithin Kamath" }).dragTo(page.getByRole("region", { name: /^Awaiting response,/ }));
+  await expect(page.getByRole("region", { name: /^Awaiting response,/ }).getByRole("link", { name: "Nithin Kamath" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("region", { name: /^Awaiting response,/ }).getByRole("link", { name: "Nithin Kamath" })).toBeVisible(); // persisted
+});
+
+test("what-if: moving a preset re-ranks investors without changing anything stored", async ({ page, request }) => {
+  const before = await (await request.get("/api/palette")).json();
+  await page.goto("/simulate");
+  const reach = page.locator("[aria-live=polite] p.num").first();
+  const prod = await reach.textContent();
+  await page.getByRole("button", { name: "Cast a wide net" }).click();
+  await expect.poll(async () => await reach.textContent()).not.toBe(prod);
+  await page.getByRole("button", { name: "Production rules", exact: true }).click();
+  await expect.poll(async () => await reach.textContent()).toBe(prod);
+  const after = await (await request.get("/api/palette")).json();
+  expect(after).toEqual(before); // nothing was written
+});
+
+test("Ctrl+K palette finds an investor, and comparison opens side by side", async ({ page }) => {
+  await page.goto("/");
+  await page.keyboard.press("Control+k");
+  const input = page.getByRole("combobox");
+  await input.fill("seafund");
+  await page.getByRole("option").filter({ hasText: "Seafund" }).getByRole("button", { name: "Compare" }).click();
+  await input.fill("nithin");
+  await page.getByRole("option").filter({ hasText: "Nithin Kamath" }).getByRole("button", { name: "Compare" }).click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("region", { name: "Comparison" }).getByRole("link", { name: /Compare 2/ }).click();
+  await expect(page.getByRole("heading", { name: "Compare investors" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Investor comparison" })).toContainText("Seafund");
+  await expect(page.getByRole("table", { name: "Investor comparison" })).toContainText("Nithin Kamath");
+});
+
+test("manual refresh without provider keys fails transparently: nothing is claimed and no run is created", async ({ page }) => {
+  await page.goto("/runs");
+  const runsBefore = await page.locator("tbody tr").count();
+  await page.getByRole("button", { name: "Refresh now" }).first().click();
+  await page.getByRole("button", { name: "Start refresh" }).click();
+  await expect(page.getByText(/Server is missing configuration/)).toBeVisible({ timeout: 10_000 });
+  await page.reload();
+  expect(await page.locator("tbody tr").count()).toBe(runsBefore);
+});
+
+test("the scheduled endpoint refuses callers without the secret, and never echoes secrets", async ({ request }) => {
+  expect((await request.get("/api/cron/refresh")).status()).toBe(401);
+  expect((await request.get("/api/cron/refresh", { headers: { authorization: "Bearer wrong" } })).status()).toBe(401);
+  const ok = await request.get("/api/cron/refresh", { headers: { authorization: "Bearer e2e-secret" } });
+  expect(ok.status()).toBe(500); // authorised, but no provider keys on this server
+  const body = await ok.text();
+  expect(body).toContain("server_misconfigured");
+  expect(body).not.toContain("e2e-secret");
+  expect((await request.post("/api/rescore")).status()).toBe(401);
+});
+
+test("the API reference lists every route", async ({ page }) => {
+  await page.goto("/api-docs");
+  for (const p of ["/api/health", "/api/cron/refresh", "/api/refresh", "/api/rescore", "/api/investors/[id]/founder"]) await expect(page.getByRole("heading", { name: p, exact: true })).toBeVisible();
+});
+
+for (const path of ["/", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare"]) {
+  test(`phone width: ${path} has no horizontal page scroll and no console errors`, async ({ browser }) => {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+    const page = await ctx.newPage();
+    const done = failOnConsoleErrors(page);
+    await page.goto(path);
+    await page.waitForLoadState("networkidle");
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow, `${path} overflows by ${overflow}px`).toBeLessThanOrEqual(1);
+    done();
+    await ctx.close();
+  });
+}

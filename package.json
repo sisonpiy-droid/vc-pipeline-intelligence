@@ -19,6 +19,8 @@
     "check:live": "tsx --env-file=.env scripts/check-live.ts",
     "verify:boundary": "tsx --env-file=.env scripts/verify-boundary.ts",
     "portfolio:backfill": "tsx --env-file=.env scripts/portfolio-backfill.ts",
+    "test:e2e": "playwright test",
+    "eval:accuracy": "tsx --env-file=.env scripts/eval-accuracy.ts",
     "chaos": "tsx scripts/chaos.ts",
     "check:portfolio": "tsx --env-file=.env scripts/check-portfolio.ts",
     "check:feeds": "tsx --env-file=.env scripts/check-feeds.ts",
@@ -38,6 +40,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
+    "@playwright/test": "1.64.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "24.19.2",
     "@types/pg": "8.23.1",
