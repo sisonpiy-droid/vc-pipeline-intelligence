@@ -94,6 +94,6 @@ export const ENDPOINTS: Endpoint[] = [
     summary: "Investor names, scores and actions for the Ctrl+K search palette: the same facts the pipeline page shows.",
     auth: { kind: "none", detail: "Public read of dashboard facts; never notes or contact history." },
     responses: [{ status: 200, meaning: "{ investors: [{ id, name, type, score, action }] }" }, { status: 503, meaning: "Database unavailable." }],
-    limits: "Cached privately for 60 seconds.",
+    limits: "Not cached: the list depends on whether the browser is in demo mode (a cookie).",
   },
 ];

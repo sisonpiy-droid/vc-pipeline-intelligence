@@ -184,6 +184,9 @@ test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, re
   await banner.getByRole("link", { name: "Exit demo mode" }).click();
   await page.goto("/pipeline");
   await expect(page.getByText(/Piyush/)).toHaveCount(0);
+  // The palette list must follow the mode immediately (a cached demo list once leaked into the real view).
+  const names = await page.evaluate(async () => ((await (await fetch("/api/palette")).json()) as { investors: { name: string }[] }).investors.map((i) => i.name));
+  expect(names.some((n) => /piyush/i.test(n))).toBe(false);
   await expect(page.locator("tbody tr").first()).toBeVisible();
   expect(await page.locator("tbody tr").count()).toBeGreaterThan(20); // the real investors are back, untouched
 });

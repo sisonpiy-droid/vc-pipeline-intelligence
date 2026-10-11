@@ -12,7 +12,8 @@ export async function GET() {
       `select id, firm_name as name, entity_type as type, follow_up_score as score, recommended_action as action
          from investors where is_demo = $1 order by follow_up_score desc nulls last, firm_name`, [demo],
     );
-    return NextResponse.json({ investors: rows }, { headers: { "cache-control": "private, max-age=60" } });
+    // The answer depends on the demo/real cookie, so it must never be reused across modes.
+    return NextResponse.json({ investors: rows }, { headers: { "cache-control": "private, no-store", vary: "cookie" } });
   } catch {
     return NextResponse.json({ error: "unavailable" }, { status: 503 });
   }
