@@ -1,5 +1,7 @@
 import { resolve } from "node:path";
 import { getDb } from "../src/lib/db";
+import { existsSync, readFileSync } from "node:fs";
+import { applyCuratedAliases, parseAliasCsv } from "../src/lib/investors/aliases";
 import { importInvestors, parseWorkbookRows } from "../src/lib/investors/import";
 import { readWorkbook } from "../src/lib/investors/workbook";
 
@@ -9,7 +11,13 @@ const dry = args.includes("--dry-run");
 const path = resolve(args.find((a) => !a.startsWith("--")) ?? "data/india_vc_and_angel_profiles.xlsx");
 
 const { vc, angels } = await readWorkbook(path);
-const { records, issues } = parseWorkbookRows(vc, angels);
+const parsed = parseWorkbookRows(vc, angels);
+const aliasFile = resolve("data/aliases.csv");
+const aliases = existsSync(aliasFile) ? parseAliasCsv(readFileSync(aliasFile, "utf8")) : { rows: [], issues: [] };
+const merged = applyCuratedAliases(parsed.records, aliases.rows);
+const records = merged.records;
+const issues = [...parsed.issues, ...aliases.issues, ...merged.issues];
+console.log(`Curated aliases: ${aliases.rows.length} sourced rows applied from data/aliases.csv`);
 console.log(`Read ${vc.length} VC rows + ${angels.length} angel rows from ${path}`);
 console.log(`Parsed ${records.length} investors; ${issues.length} issue(s)`);
 for (const i of issues) console.log(`  [${i.severity}] ${i.ref}: ${i.message}`);

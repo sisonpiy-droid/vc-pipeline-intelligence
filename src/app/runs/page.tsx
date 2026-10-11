@@ -2,6 +2,7 @@ import Link from "next/link";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Card, Empty, PageTitle, Pill, SetupError, Stat } from "@/components/ui";
 import { ago, explainError, fmtDateTime } from "@/lib/format";
+import { getBudget, getFunnel } from "@/lib/brief";
 import { load } from "@/lib/page";
 import { getCoverageSummary, getFailedItems, listAudit, listRuns, type RunRow } from "@/lib/read";
 import { CRON_SCHEDULE, nextScheduledRun } from "@/lib/schedule";
@@ -19,10 +20,12 @@ const duration = (r: RunRow) => {
 export default async function Runs() {
   const res = await load(async (db) => {
     const runs = await listRuns(db, 25);
-    return { runs, coverage: await getCoverageSummary(db), audit: await listAudit(db, 40), failed: runs[0] ? await getFailedItems(db, runs[0].id) : [] };
+    const processed = runs.find((r) => r.investors_total > 0);
+    const budget = await getBudget(db, Number(process.env.TAVILY_MONTHLY_BUDGET ?? 900), Number(process.env.TAVILY_CREDITS_BASELINE ?? 0));
+    return { runs, budget, funnel: processed ? await getFunnel(db, processed.id) : null, funnelRun: processed ?? null, coverage: await getCoverageSummary(db), audit: await listAudit(db, 40), failed: runs[0] ? await getFailedItems(db, runs[0].id) : [] };
   });
   if (!res.ok) return <SetupError message={res.error} />;
-  const { runs, coverage, audit, failed } = res.data;
+  const { runs, coverage, audit, failed, budget, funnel, funnelRun } = res.data;
   const latest = runs[0];
   const lastGood = runs.find((r) => r.status === "succeeded" || r.status === "partial");
   const sources = [...new Set(coverage.map((c) => c.source))];
@@ -40,6 +43,45 @@ export default async function Runs() {
         <Stat label="Next scheduled" value={fmtDateTime(nextScheduledRun(new Date())).slice(0, 11)} hint={`cron ${CRON_SCHEDULE} (UTC) · Vercel Hobby may start up to ~1 h late`} />
         <Stat label="Errors in latest run" value={latest?.error_count ?? 0} tone={latest?.error_count ? "bad" : undefined} hint={latest ? `${failed.length} investor${failed.length === 1 ? "" : "s"} failed after retries` : undefined} />
       </div>
+
+      <section aria-labelledby="budget-h" className="mt-10">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="budget-h" className="text-lg font-semibold tracking-tight">Search credits this month</h2>
+          <span className="num text-sm text-muted">{budget.spent} of {budget.budget} used · {budget.remaining} left</span>
+        </div>
+        <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-soft" role="img" aria-label={`${budget.pct}% of the monthly search budget used`}>
+          <div className={`bar-fill h-full rounded-full ${budget.pct >= 90 ? "bg-bad" : budget.pct >= 70 ? "bg-warn" : "bg-accent"}`} style={{ width: `${budget.pct}%` }} />
+        </div>
+        <p className="mt-2 max-w-[75ch] text-xs leading-relaxed text-muted">
+          Free-tier guard: runs skip investors checked in the last 36 hours, search quiet investors about weekly, and stop spending when the budget is reached (skipped investors keep their last result and are never shown as quiet).
+          {budget.baseline > 0 ? ` ${budget.baseline} credits are counted for earlier tests outside tracked runs.` : ""}
+        </p>
+      </section>
+
+      {funnel && funnelRun && funnel.total > 0 && (
+        <section aria-labelledby="funnel-h" className="mt-12">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="funnel-h" className="text-lg font-semibold tracking-tight">Evidence funnel</h2>
+            <span className="num text-xs text-muted">run {fmtDateTime(funnelRun.started_at)}</span>
+          </div>
+          <p className="mt-1 max-w-[75ch] text-sm text-muted">Where the candidates from the latest run were filtered out. Every drop has a stored reason, visible on each investor.</p>
+          <ol className="mt-5 divide-y divide-line border-y border-line">
+            {funnel.stages.map((s, n) => (
+              <li key={s.key} className="grid grid-cols-[minmax(0,1fr)_4.5rem] items-center gap-x-4 gap-y-1 py-3 sm:grid-cols-[14rem_minmax(0,1fr)_4.5rem]">
+                <span className="text-sm font-medium">{s.label}</span>
+                <span className="order-3 col-span-2 h-2 overflow-hidden rounded-full bg-neutral-soft sm:order-none sm:col-span-1" aria-hidden>
+                  <span style={{ width: `${Math.round((s.count / funnel.total) * 100)}%`, ["--i" as string]: n }} className="bar-fill block h-full rounded-full bg-accent" />
+                </span>
+                <span className="num text-right text-sm">{s.count}{s.dropped > 0 && <span className="ml-1 text-xs text-muted">−{s.dropped}</span>}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-3 text-xs text-muted">
+            {funnel.review > 0 ? `${funnel.review} held for review (AI unavailable or invalid output). ` : ""}
+            <span className="num">{funnel.relevant}</span> verified signals were relevant to a Seed-stage B2B logistics SaaS.
+          </p>
+        </section>
+      )}
 
       {failed.length > 0 && (
         <>
@@ -65,11 +107,11 @@ export default async function Runs() {
         <Empty title="No runs yet">Trigger a refresh above, or wait for the next scheduled run.</Empty>
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full min-w-[62rem] text-left text-sm">
+          <table className="w-full min-w-[70rem] text-left text-sm">
             <caption className="sr-only">Refresh run history</caption>
             <thead className="border-b border-line text-xs uppercase tracking-wide text-muted">
               <tr>
-                {["Started", "Trigger", "Status", "Duration", "Investors", "Sources queried", "Evidence found", "Accepted", "Duplicates removed", "Records updated", "Errors"].map((h) => (
+                {["Started", "Trigger", "Status", "Duration", "Investors", "Sources queried", "Evidence found", "Accepted", "Duplicates removed", "Records updated", "Searches", "Skipped", "Errors"].map((h) => (
                   <th key={h} scope="col" className="px-3 py-2 font-medium first:px-4">{h}</th>
                 ))}
               </tr>
@@ -87,6 +129,8 @@ export default async function Runs() {
                   <td className="px-3 py-2">{r.signals_accepted}</td>
                   <td className="px-3 py-2">{r.duplicates_removed}</td>
                   <td className="px-3 py-2">{r.records_updated}</td>
+                  <td className="px-3 py-2">{r.search_calls}</td>
+                  <td className="px-3 py-2">{r.skipped || "–"}</td>
                   <td className="px-3 py-2">{r.error_count || "–"}</td>
                 </tr>
               ))}

@@ -52,6 +52,7 @@ export function fakePages(byUrl: Record<string, string | ProviderError>): PageFe
 export interface AiRule {
   involvement?: "verified" | "unclear" | "not_involved";
   specificEvent?: boolean;
+  newCapital?: boolean;
   relevance?: number;
   confidence?: "high" | "medium" | "low";
   excerpt?: string;
@@ -77,6 +78,7 @@ export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage
             index,
             investor_involvement: r.involvement ?? "verified",
             specific_recent_event: r.specificEvent ?? true,
+            new_capital: r.newCapital ?? false,
             signal_type: "portfolio_investment",
             relevance: mode === "malicious" ? 100 : (r.relevance ?? 85),
             confidence: r.confidence ?? "high",

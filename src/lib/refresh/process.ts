@@ -34,7 +34,7 @@ interface SignalRow {
   signal_type: string | null; evidence_excerpt: string | null; summary: string | null; relevance_explanation: string | null;
   relevance_score: number | null; evidence_confidence: Confidence | null;
   verification_status: "verified" | "needs_review" | "rejected"; rejection_reason: string | null;
-  content_hash: string | null; duplicate_of_url?: string;
+  content_hash: string | null; duplicate_of_url?: string; new_capital: boolean;
 }
 
 function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): SignalRow[] {
@@ -51,13 +51,13 @@ function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): Sign
         ...base, signal_type: a.signal_type, evidence_excerpt: a.evidence_excerpt,
         summary: sanitizeSummary(a.summary, 300), relevance_explanation: sanitizeSummary(a.why_it_matters, 450),
         relevance_score: a.relevance, evidence_confidence: capConfidence(a.confidence, !c.fetched || c.date_source === "search_estimate"),
-        verification_status: "verified", rejection_reason: null,
+        verification_status: "verified", rejection_reason: null, new_capital: a.new_capital,
       };
     }
     return {
       ...base, signal_type: null, evidence_excerpt: null, summary: null, relevance_explanation: null,
       relevance_score: v.assessment?.relevance ?? null, evidence_confidence: null,
-      verification_status: v.status, rejection_reason: v.reason,
+      verification_status: v.status, rejection_reason: v.reason, new_capital: false,
     };
   });
 }
@@ -65,29 +65,29 @@ function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): Sign
 const rejectedRow = (r: Rejected): SignalRow => ({
   url: r.url, canonical_url: r.canonical_url, headline: r.title.slice(0, 300), source_name: r.source_name, published_at: r.published_at,
   date_source: null, signal_type: null, evidence_excerpt: null, summary: null, relevance_explanation: null, relevance_score: null,
-  evidence_confidence: null, verification_status: "rejected", rejection_reason: r.reason, content_hash: null, duplicate_of_url: r.duplicate_of_url,
+  evidence_confidence: null, verification_status: "rejected", rejection_reason: r.reason, content_hash: null, duplicate_of_url: r.duplicate_of_url, new_capital: false,
 });
 
 async function upsertSignal(q: Queryable, runId: string, investorId: string, s: SignalRow): Promise<string | null> {
   const { rows } = await q.query<{ id: string }>(
     `insert into signals (investor_id, run_id, url, canonical_url, headline, source_name, published_at, date_basis, date_source,
         signal_type, evidence_excerpt, summary, relevance_explanation, relevance_score, evidence_confidence,
-        verification_status, rejection_reason, content_hash)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+        verification_status, rejection_reason, content_hash, new_capital)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
      on conflict (investor_id, canonical_url) do update set
         run_id = excluded.run_id, headline = excluded.headline, published_at = excluded.published_at,
         date_basis = excluded.date_basis, date_source = excluded.date_source, signal_type = excluded.signal_type,
         evidence_excerpt = excluded.evidence_excerpt, summary = excluded.summary,
         relevance_explanation = excluded.relevance_explanation, relevance_score = excluded.relevance_score,
         evidence_confidence = excluded.evidence_confidence, verification_status = excluded.verification_status,
-        rejection_reason = excluded.rejection_reason, content_hash = excluded.content_hash, retrieved_at = now()
+        rejection_reason = excluded.rejection_reason, content_hash = excluded.content_hash, new_capital = excluded.new_capital, retrieved_at = now()
       -- a settled verdict is never overwritten; only unresolved items and cap-dropped ones are reconsidered
       where signals.verification_status = 'needs_review' or signals.rejection_reason = 'over_candidate_cap'
      returning id`,
     [
       investorId, runId, s.url, s.canonical_url, s.headline, s.source_name, s.published_at, s.published_at ? "published" : "unknown",
       s.date_source, s.signal_type, s.evidence_excerpt, s.summary, s.relevance_explanation, s.relevance_score, s.evidence_confidence,
-      s.verification_status, s.rejection_reason, s.content_hash,
+      s.verification_status, s.rejection_reason, s.content_hash, s.new_capital,
     ],
   );
   return rows[0]?.id ?? null;

@@ -243,6 +243,8 @@ export interface FeedSignal {
   verification_status: string;
   rejection_reason: string | null;
   duplicates: number;
+  new_capital: boolean;
+  investor_website: string | null;
 }
 
 export interface FeedFilters {
@@ -256,7 +258,7 @@ export async function listSignals(db: Db, today: string, f: FeedFilters = {}): P
   const { rows } = await db.query<FeedSignal>(
     `select s.id, s.investor_id, i.firm_name, s.headline, s.source_name, s.url, s.published_at::text as published_at,
             s.retrieved_at::text as retrieved_at, s.signal_type, s.evidence_excerpt, s.summary, s.relevance_explanation,
-            s.relevance_score, s.evidence_confidence, s.date_source, s.verification_status, s.rejection_reason,
+            s.relevance_score, s.evidence_confidence, s.date_source, s.verification_status, s.rejection_reason, s.new_capital, i.website_url as investor_website,
             (select count(*)::int from signals d where d.duplicate_of = s.id) as duplicates
        from signals s join investors i on i.id = s.investor_id
       where s.duplicate_of is null
@@ -288,7 +290,7 @@ export async function getInvestor(db: Db, id: string, today: string) {
   const signals = (await db.query<FeedSignal>(
     `select s.id, s.investor_id, i.firm_name, s.headline, s.source_name, s.url, s.published_at::text as published_at, s.retrieved_at::text as retrieved_at,
             s.signal_type, s.evidence_excerpt, s.summary, s.relevance_explanation, s.relevance_score, s.evidence_confidence, s.date_source,
-            s.verification_status, s.rejection_reason, (select count(*)::int from signals d where d.duplicate_of = s.id) as duplicates
+            s.verification_status, s.rejection_reason, s.new_capital, i.website_url as investor_website, (select count(*)::int from signals d where d.duplicate_of = s.id) as duplicates
        from signals s join investors i on i.id = s.investor_id
       where s.investor_id = $1 and s.duplicate_of is null
       order by s.published_at desc nulls last, s.retrieved_at desc`,
@@ -321,11 +323,11 @@ export async function getInvestor(db: Db, id: string, today: string) {
 export interface RunRow {
   id: string; trigger_type: string; status: string; started_at: string; heartbeat_at: string; completed_at: string | null;
   investors_total: number; investors_processed: number; sources_checked: number; signals_discovered: number; signals_accepted: number;
-  duplicates_removed: number; records_updated: number; error_count: number; summary: string | null; error_details: { investor_id?: string; error?: string; attempt?: number; final?: boolean }[];
+  duplicates_removed: number; records_updated: number; error_count: number; search_calls: number; skipped: number; summary: string | null; error_details: { investor_id?: string; error?: string; attempt?: number; final?: boolean }[];
 }
 
 const RUN_COLS = `id, trigger_type, status, started_at::text as started_at, heartbeat_at::text as heartbeat_at, completed_at::text as completed_at,
-  investors_total, investors_processed, sources_checked, signals_discovered, signals_accepted, duplicates_removed, records_updated, error_count, summary, error_details`;
+  investors_total, investors_processed, sources_checked, signals_discovered, signals_accepted, duplicates_removed, records_updated, error_count, search_calls, skipped, summary, error_details`;
 
 export async function listRuns(db: Db, limit = 25): Promise<RunRow[]> {
   return (await db.query<RunRow>(`select ${RUN_COLS} from runs order by started_at desc limit $1`, [limit])).rows;

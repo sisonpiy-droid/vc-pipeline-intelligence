@@ -96,6 +96,18 @@ export function platformOf(host: string | null | undefined): string | null {
   return null;
 }
 
+const PRESS = /(^|\.)(techcrunch\.com|economictimes\.indiatimes\.com|livemint\.com|inc42\.com|entrackr\.com|yourstory\.com|business-standard\.com|moneycontrol\.com|thehindu(businessline)?\.com|reuters\.com|bloomberg\.com|vccircle\.com|forbesindia\.com|financialexpress\.com|ndtv\.com|hindustantimes\.com|theprint\.in|dealstreetasia\.com|business-today\.in|businesstoday\.in|ft\.com|wsj\.com)$/i;
+
+/** How much to trust where a signal appeared: the investor's own site, recognised press, social posts, or other. */
+export function sourceTier(host: string | null | undefined, investorWebsite?: string | null): "official" | "press" | "social" | "other" {
+  const h = (host ?? "").replace(/^www\./, "").toLowerCase();
+  if (!h) return "other";
+  const own = investorWebsite ? hostOf(investorWebsite).replace(/^www\./, "").toLowerCase() : null;
+  if (own && (h === own || h.endsWith(`.${own}`))) return "official";
+  if (platformOf(h)) return "social";
+  return PRESS.test(h) ? "press" : "other";
+}
+
 /** No LinkedIn URL is stored for any investor and none is guessed: this opens a LinkedIn search for them. */
 export const linkedinSearchUrl = (name: string, entityType: string) =>
   `https://www.linkedin.com/search/results/${entityType === "angel" ? "people" : "companies"}/?keywords=${encodeURIComponent(name)}`;

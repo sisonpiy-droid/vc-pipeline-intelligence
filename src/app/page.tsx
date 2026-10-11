@@ -6,7 +6,7 @@ import { Empty, Eyebrow, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, REL_LABEL, ago, fmtDateTime } from "@/lib/format";
 import { load, today } from "@/lib/page";
 import { getOverview, type PipelineRow } from "@/lib/read";
-import { ACTION_THRESHOLDS } from "@/lib/scoring/score";
+import { ACTION_THRESHOLDS, STARTUP, WEIGHTS } from "@/lib/scoring/score";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: { absolute: "Priority queue · VC Pipeline Intelligence" } };
@@ -143,6 +143,20 @@ export default async function Overview() {
             </dl>
             <p className="mt-3 text-xs leading-relaxed text-muted">
               Recency 30 · relevance 30 · evidence 20 · fit 15 · relationship 5. A fresh but off-topic article earns nothing, and a failed search never lowers a score.
+            </p>
+          </section>
+
+          <section aria-labelledby="assume-h" className="reveal" style={idx(5)}>
+            <Eyebrow>Scoring assumes</Eyebrow>
+            <h2 id="assume-h" className="sr-only">Startup profile the scores assume</h2>
+            <dl className="mt-3 divide-y divide-line border-y border-line text-sm">
+              <div className="flex justify-between gap-4 py-2.5"><dt className="text-muted">Company</dt><dd className="text-right">{STARTUP.description}</dd></div>
+              <div className="flex justify-between gap-4 py-2.5"><dt className="text-muted">Sector</dt><dd className="text-right">{STARTUP.sector}</dd></div>
+              <div className="flex justify-between gap-4 py-2.5"><dt className="text-muted">Geography</dt><dd className="text-right">{STARTUP.geography} <span className="text-xs text-warn">(assumed)</span></dd></div>
+              <div className="flex justify-between gap-4 py-2.5"><dt className="text-muted">Weights</dt><dd className="num text-right text-xs">{Object.entries(WEIGHTS).map(([k, v]) => `${k.slice(0, 3)} ${v}`).join(" · ")}</dd></div>
+            </dl>
+            <p className="mt-3 text-xs leading-relaxed text-muted">
+              A <strong className="font-medium text-ink">policy score, not a probability</strong>. It ranks who to look at first from public evidence; it has not been calibrated against real fundraising outcomes.
             </p>
           </section>
 

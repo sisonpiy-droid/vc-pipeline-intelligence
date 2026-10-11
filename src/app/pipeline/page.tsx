@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fresh } from "@/components/Fresh";
 import { Card, Empty, PageTitle, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate } from "@/lib/format";
 import { load, pick, today } from "@/lib/page";
@@ -126,6 +127,7 @@ export default async function Pipeline({ searchParams }: Props) {
                     <th scope="row" className="px-4 py-3 font-medium">
                       <Link href={`/investors/${r.id}`} className="hover:underline">{r.firm_name}</Link>
                       <div className="mt-0.5 text-xs font-normal text-muted"><Link href={`/pipeline?entity=${r.entity_type}`} className="hover:text-ink hover:underline">{ENTITY_LABEL[r.entity_type]}</Link>{r.role_title ? ` · ${r.role_title}` : ""}</div>
+                      <div className="mt-1 font-normal"><Fresh at={r.last_checked} /></div>
                     </th>
                     <td className="px-3 py-3"><Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(r.state)}`}>{st.label}</Pill></td>
                     <td className="px-3 py-3 text-right tabular-nums">{r.follow_up_score ?? <span className="text-muted">–</span>}</td>

@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate, hostOf } from "@/lib/format";
 import { displayStatus, type PipelineRow } from "@/lib/read";
+import { Fresh } from "./Fresh";
 import { Bar, Card, ExternalLink, Pill, ScoreBadge } from "./ui";
 
 const ORDER = ["recency", "relevance", "evidence", "fit", "relationship"];
@@ -46,6 +47,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
             <div className="mt-4 flex flex-wrap items-center gap-2">
               {r.recommended_action && <Pill tone={ACTION_TONE[r.recommended_action]} href={`/pipeline?action=${r.recommended_action}`}>{ACTION_LABEL[r.recommended_action]}</Pill>}
               {r.refresh_failed && <Pill tone="bad" title="The most recent refresh failed; showing the last good result">Last refresh failed</Pill>}
+              <Fresh at={r.last_checked} />
             </div>
 
             {r.explanation && (

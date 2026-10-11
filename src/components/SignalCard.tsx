@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CONFIDENCE_TONE, TYPE_LABEL, fmtDate, fmtDateTime, platformOf } from "@/lib/format";
+import { CONFIDENCE_TONE, TYPE_LABEL, fmtDate, fmtDateTime, platformOf, sourceTier } from "@/lib/format";
 import type { FeedSignal } from "@/lib/read";
 import { Card, ExternalLink, Pill } from "./ui";
 
@@ -11,6 +11,9 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
       <div className="flex flex-wrap items-center gap-2">
         {s.signal_type && <Pill tone="info" href={`/signals?category=${s.signal_type}`}>{TYPE_LABEL[s.signal_type] ?? s.signal_type}</Pill>}
         {platformOf(s.source_name) && <Pill tone="neutral" title="Where this appeared">{platformOf(s.source_name)}</Pill>}
+        {sourceTier(s.source_name, s.investor_website) === "official" && <Pill tone="good" title="Published on the investor's own website">Official source</Pill>}
+        {sourceTier(s.source_name, s.investor_website) === "press" && <Pill tone="neutral" title="A recognised news publication">Press</Pill>}
+        {s.new_capital && <Pill tone="good" title="The investor announced a new fund, a close, or a larger cheque ceiling: capital is available to deploy">New fund capital</Pill>}
         {needsReview ? (
           <Pill tone="warn" title="Evidence was found but could not be verified yet">Needs review{s.rejection_reason ? `: ${s.rejection_reason.replace(/_/g, " ")}` : ""}</Pill>
         ) : (
@@ -32,6 +35,7 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
           </>
         )}
         {s.source_name ?? "unknown source"} · event/publication date <span className="font-medium text-ink">{fmtDate(s.published_at)}</span>
+        {s.date_source === "feed" && <span title="Dated by the investor's own RSS/Atom feed"> (from feed)</span>}
         {s.date_source === "post_id" && <span title="LinkedIn post IDs embed a timestamp; the date was decoded from the post URL"> (from post ID)</span>}
         {s.date_source === "search_estimate" && <span title="The page itself had no readable date; the search provider's estimate was used (it may be later than the true date)"> (estimated)</span>}
         {" · "}retrieved {fmtDateTime(s.retrieved_at)}
