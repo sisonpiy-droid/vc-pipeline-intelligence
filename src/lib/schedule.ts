@@ -1,5 +1,5 @@
 /**
- * Refresh schedule: Mondays and Thursdays at 04:00 UTC (09:30 IST) — twice weekly, spaced 3 and 4 days apart.
+ * Refresh schedule: Mondays and Thursdays at 04:00 UTC (09:30 IST; the dashboard shows Indian time) — twice weekly, spaced 3 and 4 days apart.
  * vercel.json holds the same expression (a test keeps the two in step). Vercel Hobby allows one run per
  * day at most, with up to ~59 minutes of jitter, so "about 04:00–05:00 UTC" is the honest statement.
  */

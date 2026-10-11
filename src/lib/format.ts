@@ -57,12 +57,20 @@ export function fmtDate(iso: string | null | undefined): string {
   return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : "—";
 }
 
+/** India Standard Time is a fixed UTC+05:30 (India has no daylight saving), so no time-zone database is needed. */
+const IST_OFFSET_MS = 330 * 60_000;
+
+/** Timestamps are stored in UTC and shown in Indian time: "11 Oct 2026, 11:08 IST". */
 export function fmtDateTime(iso: string | Date | null | undefined): string {
   if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} UTC`;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const d = new Date(t + IST_OFFSET_MS); // read the shifted instant with the UTC getters
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}, ${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")} IST`;
 }
+
+/** Just the date part of fmtDateTime ("11 Oct 2026"), in Indian time. */
+export const fmtDateIST = (iso: string | Date | null | undefined): string => fmtDateTime(iso).split(",")[0]!;
 
 export function ago(iso: string | Date | null | undefined, now = new Date()): string {
   if (!iso) return "never";

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { RefreshButton } from "@/components/RefreshButton";
 import { Card, Empty, PageTitle, Pill, SetupError, Stat } from "@/components/ui";
-import { ago, explainError, fmtDateTime } from "@/lib/format";
+import { ago, explainError, fmtDateIST, fmtDateTime } from "@/lib/format";
 import { getBudget, getFunnel } from "@/lib/brief";
 import { isOpenDemo } from "@/lib/demo";
 import { load } from "@/lib/page";
@@ -41,7 +41,7 @@ export default async function Runs() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Latest run" value={latest ? <Pill tone={TONE[latest.status as keyof typeof TONE]}>{latest.status}</Pill> : "—"} hint={latest ? `${latest.trigger_type}, ${ago(latest.started_at)}` : "none yet"} />
         <Stat label="Last successful run" value={lastGood?.completed_at ? ago(lastGood.completed_at) : "never"} hint={lastGood?.completed_at ? fmtDateTime(lastGood.completed_at) : undefined} />
-        <Stat label="Next scheduled" value={fmtDateTime(nextScheduledRun(new Date())).slice(0, 11)} hint={`cron ${CRON_SCHEDULE} (UTC) · Vercel Hobby may start up to ~1 h late`} />
+        <Stat label="Next scheduled" value={fmtDateIST(nextScheduledRun(new Date()))} hint={`${fmtDateTime(nextScheduledRun(new Date())).split(", ")[1]} · cron ${CRON_SCHEDULE} (UTC) · Vercel Hobby may start up to ~1 h late`} />
         <Stat label="Errors in latest run" value={latest?.error_count ?? 0} tone={latest?.error_count ? "bad" : undefined} hint={latest ? `${failed.length} investor${failed.length === 1 ? "" : "s"} failed after retries` : undefined} />
       </div>
 
