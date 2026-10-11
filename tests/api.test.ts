@@ -221,7 +221,7 @@ describe("GET /api/health", () => {
     delete process.env.TAVILY_API_KEY;
     const res = await health();
     const text = await res.text();
-    expect(JSON.parse(text)).toEqual({ ok: true, configured: { database: true, gemini: true, search: false, cron_secret: true, manual_refresh: true } });
+    expect(JSON.parse(text)).toEqual({ ok: true, configured: { database: true, gemini: true, search: false, cron_secret: true, manual_refresh: true, open_demo: false } });
     for (const v of Object.values(ENV)) expect(text).not.toContain(v);
   });
 });

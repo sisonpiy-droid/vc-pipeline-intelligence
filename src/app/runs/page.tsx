@@ -3,6 +3,7 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { Card, Empty, PageTitle, Pill, SetupError, Stat } from "@/components/ui";
 import { ago, explainError, fmtDateTime } from "@/lib/format";
 import { getBudget, getFunnel } from "@/lib/brief";
+import { isOpenDemo } from "@/lib/demo";
 import { load } from "@/lib/page";
 import { getCoverageSummary, getFailedItems, listAudit, listRuns, type RunRow } from "@/lib/read";
 import { CRON_SCHEDULE, nextScheduledRun } from "@/lib/schedule";
@@ -34,7 +35,7 @@ export default async function Runs() {
   return (
     <>
       <PageTitle title="Run monitoring & audit" sub="Every refresh, what it queried, what it found, and what went wrong. Success is only reported after every investor has finished.">
-        <RefreshButton />
+        <RefreshButton needPass={!isOpenDemo()} />
       </PageTitle>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

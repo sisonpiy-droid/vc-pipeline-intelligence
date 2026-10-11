@@ -7,7 +7,7 @@ import { ArrowsClockwise } from "@phosphor-icons/react";
 type Msg = { tone: "good" | "bad" | "warn"; text: string };
 
 /** Manual refresh. The passcode is sent as a header and kept only in component state. */
-export function RefreshButton({ label = "Refresh now" }: { label?: string }) {
+export function RefreshButton({ label = "Refresh now", needPass = true }: { label?: string; needPass?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pass, setPass] = useState("");
@@ -20,7 +20,7 @@ export function RefreshButton({ label = "Refresh now" }: { label?: string }) {
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/refresh", { method: "POST", headers: { "x-admin-passcode": pass, "content-type": "application/json" }, body: JSON.stringify({ linkedin }) });
+      const res = await fetch("/api/refresh", { method: "POST", headers: { ...(needPass ? { "x-admin-passcode": pass } : {}), "content-type": "application/json" }, body: JSON.stringify({ linkedin }) });
       const body = (await res.json().catch(() => ({}))) as { state?: string; retry_after_s?: number; missing?: string[]; message?: string };
       if (res.status === 202) setMsg({ tone: "good", text: "Refresh started. Progress updates in the status bar." });
       else if (res.status === 200 && body.state === "nothing_due") setMsg({ tone: "good", text: "Nothing to search: every investor was checked recently or is quiet. No credits used." });
@@ -56,22 +56,20 @@ export function RefreshButton({ label = "Refresh now" }: { label?: string }) {
       </button>
       {open && (
         <form onSubmit={submit} className="reveal absolute left-0 z-40 mt-2 w-72 rounded-2xl border border-line bg-surface p-4 shadow-[0_24px_48px_-24px_rgb(0_0_0/0.35)] sm:left-auto sm:right-0">
-          <label htmlFor="pass" className="block text-sm font-medium">Admin passcode</label>
-          <input
-            id="pass"
-            type="password"
-            autoComplete="off"
-            required
-            value={pass}
-            onChange={(e) => setPass(e.target.value)}
-            className="mt-2 w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm"
-          />
+          {needPass ? (
+            <>
+              <label htmlFor="pass" className="block text-sm font-medium">Admin passcode</label>
+              <input id="pass" type="password" autoComplete="off" required value={pass} onChange={(e) => setPass(e.target.value)} className="mt-2 w-full rounded-lg border border-line bg-bg px-3 py-2 text-sm" />
+            </>
+          ) : (
+            <p className="text-sm font-medium">Refresh the investor data</p>
+          )}
           <label className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted">
             <input type="checkbox" checked={linkedin} onChange={(e) => setLinkedin(e.target.checked)} className="mt-0.5" />
             <span>Also search LinkedIn <span className="text-warn">(uses about twice the search credits)</span></span>
           </label>
           <p className="mt-2 text-xs leading-relaxed text-muted">Searches only investors that are due: not checked in the last 36 hours, and quiet ones about weekly. Limited to one manual run every 10 minutes and to the monthly credit budget.</p>
-          <button disabled={busy || !pass} className="press mt-3 w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-black">
+          <button disabled={busy || (needPass && !pass)} className="press mt-3 w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-black">
             {busy ? "Starting…" : "Start refresh"}
           </button>
           {msg && <p role="status" className={`mt-3 text-sm leading-relaxed ${color[msg.tone]}`}>{msg.text}</p>}

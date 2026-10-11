@@ -16,7 +16,7 @@ const STATUSES: [string, string][] = [
 type Msg = { tone: "good" | "bad" | "warn"; text: string };
 
 /** Edit the founder-owned fields. The passcode is sent as a header and kept only in component state. */
-export function FounderEdit({ id, status, lastContact, notes }: { id: string; status: string; lastContact: string | null; notes: string | null }) {
+export function FounderEdit({ id, status, lastContact, notes, needPass = true }: { id: string; status: string; lastContact: string | null; notes: string | null; needPass?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pass, setPass] = useState("");
@@ -44,7 +44,7 @@ export function FounderEdit({ id, status, lastContact, notes }: { id: string; st
       return setMsg({ tone: "warn", text: "Nothing changed." });
     }
     try {
-      const res = await fetch(`/api/investors/${id}/founder`, { method: "POST", headers: { "x-admin-passcode": pass, "content-type": "application/json" }, body: JSON.stringify(body) });
+      const res = await fetch(`/api/investors/${id}/founder`, { method: "POST", headers: { ...(needPass ? { "x-admin-passcode": pass } : {}), "content-type": "application/json" }, body: JSON.stringify(body) });
       const j = (await res.json().catch(() => ({}))) as { message?: string };
       if (res.ok) {
         setMsg({ tone: "good", text: "Saved. The next refresh will use this (for example, “awaiting response” makes it wait rather than chase)." });
@@ -90,10 +90,12 @@ export function FounderEdit({ id, status, lastContact, notes }: { id: string; st
           <label className="block text-xs font-medium text-muted">Personal notes
             <textarea rows={4} maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} className={`${field} text-ink`} />
           </label>
-          <label className="block text-xs font-medium text-muted">Admin passcode
-            <input type="password" autoComplete="off" required value={pass} onChange={(e) => setPass(e.target.value)} className={`${field} text-ink`} />
-          </label>
-          <button disabled={busy || !pass} className="press w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-black">{busy ? "Saving…" : "Save"}</button>
+          {needPass && (
+            <label className="block text-xs font-medium text-muted">Admin passcode
+              <input type="password" autoComplete="off" required value={pass} onChange={(e) => setPass(e.target.value)} className={`${field} text-ink`} />
+            </label>
+          )}
+          <button disabled={busy || (needPass && !pass)} className="press w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50 dark:text-black">{busy ? "Saving…" : "Save"}</button>
           {msg && <p role="status" className={`text-sm leading-relaxed ${color[msg.tone]}`}>{msg.text}</p>}
           <p className="text-xs leading-relaxed text-muted">Only these four fields can be changed here. Nothing a refresh finds can overwrite them, and these edits can never change a score.</p>
         </form>

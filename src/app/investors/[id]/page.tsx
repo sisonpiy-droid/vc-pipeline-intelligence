@@ -8,6 +8,7 @@ import { SignalCard } from "@/components/SignalCard";
 import { TimelineLine } from "@/components/motion/TimelineLine";
 import { Bar, Card, Eyebrow, ExternalLink, Pill, ScoreBadge, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, ago, explainError, fmtDate, fmtDateTime, hostOf, linkedinSearchUrl, safeHref, webSearchUrl } from "@/lib/format";
+import { isOpenDemo } from "@/lib/demo";
 import { load, today } from "@/lib/page";
 import { displayStatus, getInvestor } from "@/lib/read";
 
@@ -254,7 +255,7 @@ export default async function InvestorPage({ params }: Props) {
             <h2 id="rel-h" className="sr-only">Relationship and notes</h2>
             <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
               <LockSimple aria-hidden size={14} weight="bold" className="mt-px shrink-0" />
-              This is your data. The refresh role cannot read or change it (enforced by the database); you edit it here with the admin passcode.
+              This is your data. The refresh role cannot read or change it (enforced by the database); you edit it here.
             </p>
             <div className="mt-3">
               {hide ? (
@@ -290,7 +291,7 @@ export default async function InvestorPage({ params }: Props) {
                 />
               )}
               {!hide && (
-                <FounderEdit id={String(i.id)} status={String(i.relationship_status)} lastContact={(i.last_contact_date as string | null) ?? null} notes={(i.personal_notes as string | null) ?? null} />
+                <FounderEdit id={String(i.id)} status={String(i.relationship_status)} lastContact={(i.last_contact_date as string | null) ?? null} notes={(i.personal_notes as string | null) ?? null} needPass={!isOpenDemo()} />
               )}
             </div>
           </section>

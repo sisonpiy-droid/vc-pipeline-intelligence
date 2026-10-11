@@ -18,7 +18,8 @@ export async function GET() {
     gemini: missingEnv(["GEMINI_API_KEY"]).length === 0,
     search: missingEnv(["TAVILY_API_KEY"]).length === 0,
     cron_secret: missingEnv(["CRON_SECRET"]).length === 0,
-    manual_refresh: missingEnv(["ADMIN_PASSCODE"]).length === 0,
+    manual_refresh: process.env.DEMO_OPEN === "1" || missingEnv(["ADMIN_PASSCODE"]).length === 0,
+    open_demo: process.env.DEMO_OPEN === "1",
   };
   return NextResponse.json({ ok: database, configured }, { status: database ? 200 : 503 });
 }

@@ -7,6 +7,7 @@ import { HeroReveal } from "@/components/motion/HeroReveal";
 import { Magnetic } from "@/components/motion/Magnetic";
 import { Empty, Eyebrow, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, REL_LABEL, ago, fmtDateTime } from "@/lib/format";
+import { isOpenDemo } from "@/lib/demo";
 import { load, today } from "@/lib/page";
 import { getOverview, type PipelineRow } from "@/lib/read";
 import { ACTION_THRESHOLDS, STARTUP, WEIGHTS } from "@/lib/scoring/score";
@@ -63,7 +64,7 @@ export default async function Overview() {
             Ranked by a transparent follow-up score. Every recommendation links to the public evidence behind it, and investors with no verified signal are listed rather than hidden.
           </p>
           <div data-hero className="js-hide mt-6 flex flex-wrap items-center gap-3">
-            <Magnetic><RefreshButton /></Magnetic>
+            <Magnetic><RefreshButton needPass={!isOpenDemo()} /></Magnetic>
             <Link href="/signals" className="press rounded-lg px-3 py-1.5 text-sm font-medium text-muted hover:text-ink">Browse all signals</Link>
           </div>
         </HeroReveal>
@@ -103,7 +104,7 @@ export default async function Overview() {
             {queue.length > 0 && <span className="num text-xs text-muted">{queue.length} to act on</span>}
           </div>
           {never ? (
-            <Empty title="No refresh has run yet" action={<RefreshButton label="Run the first refresh" />}>
+            <Empty title="No refresh has run yet" action={<RefreshButton label="Run the first refresh" needPass={!isOpenDemo()} />}>
               {counts.total} investors are imported. The first refresh searches public sources for activity in the last 30 days and scores each investor. Nothing is shown as a placeholder.
             </Empty>
           ) : queue.length === 0 ? (

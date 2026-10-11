@@ -28,6 +28,7 @@ const WINDOW_MS = 10 * 60_000;
 const MAX_FAILURES = 8;
 
 export function checkAdmin(req: Request, ip: string): AdminCheck {
+  if (process.env.DEMO_OPEN === "1") return "ok"; // open demo mode: no passcode (see lib/demo.ts)
   const pass = process.env.ADMIN_PASSCODE;
   if (!pass) return "disabled";
   const f = failures.get(ip);
