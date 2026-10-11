@@ -1,6 +1,7 @@
 import type { AiClient } from "@/lib/ai/gemini";
 import type { Candidate as AiCandidate } from "@/lib/ai/analyze";
 import { extractPage, type ExtractedPage } from "@/lib/providers/extract";
+import { fetchOfficialFeed } from "@/lib/providers/feeds";
 import { ProviderError, type PageFetcher, type SearchHit, type SearchProvider } from "@/lib/providers/types";
 import { canonicalUrl } from "@/lib/normalize";
 import { dedupeSignals } from "@/lib/signals/dedupe";
@@ -29,6 +30,8 @@ export interface InvestorRow {
 export interface Deps {
   /** Also search LinkedIn (public posts/articles via the search provider only; LinkedIn pages are never fetched by us). */
   linkedin?: boolean;
+  /** Read the investor's own RSS/Atom feed (free, no search credits). */
+  officialFeeds?: boolean;
   search: SearchProvider;
   pages: PageFetcher;
   ai: AiClient;
@@ -48,9 +51,10 @@ export interface Rejected {
 export interface ResearchCandidate extends AiCandidate {
   canonical_url: string;
   source_name: string;
-  date_source: "page" | "search_estimate" | "post_id";
+  date_source: "page" | "search_estimate" | "post_id" | "feed";
   fetched: boolean; // false → we only had the search snippet, so confidence is capped
   authority: number;
+  official?: boolean;
 }
 
 export interface CoverageEntry {
@@ -200,6 +204,43 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
       fetched: usePage,
       authority: officialHost && hostOf(canon).endsWith(officialHost) ? 5 : 1,
     });
+  }
+
+  // Official feed: the investor's own news, dated by the feed. Costs no search credits.
+  if (deps.officialFeeds && inv.website_url) {
+    const feed = await fetchOfficialFeed(deps.pages, inv.website_url, windowStart(now), isoDay(now));
+    if (feed.status === "found") {
+      base.sourcesChecked++;
+      coverage.push({ source: "official_feed", status: feed.inWindow.length ? "ok" : "empty", result_count: feed.inWindow.length, error_category: null, note: feed.inWindow.length ? null : "feed found; no post in the last 30 days" });
+      for (const it of feed.inWindow) {
+        const canon = canonicalUrl(it.url);
+        if (!canon || seen.has(canon)) continue;
+        seen.add(canon);
+        if (known.has(canon)) { base.skippedKnown++; continue; }
+        const date = parseDate(it.published)!;
+        let page: ExtractedPage | null = null;
+        try {
+          base.sourcesChecked++;
+          page = extractPage((await deps.pages.fetch(it.url)).html);
+        } catch {
+          base.pageFetchFailures++;
+        }
+        if (page?.date_conflict || (page?.published_at && Math.abs(Date.parse(page.published_at) - Date.parse(date)) > 3 * 86_400_000)) {
+          rejected.push({ url: it.url, canonical_url: canon, title: it.title, reason: "contradictory_dates", published_at: date, source_name: hostOf(canon) });
+          continue;
+        }
+        const body = page && page.text.length >= MIN_PAGE_TEXT ? page.text : it.summary;
+        if (body.length < 40) {
+          rejected.push({ url: it.url, canonical_url: canon, title: it.title, reason: "insufficient_content", published_at: date, source_name: hostOf(canon) });
+          continue;
+        }
+        accepted.push({ index: -1, url: it.url, canonical_url: canon, title: it.title, text: body, published_at: date, source_name: hostOf(canon), date_source: "feed", fetched: body === page?.text, authority: 5, official: true });
+      }
+    } else if (feed.status === "none") {
+      coverage.push({ source: "official_feed", status: "skipped", result_count: 0, error_category: null, note: feed.note });
+    } else {
+      coverage.push({ source: "official_feed", status: "error", result_count: 0, error_category: feed.error.category, note: feed.error.message });
+    }
   }
 
   const { kept, duplicates } = dedupeSignals(accepted.map((c) => ({ ...c, headline: c.title })));

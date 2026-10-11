@@ -74,7 +74,7 @@ export function createPageFetcher(opts: FetcherOptions = {}): PageFetcher {
           method: "GET",
           lookup: guardedLookup,
           timeout: opts.timeoutMs ?? 10_000,
-          headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml,text/plain;q=0.8", "accept-encoding": "gzip, deflate, br" },
+          headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml,application/rss+xml,application/atom+xml,application/xml;q=0.9,text/plain;q=0.8", "accept-encoding": "gzip, deflate, br" },
         },
         (res) => {
           const status = res.statusCode ?? 0;
@@ -83,7 +83,7 @@ export function createPageFetcher(opts: FetcherOptions = {}): PageFetcher {
             return resolve({ status, headers: res.headers, body: Buffer.alloc(0) });
           }
           const type = String(res.headers["content-type"] ?? "").toLowerCase();
-          if (status === 200 && type && !/^(text\/|application\/xhtml)/.test(type)) {
+          if (status === 200 && type && !/^(text\/|application\/(xhtml\+xml|xml|rss\+xml|atom\+xml))/.test(type)) {
             res.destroy();
             return reject(new ProviderError("blocked", `unsupported content type ${type.split(";")[0]}`));
           }

@@ -11,7 +11,7 @@ export interface ExtractedPage {
 }
 
 const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“", ndash: "–", mdash: "—", hellip: "…" };
-const decode = (s: string) =>
+export const decodeEntities = (s: string) =>
   s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
     if (e[0] === "#") {
       const cp = e[1]!.toLowerCase() === "x" ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
@@ -27,7 +27,7 @@ function metaContent(html: string, attr: "property" | "name" | "itemprop", names
     const a = new RegExp(`${attr}\\s*=\\s*["']([^"']+)["']`, "i").exec(tag)?.[1]?.toLowerCase();
     if (!a || !names.includes(a)) continue;
     const c = /content\s*=\s*["']([^"']*)["']/i.exec(tag)?.[1];
-    if (c) out.push(decode(c));
+    if (c) out.push(decodeEntities(c));
   }
   return out;
 }
@@ -66,7 +66,7 @@ export function publicationDates(html: string): string[] {
 }
 
 export function extractPage(html: string): ExtractedPage {
-  const title = decode(
+  const title = decodeEntities(
     metaContent(html, "property", ["og:title"])[0] ?? /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html)?.[1] ?? "",
   ).replace(/\s+/g, " ").trim();
 
@@ -83,7 +83,7 @@ export function extractPage(html: string): ExtractedPage {
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<\/(p|div|li|h[1-6]|br|tr|section)>|<br\s*\/?>/gi, "\n")
     .replace(/<[^>]+>/g, " ");
-  const text = decode(body).replace(/[ \t\f\v ]+/g, " ").replace(/\s*\n\s*/g, "\n").trim().slice(0, 20_000);
+  const text = decodeEntities(body).replace(/[ \t\f\v ]+/g, " ").replace(/\s*\n\s*/g, "\n").trim().slice(0, 20_000);
 
   return { title, text, published_at: conflict ? null : first, date_conflict: conflict, canonical_url: canonical };
 }

@@ -30,7 +30,7 @@ const capConfidence = (c: Confidence, capped: boolean): Confidence => (capped &&
 
 interface SignalRow {
   url: string; canonical_url: string; headline: string; source_name: string | null;
-  published_at: string | null; date_source: "page" | "search_estimate" | "post_id" | null;
+  published_at: string | null; date_source: "page" | "search_estimate" | "post_id" | "feed" | null;
   signal_type: string | null; evidence_excerpt: string | null; summary: string | null; relevance_explanation: string | null;
   relevance_score: number | null; evidence_confidence: Confidence | null;
   verification_status: "verified" | "needs_review" | "rejected"; rejection_reason: string | null;
