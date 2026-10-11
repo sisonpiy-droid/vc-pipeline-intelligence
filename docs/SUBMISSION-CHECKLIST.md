@@ -47,7 +47,7 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 | Safe signal-only updates | [x] |
 | Scheduled + manual refresh | [x] logic & auth tested (22 API tests); [~] on Vercel |
 | Run monitoring & audit | [x] `/runs`, `audit_logs`, `source_coverage` |
-| Automated tests | [x] **212 passing**, typecheck clean, production build clean |
+| Automated tests | [x] **213 passing**, typecheck clean, production build clean |
 | `.env.example` | [x] |
 | README · API/architecture docs | [x] `README.md`, `docs/ARCHITECTURE.md` |
 | Components Map | [~] reflects only components that exist; live-status badges to be updated after verification |
@@ -63,8 +63,10 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 3. **Run 1 on production** (manual trigger, chained invocations): 82/82, 0 errors, ~9.5 min, 104 verified signals. Review showed evergreen profiles and an IPO shareholder list ranked as "signals".
 4. Fix: `specific_recent_event` field, stricter involvement/portfolio definitions in the prompt, profile/directory URL filter (+3 tests).
 5. **Run 2 on production** (after clearing derived evidence only): 82/82, 0 errors, 65 verified signals; 28 profile pages and 7 non-events rejected. Top results are real, checkable events.
-6. `npm run verify:boundary` against live Supabase: all denials/permissions as designed.
-7. Still unobserved: the **scheduled** cron firing (first due Mon 12 Oct 04:00 UTC).
+6. Review of run 2 showed 27 investors flagged "needs review" because any unfetchable page counted as incomplete coverage. Fix: coverage is "partial" only when a failed fetch actually prevented a decision (+1 test).
+7. **Run 3 on production**: 82/82, 0 errors. Cached verdicts meant 93 candidates instead of 280 and only 13 new signals; 0 duplicate (investor, URL) rows after three runs; dashboard 20 active / 62 quiet / 0 needing review; founder columns unchanged (all 82 still `not_contacted`, no notes).
+8. `npm run verify:boundary` against live Supabase: all denials/permissions as designed.
+9. Still unobserved: the **scheduled** cron firing (first due Mon 12 Oct 04:00 UTC).
 
 ## Known limitations
 

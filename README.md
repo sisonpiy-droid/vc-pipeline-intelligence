@@ -7,7 +7,7 @@ Built for Vikram: a first-time founder raising a **Seed** round for a **B2B logi
 verifies each piece of evidence, scores every investor with a fixed explainable formula, and ranks who to approach —
 without ever overwriting the founder's own notes, contact history or relationship status.
 
-> **Status.** Deployed and verified live: two real production refreshes completed 82/82 with 0 errors, and the
+> **Status.** Deployed and verified live: three real production refreshes completed 82/82 with 0 errors, and the
 > data-safety boundary was verified on the real Supabase database. Not yet observed: the first *scheduled* cron firing
 > (Mon 12 Oct 04:00 UTC). See [docs/SUBMISSION-CHECKLIST.md](docs/SUBMISSION-CHECKLIST.md) for the full log.
 
@@ -35,7 +35,7 @@ npm install
 cp .env.example .env            # then set DATABASE_URL=pglite://.data/dev  (in-process Postgres)
 npm run import                  # applies the migration, imports data/india_vc_and_angel_profiles.xlsx (82 investors)
 npm run dev                     # http://localhost:3000
-npm test                        # 212 tests, ~30 s
+npm test                        # 213 tests, ~30 s
 ```
 
 To see a populated dashboard without API keys: `npm run dev:fixture` runs the **real pipeline** over canned
@@ -77,7 +77,7 @@ src/lib/refresh    research → process → durable chunked run lifecycle → fo
 src/lib/read.ts    dashboard read model (state derivation, filters, feeds)
 src/app            pages + /api/cron/refresh · /api/refresh · /api/refresh/continue · /api/health
 supabase/migrations  schema, ownership boundary, least-privilege role, RLS
-tests/             212 tests; the real migration runs on PGlite
+tests/             213 tests; the real migration runs on PGlite
 docs/              architecture, scoring, providers & costs, references, demo, viva, checklist, components map
 ```
 
