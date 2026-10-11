@@ -60,6 +60,7 @@ function PersonRow({ r }: { r: PipelineRow }) {
         <span className="num text-lg font-medium">{r.follow_up_score ?? "–"}</span>
       </div>
       {r.lead && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{r.lead.headline}</p>}
+      {r.angle && <p className="mt-1.5 border-l-2 border-accent pl-2.5 text-xs leading-relaxed"><span className="font-medium text-good">Angle: </span>{r.angle}</p>}
       <div className="mt-1.5 flex flex-wrap items-center gap-2">
         {r.recommended_action && <Pill tone={ACTION_TONE[r.recommended_action]}>{ACTION_LABEL[r.recommended_action]}</Pill>}
         <Fresh at={r.last_checked} />

@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { CaretLeft, Globe, LinkedinLogo, LockSimple, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { CopyButton } from "@/components/CopyButton";
+import { FounderEdit } from "@/components/FounderEdit";
 import { SignalCard } from "@/components/SignalCard";
 import { Bar, Card, Eyebrow, ExternalLink, Pill, ScoreBadge, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, ago, explainError, fmtDate, fmtDateTime, hostOf, linkedinSearchUrl, safeHref, webSearchUrl } from "@/lib/format";
@@ -59,7 +61,7 @@ export default async function InvestorPage({ params }: Props) {
   const review = signals.filter((s) => s.verification_status === "needs_review");
   const rejected = signals.filter((s) => s.verification_status === "rejected");
   const timeline = [...review, ...verified];
-  const outcome = latest?.outcome as { breakdown?: Record<string, { points: number; max: number; note: string }>; explanation?: string } | null | undefined;
+  const outcome = latest?.outcome as { breakdown?: Record<string, { points: number; max: number; note: string }>; explanation?: string; angle?: string } | null | undefined;
   const history = (i.contact_history as { date?: string | null; channel?: string; note?: string }[]) ?? [];
   const action = i.recommended_action as string | null;
   const untouched = i.relationship_status === "not_contacted"; // the workbook's placeholder only applies until the founder sets a real status
@@ -109,6 +111,16 @@ export default async function InvestorPage({ params }: Props) {
 
           <p className="mt-5 max-w-[60ch] text-lg font-medium leading-snug tracking-tight">{(i.signal_summary as string | null) ?? "Not refreshed yet."}</p>
           {outcome?.explanation && <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-muted">{outcome.explanation.replace(/\.{2}(?=\s)/g, ".")}</p>}
+          {outcome?.angle && action === "reach_out_now" && (
+            <div className="mt-5 max-w-[62ch] rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Suggested opening angle</p>
+                <CopyButton text={outcome.angle} />
+              </div>
+              <p className="mt-1.5 text-sm leading-relaxed">{outcome.angle}</p>
+              <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified evidence only. Edit before using; nothing is sent.</p>
+            </div>
+          )}
           {failedErr && (
             <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-bad">
               {failedErr.title}. <span className="text-muted">{failedErr.action}</span>
@@ -240,7 +252,7 @@ export default async function InvestorPage({ params }: Props) {
             <h2 id="rel-h" className="sr-only">Relationship and notes</h2>
             <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
               <LockSimple aria-hidden size={14} weight="bold" className="mt-px shrink-0" />
-              Read-only here. This is your data; the refresh role cannot read or change it, and that is enforced by the database.
+              This is your data. The refresh role cannot read or change it (enforced by the database); you edit it here with the admin passcode.
             </p>
             <div className="mt-3">
               {hide ? (
@@ -274,6 +286,9 @@ export default async function InvestorPage({ params }: Props) {
                     ["Personal notes", i.personal_notes ? <span className="whitespace-pre-wrap">{String(i.personal_notes)}</span> : <span className="text-muted">None recorded</span>],
                   ]}
                 />
+              )}
+              {!hide && (
+                <FounderEdit id={String(i.id)} status={String(i.relationship_status)} lastContact={(i.last_contact_date as string | null) ?? null} notes={(i.personal_notes as string | null) ?? null} />
               )}
             </div>
           </section>

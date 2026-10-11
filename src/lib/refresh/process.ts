@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { analyzeCandidates, type Verdict } from "@/lib/ai/analyze";
+import { generateAngle, type AngleEvidence } from "@/lib/ai/angle";
 import type { Db, Queryable } from "@/lib/db";
 import { RELEVANCE_MIN, scoreInvestor, STARTUP, type Confidence, type ScoredSignal } from "@/lib/scoring/score";
 import { ageInDays } from "@/lib/signals/window";
@@ -183,9 +184,9 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
 
     // Everything verified and not a duplicate, across all runs — evidence persists until it ages out.
     const stored = (await q.query<{
-      id: string; published_at: string; relevance_score: number; evidence_confidence: Confidence; headline: string; summary: string;
+      id: string; published_at: string; relevance_score: number; evidence_confidence: Confidence; headline: string; summary: string; evidence_excerpt: string | null;
     }>(
-      `select id, published_at::text as published_at, relevance_score, evidence_confidence, headline, summary
+      `select id, published_at::text as published_at, relevance_score, evidence_confidence, headline, summary, evidence_excerpt
          from signals where investor_id = $1 and verification_status = 'verified' and duplicate_of is null and published_at is not null`,
       [inv.id],
     )).rows;
@@ -216,6 +217,14 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
       recommended_action: result.action,
     });
 
+    // Reuse the previous opening angle while the lead signal is the same: no repeat AI call, stable wording.
+    const prev = (await q.query<{ angle: string | null; lead: string | null }>(
+      `select outcome->>'angle' as angle, outcome->>'lead_signal_id' as lead from run_items
+        where investor_id = $1 and run_id <> $2 and status = 'done' order by finished_at desc limit 1`,
+      [inv.id, runId],
+    )).rows[0];
+    const reusedAngle = result.action === "reach_out_now" && result.lead_signal?.id && prev?.lead === result.lead_signal.id ? prev.angle : null;
+
     const rejectedByReason: Record<string, number> = {};
     for (const s of [...signalRows.filter((x) => x.verification_status !== "verified"), ...res.rejected.map(rejectedRow)])
       rejectedByReason[s.rejection_reason ?? "unknown"] = (rejectedByReason[s.rejection_reason ?? "unknown"] ?? 0) + 1;
@@ -224,11 +233,22 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
       lead_signal_id: result.lead_signal?.id ?? null, relevant_signals: result.relevant_signal_count,
       accepted_new: accepted.length, skipped_already_assessed: res.skippedKnown, rejected: rejectedByReason,
       coverage: partial ? "partial" : "complete", ai_calls: analysis.ai_calls, columns_changed: changed,
+      ...(reusedAngle ? { angle: reusedAngle } : {}),
     };
     await audit(q, runId, inv.id, "info", "signal_columns_updated", { fields: SIGNAL_COLUMNS, changed, score: result.score, action: result.action });
     await q.query(`update run_items set status = 'done', finished_at = now(), error = null, outcome = $3::jsonb where run_id = $1 and investor_id = $2`, [runId, inv.id, JSON.stringify(outcome)]);
-    return { changed };
+    // A suggested opening angle is worth generating only for the investors we recommend approaching now.
+    const angleFor: AngleEvidence | null =
+      result.action === "reach_out_now" && lead && !reusedAngle ? { headline: lead.headline, summary: lead.summary, excerpt: lead.evidence_excerpt, published_at: lead.published_at } : null;
+    return { changed, angleFor };
   });
+
+  if (outcome.angleFor) {
+    counters.ai_calls++;
+    const angle = await generateAngle(deps.ai, inv.firm_name, outcome.angleFor);
+    if (angle)
+      await rdb.query(`update run_items set outcome = outcome || jsonb_build_object('angle', $3::text) where run_id = $1 and investor_id = $2`, [runId, inv.id, angle]);
+  }
 
   counters.records_updated = outcome.changed ? 1 : 0;
   return { ok: true, retryable: false, counters };

@@ -197,8 +197,8 @@ describe("pipeline behaviour", () => {
     expect(rows.filter((r) => r.why === "duplicate_event")).toHaveLength(1);
     expect(rows.find((r) => r.why === "duplicate_event")!.duplicate_of).not.toBeNull();
     expect((await runRow(run_id)).duplicates_removed).toBe(1);
-    // Only the surviving distinct candidate cost an AI call, and it was one batched call.
-    expect(ai.calls).toBe(1);
+    // Only the surviving distinct candidate was analysed, in ONE batched call (the extra call is the optional opening angle).
+    expect(ai.prompts.filter((p) => p.includes("<candidate"))).toHaveLength(1);
   });
 
   it("static profile / directory pages are rejected before any fetch or AI call", async () => {

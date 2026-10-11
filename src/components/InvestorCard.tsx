@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, TYPE_LABEL, fmtDate, hostOf } from "@/lib/format";
 import { displayStatus, type PipelineRow } from "@/lib/read";
+import { CopyButton } from "./CopyButton";
 import { Fresh } from "./Fresh";
 import { Bar, Card, ExternalLink, Pill, ScoreBadge } from "./ui";
 
@@ -49,6 +50,17 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
               {r.refresh_failed && <Pill tone="bad" title="The most recent refresh failed; showing the last good result">Last refresh failed</Pill>}
               <Fresh at={r.last_checked} />
             </div>
+
+            {r.angle && (
+              <div className="mt-4 rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Suggested opening angle</p>
+                  <CopyButton text={r.angle} />
+                </div>
+                <p className="mt-1.5 text-sm leading-relaxed">{r.angle}</p>
+                <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified signal above only. Edit before using; nothing is sent.</p>
+              </div>
+            )}
 
             {r.explanation && (
               <details className="group mt-4 border-t border-line pt-3 text-sm">

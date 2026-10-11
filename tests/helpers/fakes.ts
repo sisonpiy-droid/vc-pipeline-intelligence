@@ -60,7 +60,7 @@ export interface AiRule {
 }
 
 /** A Gemini double: parses candidates from the prompt and answers from a per-URL rule table. */
-export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage" | "down" | "malicious" = "ok"): AiClient & { calls: number; prompts: string[] } {
+export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage" | "down" | "malicious" = "ok", angle: string | Error = "Congratulations on backing a freight marketplace; we are building software for the same trucking fleets."): AiClient & { calls: number; prompts: string[] } {
   const state = { calls: 0, prompts: [] as string[] };
   return {
     get calls() { return state.calls; },
@@ -69,6 +69,10 @@ export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage
       state.calls++;
       state.prompts.push(req.prompt);
       if (mode === "down") throw new AiError("unavailable", "Gemini down");
+      if ("angle" in ((req.responseSchema as { properties?: object }).properties ?? {})) {
+        if (angle instanceof Error) throw angle;
+        return { angle };
+      }
       if (mode === "garbage") return { assessments: "not an array", extra: "<script>" };
       const cands = [...req.prompt.matchAll(/<candidate index="(\d+)" url="([^"]+)"/g)].map((m) => ({ index: Number(m[1]), url: m[2]! }));
       return {

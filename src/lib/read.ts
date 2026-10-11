@@ -67,15 +67,17 @@ export interface PipelineRow {
   lead: LeadSignal | null;
   explanation: string | null;
   breakdown: Record<string, { points: number; max: number; note: string }> | null;
+  /** Suggested opening, grounded in the lead signal (only for "reach out now"). */
+  angle: string | null;
   last_checked: string | null;
   last_error: string | null; // why the latest refresh failed, if it did
 }
 
-interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" | "explanation" | "breakdown" | "last_checked" | "last_error"> {
+interface RawRow extends Omit<PipelineRow, "state" | "refresh_failed" | "lead" | "explanation" | "breakdown" | "angle" | "last_checked" | "last_error"> {
   latest_status: string | null;
   latest_error: string | null;
   latest_finished: Date | string | null;
-  latest_outcome: { explanation?: string; coverage?: string; breakdown?: PipelineRow["breakdown"] } | null;
+  latest_outcome: { explanation?: string; coverage?: string; breakdown?: PipelineRow["breakdown"]; angle?: string } | null;
   last_relevant: string | null;
   lead_headline: string | null;
   lead_summary: string | null;
@@ -141,6 +143,7 @@ export async function listPipeline(db: Db, today: string): Promise<PipelineRow[]
         : null,
       explanation: latest_outcome?.explanation ?? null,
       breakdown: latest_outcome?.breakdown ?? null,
+      angle: r.recommended_action === "reach_out_now" ? (latest_outcome?.angle ?? null) : null,
       last_checked: latest_finished ? new Date(latest_finished).toISOString() : null,
       last_error: latestFailed ? latest_error : null,
     };
