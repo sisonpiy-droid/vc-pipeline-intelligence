@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CaretLeft, Globe, LinkedinLogo, LockSimple, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import { CopyButton } from "@/components/CopyButton";
 import { FounderEdit } from "@/components/FounderEdit";
+import { ScoreTrend } from "@/components/ScoreTrend";
 import { SignalCard } from "@/components/SignalCard";
 import { TimelineLine } from "@/components/motion/TimelineLine";
 import { Bar, Card, Eyebrow, ExternalLink, Pill, ScoreBadge, SetupError } from "@/components/ui";
@@ -55,7 +56,7 @@ export default async function InvestorPage({ params }: Props) {
   const res = await load((db) => getInvestor(db, id, today()));
   if (!res.ok) return <SetupError message={res.error} />;
   if (!res.data) notFound();
-  const { inv: i, signals, latest, coverage, state } = res.data;
+  const { inv: i, signals, latest, coverage, state, history: scoreHistory } = res.data;
   const st = STATE_META[state];
   const hide = process.env.HIDE_PRIVATE_NOTES === "1";
 
@@ -63,7 +64,11 @@ export default async function InvestorPage({ params }: Props) {
   const review = signals.filter((s) => s.verification_status === "needs_review");
   const rejected = signals.filter((s) => s.verification_status === "rejected");
   const timeline = [...review, ...verified];
-  const outcome = latest?.outcome as { breakdown?: Record<string, { points: number; max: number; note: string }>; explanation?: string; angle?: string } | null | undefined;
+  // The latest scoring (a refresh or a re-score) is the source of the explanation, breakdown and opening angle.
+  const cur = scoreHistory[0];
+  const legacy = latest?.outcome as { breakdown?: Record<string, { points: number; max: number; note: string }>; explanation?: string } | null | undefined;
+  const outcome = { breakdown: cur?.breakdown ?? legacy?.breakdown, explanation: cur?.explanation ?? legacy?.explanation, angle: cur?.angle ?? undefined };
+  const chronological = [...scoreHistory].reverse().map((h) => ({ at: h.at, source: h.source, score: h.score, action: h.action, breakdown: h.breakdown }));
   const history = (i.contact_history as { date?: string | null; channel?: string; note?: string }[]) ?? [];
   const action = i.recommended_action as string | null;
   const untouched = i.relationship_status === "not_contacted"; // the workbook's placeholder only applies until the founder sets a real status
@@ -113,6 +118,11 @@ export default async function InvestorPage({ params }: Props) {
 
           <p className="mt-5 max-w-[60ch] text-lg font-medium leading-snug tracking-tight">{(i.signal_summary as string | null) ?? "Not refreshed yet."}</p>
           {outcome?.explanation && <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-muted">{outcome.explanation.replace(/\.{2}(?=\s)/g, ".")}</p>}
+          {(cur?.capped_by?.length ?? 0) > 0 && (
+            <p role="note" className="mt-3 max-w-[62ch] rounded-lg border border-warn/30 bg-warn-soft/60 px-3 py-2 text-xs leading-relaxed text-warn">
+              <strong className="font-semibold">Why not “reach out now”:</strong> {cur!.capped_by.join("; ")}.
+            </p>
+          )}
           {outcome?.angle && action === "reach_out_now" && (
             <div className="mt-5 max-w-[62ch] rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
               <div className="flex items-center justify-between gap-2">
@@ -153,6 +163,7 @@ export default async function InvestorPage({ params }: Props) {
             ) : (
               <p className="mt-6 border-t border-line pt-5 text-sm text-muted">No score yet — this investor has not completed a refresh.</p>
             )}
+            {chronological.length > 0 && <div className="mt-6 border-t border-line pt-5"><ScoreTrend chronological={chronological} /></div>}
           </Card>
         </div>
       </section>

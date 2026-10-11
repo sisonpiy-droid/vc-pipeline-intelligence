@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CONFIDENCE_TONE, TYPE_LABEL, fmtDate, fmtDateTime, platformOf, sourceTier } from "@/lib/format";
+import { CONFIDENCE_TONE, SECTOR_LABEL, TYPE_LABEL, fmtDate, fmtDateTime, platformOf, sourceTier } from "@/lib/format";
 import type { FeedSignal } from "@/lib/read";
 import { Card, ExternalLink, Pill } from "./ui";
 
@@ -13,6 +13,8 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
         {platformOf(s.source_name) && <Pill tone="neutral" title="Where this appeared">{platformOf(s.source_name)}</Pill>}
         {sourceTier(s.source_name, s.investor_website) === "official" && <Pill tone="good" title="Published on the investor's own website">Official source</Pill>}
         {sourceTier(s.source_name, s.investor_website) === "press" && <Pill tone="neutral" title="A recognised news publication">Press</Pill>}
+        {sourceTier(s.source_name, s.investor_website) === "social" && <Pill tone="warn" title="A social-media post: counts less as evidence and cannot alone justify a cold approach">Social post</Pill>}
+        {s.sector_match && <Pill tone={SECTOR_LABEL[s.sector_match]!.tone} title={SECTOR_LABEL[s.sector_match]!.help}>{SECTOR_LABEL[s.sector_match]!.label}</Pill>}
         {s.new_capital && <Pill tone="good" title="The investor announced a new fund, a close, or a larger cheque ceiling: capital is available to deploy">New fund capital</Pill>}
         {needsReview ? (
           <Pill tone="warn" title="Evidence was found but could not be verified yet">Needs review{s.rejection_reason ? `: ${s.rejection_reason.replace(/_/g, " ")}` : ""}</Pill>
@@ -26,6 +28,7 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
 
       <h3 className="mt-2 text-base font-semibold">
         <ExternalLink href={s.url}>{s.headline}</ExternalLink>
+        {s.raw_headline && <span className="ml-2 align-middle text-[0.65rem] font-normal uppercase tracking-wide text-muted" title={`Written by Gemini from the excerpt; the page's own title is "${s.raw_headline}"`}>summarised</span>}
       </h3>
       <p className="mt-1 text-xs text-muted">
         {showInvestor && (
@@ -45,6 +48,7 @@ export function SignalCard({ s, showInvestor = true }: { s: FeedSignal; showInve
         <blockquote className="mt-3 border-l-2 border-accent pl-3 text-sm italic text-ink/90">“{s.evidence_excerpt}”</blockquote>
       )}
       {s.summary && <p className="mt-2 text-sm">{s.summary}</p>}
+      {s.review_note && <p className="mt-1 text-xs text-warn">Review note: {s.review_note}</p>}
       {s.relevance_explanation && (
         <p className="mt-1 text-sm text-muted">
           <span className="font-medium text-ink">Why it matters: </span>

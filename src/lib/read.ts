@@ -360,7 +360,11 @@ export async function getInvestor(db: Db, id: string, today: string) {
     },
     today,
   );
-  return { inv, signals, latest, coverage, state };
+  const history = (await db.query<{ at: string; source: "refresh" | "rescore"; score: number; action: string; explanation: string | null; breakdown: Record<string, { points: number; max: number; note: string }> | null; capped_by: string[]; angle: string | null }>(
+    `select at::text as at, source, score, action, explanation, breakdown, capped_by, angle from score_history where investor_id = $1 order by at desc, id desc limit 40`,
+    [id],
+  )).rows;
+  return { inv, signals, latest, coverage, state, history };
 }
 
 // ───────────────────────────── runs / overview ─────────────────────────────

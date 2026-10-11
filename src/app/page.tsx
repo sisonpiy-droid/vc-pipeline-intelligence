@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { InvestorCard } from "@/components/InvestorCard";
+import { TopPicks } from "@/components/TopPicks";
 import { RefreshButton } from "@/components/RefreshButton";
 import { CountUp } from "@/components/motion/CountUp";
 import { HeroReveal } from "@/components/motion/HeroReveal";
@@ -9,6 +10,7 @@ import { Empty, Eyebrow, Pill, SetupError } from "@/components/ui";
 import { ACTION_LABEL, REL_LABEL, ago, fmtDateTime } from "@/lib/format";
 import { isOpenDemo } from "@/lib/demo";
 import { load, today } from "@/lib/page";
+import { topPicks } from "@/lib/picks";
 import { getOverview, type PipelineRow } from "@/lib/read";
 import { ACTION_THRESHOLDS, STARTUP, WEIGHTS } from "@/lib/scoring/score";
 
@@ -39,6 +41,9 @@ export default async function Overview() {
   const queue = pipeline
     .filter((r) => r.state === "active" && !HOLD(r) && r.recommended_action !== "no_action")
     .sort((a, b) => (b.follow_up_score ?? 0) - (a.follow_up_score ?? 0) || (b.last_signal_date ?? "").localeCompare(a.last_signal_date ?? ""));
+  const picks = topPicks(pipeline);
+  const picked = new Set(picks.map((p) => p.row.id));
+  const rest = queue.filter((r) => !picked.has(r.id));
   const never = runs.length === 0;
   const unknown = counts.failed + counts.review;
   const { reachOutNow, prepareOutreach } = ACTION_THRESHOLDS;
@@ -96,25 +101,28 @@ export default async function Overview() {
         </div>
       )}
 
+      {!never && <TopPicks picks={picks} />}
+
       {/* Queue (wide) + rail (narrow, sticky) */}
       <div className="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <section aria-labelledby="queue-h">
           <div className="mb-5 flex items-baseline justify-between">
-            <h2 id="queue-h" className="text-lg font-semibold tracking-tight">Priority queue</h2>
-            {queue.length > 0 && <span className="num text-xs text-muted">{queue.length} to act on</span>}
+            <h2 id="queue-h" className="text-lg font-semibold tracking-tight">{picks.length ? "Next in line" : "Priority queue"}</h2>
+            {rest.length > 0 && <span className="num text-xs text-muted">{rest.length} more to act on</span>}
           </div>
           {never ? (
             <Empty title="No refresh has run yet" action={<RefreshButton label="Run the first refresh" needPass={!isOpenDemo()} />}>
               {counts.total} investors are imported. The first refresh searches public sources for activity in the last 30 days and scores each investor. Nothing is shown as a placeholder.
             </Empty>
-          ) : queue.length === 0 ? (
+          ) : rest.length === 0 && picks.length === 0 ? (
             <Empty title="Nobody has a strong, relevant signal right now">
               That is a result, not an error. See <Link href="/quiet" className="underline underline-offset-2">quiet investors</Link> for what was searched, or wait for the next scheduled refresh.
             </Empty>
           ) : (
             <div className="space-y-4">
-              {queue.map((r, i) => (
-                <InvestorCard key={r.id} r={r} rank={i + 1} />
+              {rest.length === 0 && <p className="text-sm text-muted">Everyone with a relevant signal is already in the list above.</p>}
+              {rest.map((r, i) => (
+                <InvestorCard key={r.id} r={r} rank={picks.length + i + 1} />
               ))}
             </div>
           )}

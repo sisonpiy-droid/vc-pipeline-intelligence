@@ -146,3 +146,18 @@ export function explainError(code: string | null | undefined): { title: string; 
   ];
   return table.find(([re]) => re.test(c))?.[1] ?? { title: c || "Unknown error", action: "See the audit log for details." };
 }
+
+export const SECTOR_LABEL: Record<string, { label: string; tone: Tone; help: string }> = {
+  logistics: { label: "Logistics fit", tone: "good", help: "The signal is about logistics, supply chain, fleets, warehousing or commerce infrastructure." },
+  b2b_software: { label: "B2B software", tone: "info", help: "Enterprise software or B2B AI, but not logistics itself." },
+  seed_generalist: { label: "Seed activity", tone: "info", help: "General seed or early-stage activity (a fund, programme, cheque size or advice), not tied to one sector." },
+  adjacent: { label: "Adjacent sector", tone: "warn", help: "A technology deal in another vertical (fintech, health, consumer, semiconductors...). Relevance is capped." },
+  unrelated: { label: "Off-topic", tone: "neutral", help: "Not relevant to the founder's market." },
+};
+
+export const TIER_LABEL: Record<string, { label: string; tone: Tone; help: string }> = {
+  official: { label: "Official source", tone: "good", help: "Published on the investor's own website." },
+  press: { label: "Press", tone: "neutral", help: "A recognised news publication." },
+  social: { label: "Social post", tone: "warn", help: "A social-media post: counts less as evidence and cannot alone justify a cold approach." },
+  other: { label: "Other source", tone: "neutral", help: "A website that is neither the investor's own nor a recognised publication." },
+};
