@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "VC Fundraising Pipeline Intelligence \u00e2\u20ac\u201d evidence-first investor signal tracking for a Seed-stage B2B logistics SaaS",
+  "description": "VC Fundraising Pipeline Intelligence â€” evidence-first investor signal tracking for a Seed-stage B2B logistics SaaS",
   "engines": {
     "node": ">=20"
   },
@@ -20,6 +20,7 @@
     "verify:boundary": "tsx --env-file=.env scripts/verify-boundary.ts"
   },
   "dependencies": {
+    "@phosphor-icons/react": "2.1.10",
     "next": "16.4.0",
     "pg": "8.23.1",
     "react": "19.3.0",

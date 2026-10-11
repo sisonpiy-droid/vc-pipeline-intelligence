@@ -14,7 +14,7 @@ const LINKS = [
 export function Nav() {
   const path = usePathname();
   return (
-    <nav aria-label="Main" className="-mx-1 flex gap-1 overflow-x-auto pb-1 text-sm">
+    <nav aria-label="Main" className="-mx-1 flex gap-1 overflow-x-auto text-sm [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {LINKS.map((l) => {
         const active = l.href === "/" ? path === "/" : path.startsWith(l.href);
         return (
@@ -22,9 +22,10 @@ export function Nav() {
             key={l.href}
             href={l.href}
             aria-current={active ? "page" : undefined}
-            className={`whitespace-nowrap rounded-md px-3 py-1.5 font-medium transition-colors ${active ? "bg-accent text-white dark:text-black" : "text-muted hover:bg-neutral-soft hover:text-ink"}`}
+            className={`press relative whitespace-nowrap px-3 pb-3 pt-1.5 font-medium transition-colors ${active ? "text-ink" : "text-muted hover:text-ink"}`}
           >
             {l.label}
+            <span aria-hidden className={`absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-accent transition-opacity duration-300 ${active ? "opacity-100" : "opacity-0"}`} />
           </Link>
         );
       })}

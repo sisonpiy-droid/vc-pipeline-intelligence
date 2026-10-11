@@ -1,15 +1,30 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 import { InvestorCard } from "@/components/InvestorCard";
 import { RefreshButton } from "@/components/RefreshButton";
-import { Card, Empty, PageTitle, SetupError, Stat } from "@/components/ui";
-import { ACTION_LABEL, ago, fmtDateTime } from "@/lib/format";
+import { Empty, Eyebrow, Pill, SetupError } from "@/components/ui";
+import { ACTION_LABEL, REL_LABEL, ago, fmtDateTime } from "@/lib/format";
 import { load, today } from "@/lib/page";
 import { getOverview, type PipelineRow } from "@/lib/read";
+import { ACTION_THRESHOLDS } from "@/lib/scoring/score";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: { absolute: "Priority queue · VC Pipeline Intelligence" } };
 
 const HOLD = (r: PipelineRow) => r.recommended_action === "wait_for_response" || r.relationship_status === "passed" || r.relationship_status === "committed";
+const idx = (n: number) => ({ "--i": n }) as CSSProperties;
+
+function LedgerRow({ label, hint, value, href, tone }: { label: string; hint: string; value: number; href: string; tone?: string }) {
+  return (
+    <Link href={href} className="group flex items-baseline justify-between gap-4 py-3.5 transition-colors hover:bg-neutral-soft/60">
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-muted">{hint}</span>
+      </span>
+      <span className={`num text-3xl font-medium transition-transform duration-300 group-hover:-translate-x-0.5 ${tone ?? ""}`}>{value}</span>
+    </Link>
+  );
+}
 
 export default async function Overview() {
   const res = await load((db) => getOverview(db, today()));
@@ -22,89 +37,120 @@ export default async function Overview() {
     .sort((a, b) => (b.follow_up_score ?? 0) - (a.follow_up_score ?? 0) || (b.last_signal_date ?? "").localeCompare(a.last_signal_date ?? ""));
   const never = runs.length === 0;
   const unknown = counts.failed + counts.review;
+  const { reachOutNow, prepareOutreach } = ACTION_THRESHOLDS;
 
   return (
     <>
-      <PageTitle
-        title="Who to contact this week"
-        sub="Investors ranked by a transparent follow-up score. Every recommendation links to the public evidence behind it; investors with no verified signal are listed, not hidden."
-      >
-        <RefreshButton />
-      </PageTitle>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Tracked investors" value={counts.total} href="/pipeline" />
-        <Stat label="Active signal (30 d)" value={counts.active} tone="good" hint="verified & relevant" href="/pipeline?state=active" />
-        <Stat label="No verified signal" value={counts.quiet} hint="search completed" href="/quiet" />
-        <Stat label="Needs review / failed" value={unknown} tone={unknown ? "warn" : undefined} hint="activity unknown — not 'quiet'" href="/quiet" />
-      </div>
-
-      <Card className="mt-3 p-4 text-sm">
-        <div className="flex flex-wrap gap-x-8 gap-y-2">
-          <div>
-            <span className="text-muted">Current run: </span>
-            <span className="font-medium">
-              {active ? `running — ${active.investors_processed} of ${active.investors_total} investors` : never ? "none yet" : `idle (last ${runs[0]!.status})`}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted">Last successful refresh: </span>
-            <span className="font-medium">{lastGood ? `${fmtDateTime(lastGood.completed_at)} (${ago(lastGood.completed_at)})` : "never"}</span>
+      {/* Hero: the answer on the left, the arithmetic behind it as a ledger on the right */}
+      <section className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end">
+        <div className="reveal">
+          <Eyebrow>This week</Eyebrow>
+          <h1 className="mt-3 max-w-[22ch] text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.6rem]">
+            {never ? (
+              "Nothing to rank until the first refresh runs"
+            ) : counts.active === 0 ? (
+              "No investor has a strong signal right now"
+            ) : (
+              <>
+                <span className="num text-accent">{counts.active}</span> of {counts.total} investors have a fresh, relevant signal
+              </>
+            )}
+          </h1>
+          <p className="mt-4 max-w-[58ch] text-sm leading-relaxed text-muted">
+            Ranked by a transparent follow-up score. Every recommendation links to the public evidence behind it, and investors with no verified signal are listed rather than hidden.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <RefreshButton />
+            <Link href="/signals" className="press rounded-lg px-3 py-1.5 text-sm font-medium text-muted hover:text-ink">Browse all signals</Link>
           </div>
         </div>
-        {active && (
-          <div className="mt-3" role="progressbar" aria-valuemin={0} aria-valuemax={active.investors_total} aria-valuenow={active.investors_processed} aria-label="Refresh progress">
-            <div className="h-2 overflow-hidden rounded-full bg-neutral-soft">
-              <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${Math.round((active.investors_processed / Math.max(1, active.investors_total)) * 100)}%` }} />
-            </div>
+
+        <dl className="reveal divide-y divide-line border-y border-line" style={idx(1)}>
+          <LedgerRow label="Tracked investors" hint="50 VC firms and 32 angels" value={counts.total} href="/pipeline" />
+          <LedgerRow label="Active signal, last 30 days" hint="verified and relevant" value={counts.active} href="/pipeline?state=active" tone="text-good" />
+          <LedgerRow label="No verified signal" hint="every source answered" value={counts.quiet} href="/quiet" />
+          <LedgerRow label="Activity unknown" hint="failed or partial, never counted as quiet" value={unknown} href="/quiet" tone={unknown ? "text-warn" : ""} />
+        </dl>
+      </section>
+
+      {active && (
+        <div className="reveal mt-8 rounded-2xl border border-line p-4 text-sm" style={idx(2)}>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="font-medium">Refresh in progress</span>
+            <span className="num text-muted">{active.investors_processed} / {active.investors_total} investors</span>
           </div>
-        )}
-      </Card>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-neutral-soft" role="progressbar" aria-valuemin={0} aria-valuemax={active.investors_total} aria-valuenow={active.investors_processed} aria-label="Refresh progress">
+            <div className="h-full rounded-full bg-accent transition-[width] duration-700" style={{ width: `${Math.round((active.investors_processed / Math.max(1, active.investors_total)) * 100)}%` }} />
+          </div>
+        </div>
+      )}
 
       {unknown > 0 && !never && (
-        <div role="note" className="mt-3 rounded-xl border border-warn bg-warn-soft p-4 text-sm text-warn">
-          <strong>{unknown} investor{unknown > 1 ? "s" : ""} could not be fully checked.</strong> Their activity is <em>unknown</em>, not absent — a failed search is never treated as a quiet investor.{" "}
-          <Link href="/quiet" className="font-medium underline">See which and why</Link>.
+        <div role="note" className="mt-8 rounded-2xl border border-warn/40 bg-warn-soft p-4 text-sm text-warn">
+          <strong>{unknown} investor{unknown > 1 ? "s" : ""} could not be fully checked.</strong> Their activity is <em>unknown</em>, not absent.{" "}
+          <Link href="/quiet" className="font-medium underline underline-offset-2">See which and why</Link>.
         </div>
       )}
 
-      <h2 className="mb-3 mt-8 text-lg font-semibold">Priority queue {queue.length > 0 && <span className="text-sm font-normal text-muted">· {queue.length} to act on</span>}</h2>
-      {never ? (
-        <Empty
-          title="No refresh has run yet"
-          action={<RefreshButton label="Run the first refresh" />}
-        >
-          {counts.total} investors are imported. The first refresh searches public sources for activity in the last 30 days and scores each investor. Until then there is nothing to rank — no placeholder results are shown.
-        </Empty>
-      ) : queue.length === 0 ? (
-        <Empty title="Nobody has a strong, relevant signal right now">
-          That is a result, not an error. Check <Link href="/quiet" className="underline">quiet investors</Link> to see what was searched and what couldn't be, or wait for the next scheduled refresh.
-        </Empty>
-      ) : (
-        <div className="space-y-3">
-          {queue.map((r, i) => (
-            <InvestorCard key={r.id} r={r} rank={i + 1} />
-          ))}
-        </div>
-      )}
-
-      {hold.length > 0 && (
-        <>
-          <h2 className="mb-1 mt-8 text-lg font-semibold">Don't chase this week</h2>
-          <p className="mb-3 text-sm text-muted">These have a fresh signal, but your relationship status says to hold off.</p>
-          <div className="space-y-3">
-            {hold.map((r) => (
-              <InvestorCard key={r.id} r={r} />
-            ))}
+      {/* Queue (wide) + rail (narrow, sticky) */}
+      <div className="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <section aria-labelledby="queue-h">
+          <div className="mb-5 flex items-baseline justify-between">
+            <h2 id="queue-h" className="text-lg font-semibold tracking-tight">Priority queue</h2>
+            {queue.length > 0 && <span className="num text-xs text-muted">{queue.length} to act on</span>}
           </div>
-        </>
-      )}
+          {never ? (
+            <Empty title="No refresh has run yet" action={<RefreshButton label="Run the first refresh" />}>
+              {counts.total} investors are imported. The first refresh searches public sources for activity in the last 30 days and scores each investor. Nothing is shown as a placeholder.
+            </Empty>
+          ) : queue.length === 0 ? (
+            <Empty title="Nobody has a strong, relevant signal right now">
+              That is a result, not an error. See <Link href="/quiet" className="underline underline-offset-2">quiet investors</Link> for what was searched, or wait for the next scheduled refresh.
+            </Empty>
+          ) : (
+            <div className="space-y-4">
+              {queue.map((r, i) => (
+                <InvestorCard key={r.id} r={r} rank={i + 1} />
+              ))}
+            </div>
+          )}
+        </section>
 
-      {!never && (
-        <p className="mt-8 text-sm text-muted">
-          Recommendations use: {Object.values(ACTION_LABEL).join(" · ")}. Open any investor for the full evidence timeline and score breakdown.
-        </p>
-      )}
+        <aside className="space-y-10 lg:sticky lg:top-28 lg:self-start">
+          {hold.length > 0 && (
+            <section aria-labelledby="hold-h" className="reveal" style={idx(3)}>
+              <Eyebrow>Don't chase this week</Eyebrow>
+              <h2 id="hold-h" className="sr-only">Investors to hold off on</h2>
+              <ul className="mt-3 divide-y divide-line border-y border-line">
+                {hold.map((r) => (
+                  <li key={r.id} className="py-3 text-sm">
+                    <Link href={`/investors/${r.id}`} className="font-medium hover:underline">{r.firm_name}</Link>
+                    <div className="mt-1"><Pill tone="info">{REL_LABEL[r.relationship_status]}</Pill></div>
+                    {r.lead && <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted">{r.lead.headline}</p>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          <section aria-labelledby="legend-h" className="reveal" style={idx(4)}>
+            <Eyebrow>Reading the score</Eyebrow>
+            <h2 id="legend-h" className="sr-only">How the score maps to an action</h2>
+            <dl className="mt-3 divide-y divide-line border-y border-line text-sm">
+              <div className="flex items-baseline justify-between py-2.5"><dt>{ACTION_LABEL.reach_out_now}</dt><dd className="num text-good">{reachOutNow}+</dd></div>
+              <div className="flex items-baseline justify-between py-2.5"><dt>{ACTION_LABEL.prepare_targeted_outreach}</dt><dd className="num">{prepareOutreach}–{reachOutNow - 1}</dd></div>
+              <div className="flex items-baseline justify-between py-2.5"><dt>{ACTION_LABEL.research_further}</dt><dd className="num text-muted">&lt;{prepareOutreach}</dd></div>
+            </dl>
+            <p className="mt-3 text-xs leading-relaxed text-muted">
+              Recency 30 · relevance 30 · evidence 20 · fit 15 · relationship 5. A fresh but off-topic article earns nothing, and a failed search never lowers a score.
+            </p>
+          </section>
+
+          <p className="num text-[0.7rem] leading-relaxed text-muted">
+            {lastGood ? `Data as of ${fmtDateTime(lastGood.completed_at)} · ${ago(lastGood.completed_at)}` : "No completed refresh yet"}
+          </p>
+        </aside>
+      </div>
     </>
   );
 }

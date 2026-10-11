@@ -17,17 +17,25 @@ export async function RunBar() {
   }
   const now = new Date();
   const stalled = d.active && now.getTime() - new Date(d.active.heartbeat_at).getTime() > STALE_MS;
+  const Item = ({ k, children }: { k: string; children: React.ReactNode }) => (
+    <div className="flex items-baseline gap-2">
+      <span className="num text-[0.65rem] uppercase tracking-[0.12em] text-muted">{k}</span>
+      <span>{children}</span>
+    </div>
+  );
   return (
-    <div className="border-b border-line bg-surface text-sm">
+    <div className="border-b border-line text-[0.8rem]">
       <AutoRefresh active={!!d.active && !stalled} />
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2">
-        <div className="flex items-center gap-2">
-          <span className="text-muted">Run</span>
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-8 gap-y-1.5 px-4 py-2.5 sm:px-6">
+        <Item k="Run">
           {d.active ? (
             stalled ? (
               <Pill tone="bad">Stalled — no progress for {ago(d.active.heartbeat_at, now).replace(" ago", "")}</Pill>
             ) : (
-              <Pill tone="info">Running {d.active.investors_processed}/{d.active.investors_total}</Pill>
+              <span className="inline-flex items-center gap-2 font-medium">
+                <span aria-hidden className="beacon relative h-2 w-2 rounded-full bg-accent text-accent" />
+                Running <span className="num">{d.active.investors_processed}/{d.active.investors_total}</span>
+              </span>
             )
           ) : d.latest ? (
             <Pill tone={d.latest.status === "succeeded" ? "good" : d.latest.status === "partial" ? "warn" : "bad"}>
@@ -36,22 +44,20 @@ export async function RunBar() {
           ) : (
             <Pill tone="neutral">No run yet</Pill>
           )}
-        </div>
-        <div>
-          <span className="text-muted">Last successful refresh </span>
+        </Item>
+        <Item k="Last refresh">
           {d.lastGood ? (
             <span className="font-medium">
-              {fmtDateTime(d.lastGood.completed_at)} <span className="font-normal text-muted">({ago(d.lastGood.completed_at, now)}{d.lastGood.status === "partial" ? ", partial" : ""})</span>
+              {fmtDateTime(d.lastGood.completed_at)} <span className="font-normal text-muted">· {ago(d.lastGood.completed_at, now)}{d.lastGood.status === "partial" ? ", partial" : ""}</span>
             </span>
           ) : (
             <span className="font-medium">never</span>
           )}
-        </div>
-        <div>
-          <span className="text-muted">Next scheduled </span>
+        </Item>
+        <Item k="Next">
           <span className="font-medium">{fmtDateTime(nextScheduledRun(now))}</span>
-          <span className="text-muted"> (Mon &amp; Thu, ±1 h)</span>
-        </div>
+          <span className="text-muted"> · Mon &amp; Thu, ±1 h</span>
+        </Item>
       </div>
     </div>
   );
