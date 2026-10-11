@@ -126,7 +126,7 @@ export interface FunnelStage {
 const GROUPS: { key: string; label: string; reasons: string[]; note: string }[] = [
   { key: "named", label: "Names the investor", reasons: ["entity_not_mentioned", "invalid_url"], note: "Dropped: the page does not name the investor (or the URL is invalid)." },
   { key: "page", label: "An event, not a profile page", reasons: ["profile_or_directory_page"], note: "Dropped: static profile / directory pages (Crunchbase, LinkedIn profiles, …)." },
-  { key: "date", label: "Dated inside the 30-day window", reasons: ["missing_date", "out_of_window", "future_date", "contradictory_dates"], note: "Dropped: undated, too old, future, or contradictory dates." },
+  { key: "date", label: "Dated inside the 30-day window", reasons: ["missing_date", "out_of_window", "future_date", "contradictory_dates", "page_unavailable"], note: "Dropped: undated, too old, future, or contradictory dates (or a page that could not be read: retried next run)." },
   { key: "dedupe", label: "Distinct events", reasons: ["duplicate_event", "over_candidate_cap", "insufficient_content"], note: "Dropped: repeat coverage of the same event, or too little content." },
   { key: "ai", label: "Verified by Gemini and in code", reasons: ["investor_not_involved", "investor_unclear", "not_a_specific_event", "excerpt_not_in_source", "second_pass_not_acting"], note: "Dropped: investor not actually involved, not a specific event, the quote was not in the source, or the second-pass review found it was a different firm." },
 ];

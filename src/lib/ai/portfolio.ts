@@ -38,7 +38,7 @@ const RESPONSE_SCHEMA = {
 const SYSTEM = `You read the text of a venture investor's web page and list the portfolio companies it shows.
 The founder you are helping runs ${STARTUP.description}; their market is ${STARTUP.sector}.
 - is_portfolio_list: true only if the page is a list or grid of companies the investor has backed. False for a single company, a team page, an article or a thesis page; then return no companies.
-- name: exactly as printed on the page. Do not add companies you know from elsewhere.
+- name: the company or brand name exactly as printed on the page, never a tagline or a description of what it does. If the page only gives descriptions without a company name, skip that entry. Do not add companies you know from elsewhere.
 - description: only text the page itself gives about that company, shortened; an empty string if it gives none.
 - logistics_related: true ONLY if the page text itself shows the company works in logistics, freight, trucking, warehousing, fleets, last-mile delivery, mobility or supply-chain operations or software. If the page gives no description of the company, it is false. When true, evidence is a passage copied VERBATIM from the page (at most 250 characters) that shows it; otherwise evidence is an empty string.
 - competitor_risk: "direct" = a software or platform product sold to businesses to run logistics, freight or supply-chain operations (the founder's category); "adjacent" = another logistics, mobility or supply-chain business; "none" otherwise. It is "none" whenever logistics_related is false.
@@ -55,6 +55,9 @@ export interface PortfolioCompany {
 export type PortfolioExtraction =
   | { ok: true; is_list: boolean; companies: PortfolioCompany[]; dropped: number; ai_calls: number }
   | { ok: false; category: string; message: string; ai_calls: number };
+
+/** "Dark stores for same day deliveries" is a tagline, not a company: three or more words with a descriptor word in them. */
+export const looksLikeTagline = (name: string) => name.trim().split(/\s+/).length >= 3 && /\b(for|using|powered|largest|network|infrastructure|enterprises|deliveries|solutions?)\b/i.test(name);
 
 const norm = (s: string) => s.replace(/[‘’‛]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/\s+/g, " ").trim().toLowerCase();
 
@@ -81,7 +84,7 @@ export async function extractPortfolio(ai: AiClient, firm: string, pageText: str
     const companies: PortfolioCompany[] = [];
     for (const c of parsed.data.companies) {
       const key = norm(c.name);
-      if (!hay.includes(key) || seen.has(key)) { dropped++; continue; } // not on the page, or a repeat
+      if (!hay.includes(key) || seen.has(key) || looksLikeTagline(c.name)) { dropped++; continue; } // not on the page, a repeat, or a tagline
       seen.add(key);
       const proven = c.logistics_related && c.evidence.length >= 10 && hay.includes(norm(c.evidence));
       companies.push({

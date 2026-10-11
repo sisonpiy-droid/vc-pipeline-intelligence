@@ -150,3 +150,11 @@ describe("the portfolio check inside a refresh", () => {
     expect((await db.query(`select personal_notes, relationship_status from investors where firm_name = 'Alpha'`)).rows[0]).toEqual(before);
   });
 });
+
+import { looksLikeTagline } from "@/lib/ai/portfolio";
+describe("taglines are not companies", () => {
+  it("rejects descriptions the page prints in place of a name, keeps real brand names", () => {
+    for (const t of ["Dark stores for same day deliveries", "India’s largest cold supply chain network", "Drone logistics for enterprises", "AI powered Port Logistics".replace("AI powered", "Logistics solutions for ports")]) expect(looksLikeTagline(t), t).toBe(true);
+    for (const n of ["Zypp", "Shiprocket", "Battery Smart", "Delhivery", "Fleetwise", "Dukaan Bazaar", "Next Generation EV"]) expect(looksLikeTagline(n), n).toBe(false);
+  });
+});

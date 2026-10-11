@@ -138,7 +138,9 @@ describe("read model over data written by the real pipeline", () => {
     expect(feed[0]!.evidence_excerpt).toBeTruthy();
     // Zeta's irrelevant (relevance 10) verified signal appears only under "all verified".
     expect((await listSignals(db, TODAY, { show: "verified" })).map((s) => s.firm_name).sort()).toEqual(["Alpha", "Zeta"]);
-    expect(await listSignals(db, TODAY, { show: "review" })).toEqual([]);
+    // The one candidate whose page could not be read is "needs review" (retried next run), not a final rejection.
+    const review = await listSignals(db, TODAY, { show: "review" });
+    expect(review.map((s) => [s.verification_status, s.rejection_reason])).toEqual([["needs_review", "page_unavailable"]]);
     expect(await listSignals(db, TODAY, { category: "article" })).toEqual([]);
     expect((await listSignals(db, TODAY, { investor: ids.Alpha })).length).toBe(1);
   });

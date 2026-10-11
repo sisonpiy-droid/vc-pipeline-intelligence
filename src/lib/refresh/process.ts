@@ -5,6 +5,7 @@ import { pickDisplayHeadline, reviewSignals, type ReviewInput } from "@/lib/ai/r
 import type { Db, Queryable } from "@/lib/db";
 import { RELEVANCE_MIN, type Confidence, type SectorMatch } from "@/lib/scoring/score";
 import { checkPortfolio, portfolioDue, storePortfolio } from "./portfolio";
+import { reviewInvestorSignals } from "./review";
 import { previousAngle, scoreAndWrite } from "./rescore";
 import { research, type CoverageEntry, type Deps, type InvestorRow, type ResearchCandidate, type Rejected } from "./research";
 import { sanitizeSummary, SIGNAL_COLUMNS } from "./write";
@@ -38,11 +39,13 @@ interface SignalRow {
   relevance_score: number | null; evidence_confidence: Confidence | null;
   verification_status: "verified" | "needs_review" | "rejected"; rejection_reason: string | null;
   content_hash: string | null; duplicate_of_url?: string; new_capital: boolean;
+  /** Judged from the snippet only because the page fetch failed transiently; re-judged next run. */
+  provisional: boolean;
   /** Second-pass review (null = not reviewed). */
   sector_match: SectorMatch | null; firm_acting: boolean | null; display_headline: string | null; review_note: string | null; reviewed: boolean;
 }
 
-const UNREVIEWED = { sector_match: null, firm_acting: null, display_headline: null, review_note: null, reviewed: false } as const;
+const UNREVIEWED = { provisional: false, sector_match: null, firm_acting: null, display_headline: null, review_note: null, reviewed: false } as const;
 
 function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): SignalRow[] {
   const byIndex = new Map(verdicts.map((v) => [v.index, v]));
@@ -58,7 +61,7 @@ function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): Sign
         ...base, signal_type: a.signal_type, evidence_excerpt: a.evidence_excerpt,
         summary: sanitizeSummary(a.summary, 300), relevance_explanation: sanitizeSummary(a.why_it_matters, 450),
         relevance_score: a.relevance, evidence_confidence: capConfidence(a.confidence, !c.fetched || c.date_source === "search_estimate"),
-        verification_status: "verified", rejection_reason: null, new_capital: a.new_capital, ...UNREVIEWED,
+        verification_status: "verified", rejection_reason: null, new_capital: a.new_capital, ...UNREVIEWED, provisional: !!c.provisional,
       };
     }
     return {
@@ -69,18 +72,20 @@ function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): Sign
   });
 }
 
+// A candidate rejected only because its page could not be read is kept as "needs review" (not a final "rejected"), so the
+// next refresh looks at it again instead of treating a transient outage as a verdict.
 const rejectedRow = (r: Rejected): SignalRow => ({
   url: r.url, canonical_url: r.canonical_url, headline: r.title.slice(0, 300), source_name: r.source_name, published_at: r.published_at,
   date_source: null, signal_type: null, evidence_excerpt: null, summary: null, relevance_explanation: null, relevance_score: null,
-  evidence_confidence: null, verification_status: "rejected", rejection_reason: r.reason, content_hash: null, duplicate_of_url: r.duplicate_of_url, new_capital: false, ...UNREVIEWED,
+  evidence_confidence: null, verification_status: r.transient ? "needs_review" : "rejected", rejection_reason: r.reason, content_hash: null, duplicate_of_url: r.duplicate_of_url, new_capital: false, ...UNREVIEWED,
 });
 
 async function upsertSignal(q: Queryable, runId: string, investorId: string, s: SignalRow): Promise<string | null> {
   const { rows } = await q.query<{ id: string }>(
     `insert into signals (investor_id, run_id, url, canonical_url, headline, source_name, published_at, date_basis, date_source,
         signal_type, evidence_excerpt, summary, relevance_explanation, relevance_score, evidence_confidence,
-        verification_status, rejection_reason, content_hash, new_capital, sector_match, firm_acting, display_headline, review_note, reviewed_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,case when $24 then now() end)
+        verification_status, rejection_reason, content_hash, new_capital, sector_match, firm_acting, display_headline, review_note, reviewed_at, provisional)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,case when $24 then now() end,$25)
      on conflict (investor_id, canonical_url) do update set
         run_id = excluded.run_id, headline = excluded.headline, published_at = excluded.published_at,
         date_basis = excluded.date_basis, date_source = excluded.date_source, signal_type = excluded.signal_type,
@@ -89,14 +94,14 @@ async function upsertSignal(q: Queryable, runId: string, investorId: string, s: 
         evidence_confidence = excluded.evidence_confidence, verification_status = excluded.verification_status,
         rejection_reason = excluded.rejection_reason, content_hash = excluded.content_hash, new_capital = excluded.new_capital,
         sector_match = excluded.sector_match, firm_acting = excluded.firm_acting, display_headline = excluded.display_headline,
-        review_note = excluded.review_note, reviewed_at = excluded.reviewed_at, retrieved_at = now()
-      -- a settled verdict is never overwritten; only unresolved items and cap-dropped ones are reconsidered
-      where signals.verification_status = 'needs_review' or signals.rejection_reason = 'over_candidate_cap'
+        review_note = excluded.review_note, reviewed_at = excluded.reviewed_at, provisional = excluded.provisional, retrieved_at = now()
+      -- a settled verdict is never overwritten; only unresolved items, cap-dropped ones and provisional ones are reconsidered
+      where signals.verification_status = 'needs_review' or signals.rejection_reason = 'over_candidate_cap' or signals.provisional
      returning id`,
     [
       investorId, runId, s.url, s.canonical_url, s.headline, s.source_name, s.published_at, s.published_at ? "published" : "unknown",
       s.date_source, s.signal_type, s.evidence_excerpt, s.summary, s.relevance_explanation, s.relevance_score, s.evidence_confidence,
-      s.verification_status, s.rejection_reason, s.content_hash, s.new_capital, s.sector_match, s.firm_acting, s.display_headline, s.review_note, s.reviewed,
+      s.verification_status, s.rejection_reason, s.content_hash, s.new_capital, s.sector_match, s.firm_acting, s.display_headline, s.review_note, s.reviewed, s.provisional,
     ],
   );
   return rows[0]?.id ?? null;
@@ -129,7 +134,7 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
   const known = new Set(
     (await rdb.query<{ canonical_url: string }>(
       `select canonical_url from signals where investor_id = $1 and verification_status in ('verified','rejected')
-          and coalesce(rejection_reason, '') <> 'over_candidate_cap'`,
+          and coalesce(rejection_reason, '') <> 'over_candidate_cap' and not provisional`,
       [inv.id],
     )).rows.map((r) => r.canonical_url),
   );
@@ -173,6 +178,7 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
   // Second pass: only for evidence that is verified AND relevant enough to influence a score. A failure here never fails
   // the investor: the signals simply stay "not reviewed", which the scoring rules treat conservatively.
   const reviewable = signalRows.flatMap((s, i) => (s.verification_status === "verified" && (s.relevance_score ?? 0) >= RELEVANCE_MIN ? [{ s, c: res.candidates[i]! }] : []));
+  const reviewAttempted = reviewable.length > 0;
   if (reviewable.length) {
     const inputs: ReviewInput[] = reviewable.map(({ s, c }) => ({ index: c.index, title: s.headline, summary: s.summary, excerpt: s.evidence_excerpt, source: s.source_name, published_at: s.published_at! }));
     const rv = await reviewSignals(deps.ai, inv, inputs);
@@ -251,6 +257,37 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
     if (angle) await rdb.query(`update score_history set angle = $2 where id = $1`, [outcome.historyId, angle]);
   }
 
+  // Evidence stored on an earlier run whose second-pass review failed (or pre-dates the review) is retried now; if anything
+  // was reviewed the investor is re-scored. Skipped when this run already attempted a review, so a Gemini outage is not retried
+  // within seconds.
+  let changed = outcome.changed;
+  if (!reviewAttempted) {
+    const rr = await reviewInvestorSignals(rdb, deps.ai, inv, deps.now());
+    counters.ai_calls += rr.ai_calls;
+    counters.sources_checked += rr.ai_calls;
+    if (rr.reviewed > 0) {
+      const sc = await rdb.tx(async (q) => {
+        const s2 = await scoreAndWrite(q, inv, { now: deps.now(), partial, runId, source: "refresh" });
+        const r = s2.result;
+        await q.query(`update run_items set outcome = outcome || $3::jsonb where run_id = $1 and investor_id = $2`, [
+          runId, inv.id,
+          JSON.stringify({ score: r.score, action: r.action, explanation: r.explanation, breakdown: r.breakdown, capped_by: r.capped_by, lead_signal_id: r.lead_signal?.id ?? null, relevant_signals: r.relevant_signal_count }),
+        ]);
+        const prev = await previousAngle(q, inv.id, s2.historyId);
+        const reuse = r.action === "reach_out_now" && r.lead_signal?.id && prev?.lead === r.lead_signal.id ? prev.angle : null;
+        if (reuse) await q.query(`update score_history set angle = $2 where id = $1`, [s2.historyId, reuse]);
+        return { s2, needAngle: r.action === "reach_out_now" && !!s2.lead && !reuse };
+      });
+      changed = changed || sc.s2.changed;
+      if (sc.needAngle && sc.s2.lead) {
+        counters.ai_calls++;
+        const l = sc.s2.lead;
+        const angle = await generateAngle(deps.ai, inv.firm_name, { headline: l.headline, summary: l.summary, excerpt: l.evidence_excerpt, published_at: l.published_at });
+        if (angle) await rdb.query(`update score_history set angle = $2 where id = $1`, [sc.s2.historyId, angle]);
+      }
+    }
+  }
+
   // Portfolio check: monthly per investor, from its own site. Best effort: a problem is recorded as coverage and never fails the investor.
   if (deps.portfolio) {
     try {
@@ -266,6 +303,6 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
     }
   }
 
-  counters.records_updated = outcome.changed ? 1 : 0;
+  counters.records_updated = changed ? 1 : 0;
   return { ok: true, retryable: false, counters };
 }

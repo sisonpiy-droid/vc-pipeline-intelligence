@@ -19,6 +19,7 @@
     "check:live": "tsx --env-file=.env scripts/check-live.ts",
     "verify:boundary": "tsx --env-file=.env scripts/verify-boundary.ts",
     "portfolio:backfill": "tsx --env-file=.env scripts/portfolio-backfill.ts",
+    "chaos": "tsx scripts/chaos.ts",
     "check:portfolio": "tsx --env-file=.env scripts/check-portfolio.ts",
     "check:feeds": "tsx --env-file=.env scripts/check-feeds.ts",
     "eval:live": "tsx --env-file=.env scripts/eval-live.ts",

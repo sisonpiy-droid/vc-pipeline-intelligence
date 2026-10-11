@@ -111,6 +111,28 @@ describe("the second pass inside a refresh", () => {
     expect(((await db.query(`select status from run_items where run_id = $1`, [id])).rows[0] as { status: string }).status).toBe("done");
   });
 
+  it("evidence left un-reviewed by an outage is reviewed on the NEXT refresh, and the investor is re-scored", async () => {
+    await run(fakeAi({}, "ok", undefined, new AiError("unavailable", "Gemini down")));
+    expect((await inv()).a).toBe("prepare_targeted_outreach");
+    expect(await sig()).toMatchObject({ sm: null, reviewed: false });
+    const healthy = fakeAi();
+    const id = await run(healthy);
+    expect(await sig()).toMatchObject({ v: "verified", sm: "logistics", fa: true, reviewed: true });
+    expect((await inv()).a).toBe("reach_out_now");
+    // one review call and one angle call; the signal itself was not re-analysed (it was already judged)
+    expect(healthy.prompts.filter((p) => p.includes("<item index"))).toHaveLength(1);
+    expect(healthy.prompts.filter((p) => p.includes("<candidate"))).toHaveLength(0);
+    const out = ((await db.query(`select outcome o from run_items where run_id = $1`, [id])).rows[0] as { o: { action: string } }).o;
+    expect(out.action).toBe("reach_out_now"); // the stored outcome reflects the final scoring, not the first
+    expect(((await db.query(`select count(*)::int n from score_history where run_id = $1`, [id])).rows[0] as { n: number }).n).toBe(2); // the scoring before the review and the re-score after it, both kept
+  });
+
+  it("an adjacent verdict found on the retry demotes the recommendation instead", async () => {
+    await run(fakeAi({}, "ok", undefined, new AiError("unavailable", "Gemini down")));
+    await run(fakeAi({}, "ok", undefined, () => ({ sector_match: "adjacent" })));
+    expect((await inv()).a).toBe("research_further");
+  });
+
   it("replaces an unusable title with the model's headline, and keeps the page's own title for provenance", async () => {
     await db.query("delete from investors");
     await db.query(`insert into investors (entity_type, name_key, firm_name, website_url, stage_preference, sectors, geography) values ('vc_firm', 'alpha', 'Alpha', 'https://alpha.vc', 'Seed', '{Logistics}', 'India')`);

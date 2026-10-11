@@ -48,6 +48,8 @@ export interface Rejected {
   published_at: string | null;
   duplicate_of_url?: string;
   source_name: string | null;
+  /** The page we needed could not be read, so this is NOT a verdict about the evidence: it is retried on the next run. */
+  transient?: boolean;
 }
 
 export interface ResearchCandidate extends AiCandidate {
@@ -55,6 +57,8 @@ export interface ResearchCandidate extends AiCandidate {
   source_name: string;
   date_source: "page" | "search_estimate" | "post_id" | "feed";
   fetched: boolean; // false → we only had the search snippet, so confidence is capped
+  /** Judged from the snippet only because the page fetch failed transiently: re-judged on the next run. */
+  provisional?: boolean;
   authority: number;
   official?: boolean;
 }
@@ -83,6 +87,7 @@ export interface ResearchResult {
   searchCalls: number;
 }
 
+const TRANSIENT = new Set(["rate_limited", "timeout", "http_5xx", "malformed"]);
 const MAX_HITS = 8;
 const MAX_LINKEDIN_HITS = 5;
 const MAX_CANDIDATES = 6;
@@ -167,18 +172,21 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
     // provider's snippet only (confidence is capped because the page was not independently read).
     let page: ExtractedPage | null = null;
     let fetchFailed = false;
+    let fetchTransient = false; // a timeout / 5xx / rate limit: worth trying again. A robots.txt block or a 404 is not.
     if (!LINKEDIN_HOST.test(hostOf(canon))) {
       pagesTried++;
       base.sourcesChecked++;
       try {
         page = extractPage((await deps.pages.fetch(hit.url)).html);
-      } catch {
+      } catch (e) {
         base.pageFetchFailures++;
         fetchFailed = true;
+        fetchTransient = e instanceof ProviderError && TRANSIENT.has(e.category);
       }
     }
     // A failed fetch only costs coverage when the search snippet could not stand in for the page.
-    const lose = (reason: string) => { if (fetchFailed && (reason === 'missing_date' || reason === 'insufficient_content')) base.incompleteSources++; };
+    const unreadable = (reason: string) => fetchTransient && (reason === "missing_date" || reason === "insufficient_content");
+    const lose = (reason: string) => { if (unreadable(reason)) base.incompleteSources++; };
 
     if (page?.date_conflict) { reject("contradictory_dates", { title: page.title || hit.title }); continue; }
     const pageDate = page?.published_at ?? null;
@@ -186,13 +194,13 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
     const searchDate = parseDate(hit.published_date);
     const date = pageDate ?? postDate ?? searchDate;
     const verdict = checkWindow(date, now);
-    if (!verdict.ok) { lose(verdict.reason); reject(verdict.reason, { published_at: date, title: page?.title || hit.title }); continue; }
+    if (!verdict.ok) { lose(verdict.reason); reject(unreadable(verdict.reason) ? "page_unavailable" : verdict.reason, { published_at: date, title: page?.title || hit.title, transient: unreadable(verdict.reason) }); continue; }
 
     const usePage = !!page && page.text.length >= MIN_PAGE_TEXT;
     const text = usePage ? page!.text : hit.snippet;
     const title = (page?.title || hit.title || hit.url).trim();
     if (!mentionsInvestor(`${title}\n${text}`, inv)) { reject("entity_not_mentioned", { published_at: date, title }); continue; }
-    if (text.length < 40) { lose("insufficient_content"); reject("insufficient_content", { published_at: date, title }); continue; }
+    if (text.length < 40) { lose("insufficient_content"); reject(unreadable("insufficient_content") ? "page_unavailable" : "insufficient_content", { published_at: date, title, transient: unreadable("insufficient_content") }); continue; }
 
     accepted.push({
       index: -1, // assigned after dedupe
@@ -204,6 +212,7 @@ export async function research(deps: Deps, inv: InvestorRow, known: Set<string>)
       source_name: hostOf(canon),
       date_source: pageDate ? "page" : postDate ? "post_id" : "search_estimate",
       fetched: usePage,
+      provisional: fetchTransient && !usePage,
       authority: officialHost && hostOf(canon).endsWith(officialHost) ? 5 : 1,
     });
   }
