@@ -18,7 +18,8 @@
     "dev:fixture": "tsx --env-file=.env scripts/dev-fixture.ts",
     "check:live": "tsx --env-file=.env scripts/check-live.ts",
     "verify:boundary": "tsx --env-file=.env scripts/verify-boundary.ts",
-    "check:feeds": "tsx --env-file=.env scripts/check-feeds.ts"
+    "check:feeds": "tsx --env-file=.env scripts/check-feeds.ts",
+    "eval:live": "tsx --env-file=.env scripts/eval-live.ts"
   },
   "dependencies": {
     "@phosphor-icons/react": "2.1.10",
