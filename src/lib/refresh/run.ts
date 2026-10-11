@@ -1,7 +1,8 @@
 import type { Db } from "@/lib/db";
 import { planRun, type PlanOptions } from "./plan";
 import { processInvestor, zeroCounters, type ItemResult } from "./process";
-import type { Deps, InvestorRow } from "./research";
+import { loadInvestor, rescoreAll } from "./rescore";
+import type { Deps } from "./research";
 
 /**
  * Run lifecycle. A "run" is a row in `runs` plus one `run_items` row per investor — a durable queue.
@@ -114,6 +115,7 @@ export async function runChunk(rdb: Db, deps: Deps, runId: string, o: ChunkOptio
   const left = (await rdb.query<{ n: number }>(`select count(*)::int as n from run_items where run_id = $1 and status in ('pending','running')`, [runId])).rows[0]!.n;
   if (left === 0) {
     const status = await finalizeRun(rdb, runId);
+    await rescoreUnsearched(rdb, deps, runId);
     return { finished: true, remaining: 0, status };
   }
   await rdb.query(`update runs set heartbeat_at = now() where id = $1`, [runId]);
@@ -123,13 +125,7 @@ export async function runChunk(rdb: Db, deps: Deps, runId: string, o: ChunkOptio
 async function processOne(rdb: Db, deps: Deps, runId: string, investorId: string, attempts: number): Promise<void> {
   let result: ItemResult = { ok: false, retryable: true, error: "unknown", counters: zeroCounters() };
   try {
-    // Explicit column list: the refresh role cannot (and must not) read personal_notes / contact_history.
-    const inv = (await rdb.query<InvestorRow>(
-      `select id, firm_name, aliases, entity_type, role_title, partner_name, website_url, stage_preference, sectors, geography,
-              fit_rationale, investment_thesis, relationship_status, last_contact_date::text as last_contact_date
-         from investors where id = $1`,
-      [investorId],
-    )).rows[0];
+    const inv = await loadInvestor(rdb, investorId); // explicit column list: the refresh role cannot read personal_notes / contact_history
     if (!inv) throw new Error("investor no longer exists");
     result = await processInvestor(rdb, deps, runId, inv);
   } catch (e) {
@@ -160,6 +156,21 @@ async function processOne(rdb: Db, deps: Deps, runId: string, investorId: string
       c.search_calls,
     ],
   );
+}
+
+/**
+ * Investors this run did not search (checked recently, "cold", or over the credit budget) keep their evidence, but their
+ * recency has moved on. Re-score them from stored evidence (no search, no model) so every score reflects today. Failure
+ * here is recorded and never affects the run's status: the searched investors were already scored.
+ */
+async function rescoreUnsearched(rdb: Db, deps: Deps, runId: string): Promise<void> {
+  try {
+    const searched = new Set((await rdb.query<{ investor_id: string }>(`select investor_id from run_items where run_id = $1`, [runId])).rows.map((r) => r.investor_id));
+    const sum = await rescoreAll(rdb, deps.now(), { skip: searched });
+    await rdb.query(`insert into audit_logs (run_id, event, detail) values ($1, 'rescored_unsearched', $2::jsonb)`, [runId, JSON.stringify(sum)]);
+  } catch (e) {
+    await rdb.query(`insert into audit_logs (run_id, level, event, detail) values ($1, 'warn', 'rescore_failed', $2::jsonb)`, [runId, JSON.stringify({ message: String((e as Error).message ?? e).slice(0, 200) })]).catch(() => {});
+  }
 }
 
 /** Completes the run. Success is only ever claimed here, after every item has reached a final state. */

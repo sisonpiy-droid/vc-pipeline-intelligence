@@ -20,6 +20,8 @@
     "verify:boundary": "tsx --env-file=.env scripts/verify-boundary.ts",
     "check:feeds": "tsx --env-file=.env scripts/check-feeds.ts",
     "eval:live": "tsx --env-file=.env scripts/eval-live.ts",
+    "export:signals": "tsx --env-file=.env scripts/export-signals.ts",
+    "rescore": "tsx --env-file=.env scripts/rescore.ts",
     "refresh:some": "tsx --env-file=.env scripts/refresh-some.ts"
   },
   "dependencies": {

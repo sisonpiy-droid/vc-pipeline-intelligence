@@ -1,0 +1,286 @@
+{
+ "labelled_by": "developer, from the stored evidence excerpt and source (not from model output)",
+ "labelled_on": "2026-10-11",
+ "signals": [
+  {
+   "url": "https://finance.yahoo.com/technology/articles/peak-xv-ups-surge-seed-003000616.html",
+   "firm_name": "Peak XV Partners",
+   "headline": "Peak XV ups Surge seed investment ceiling to $5M, unveils 18-startup cohort",
+   "published_at": "2026-09-29",
+   "acting": true,
+   "sector": "seed_generalist",
+   "new_capital": true,
+   "note": "Seed ceiling raised to $5M; new cohort"
+  },
+  {
+   "url": "https://vocal.media/01/lightspeed-launches-250-million-india-ai-first-fund-betting-technology-will-outpace-internet-growth",
+   "firm_name": "Lightspeed India Partners",
+   "headline": "Lightspeed Launches $250 Million India AI-First Fund, Betting Technology Will Outpace Internet Growt",
+   "published_at": "2026-10-10",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": true,
+   "note": "New $250M early-stage AI fund"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/3one4-capital_gravity-design-has-raised-15-million-led-activity-7511027420901269505-NkLp",
+   "firm_name": "3one4 Capital",
+   "headline": "Gravity Design Raises $15M Led by 3one4 Capital and ...",
+   "published_at": "2026-09-30",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Design-material marketplace round"
+  },
+  {
+   "url": "https://kae-capital.com/blog/building-10-minute-cities-in-india",
+   "firm_name": "Kae Capital",
+   "headline": "Building 10-Minute Cities in India - Kae Capital",
+   "published_at": "2026-10-08",
+   "acting": true,
+   "sector": "logistics",
+   "new_capital": false,
+   "note": "Investor's own article on quick-commerce logistics software"
+  },
+  {
+   "url": "https://ascendants.in/business-stories/drivn-raises-rs-45-crore-seed-funding-avaana-capital-electric-mobility",
+   "firm_name": "Avaana Capital",
+   "headline": "Drivn Raises Rs 45 Crore Seed Funding From Avaana Capital",
+   "published_at": "2026-09-21",
+   "acting": true,
+   "sector": "logistics",
+   "new_capital": false,
+   "note": "Seed in commercial EV fleet management"
+  },
+  {
+   "url": "https://www.ciol.com/funding-acquistion-merger/inner-sky-labs-launches-physical-ai-platform-seeks-300-cr-funding-12664630",
+   "firm_name": "YourNest Venture Capital",
+   "headline": "Inner Sky Labs Launches Physical AI Platform, Seeks ₹300 Cr Funding",
+   "published_at": "2026-10-11",
+   "acting": true,
+   "sector": "logistics",
+   "new_capital": false,
+   "note": "Existing backer in warehouse physical-AI round"
+  },
+  {
+   "url": "https://desible.ai/announcing-seed-plus",
+   "firm_name": "Prime Venture Partners",
+   "headline": "Announcing our Seed Plus",
+   "published_at": "2026-10-07",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": false,
+   "note": "Seed Plus in enterprise voice AI"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/sidchoudhury_what-will-it-take-for-enterprises-to-run-activity-7510336364123656192-Oe5L",
+   "firm_name": "Emergent Ventures",
+   "headline": "Sid Choudhury's Post",
+   "published_at": "2026-09-28",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": false,
+   "note": "Seed in enterprise AI company"
+  },
+  {
+   "url": "https://www.youtube.com/watch?v=Ew9V4VMsXJw",
+   "firm_name": "Aditya Singh",
+   "headline": "- YouTube",
+   "published_at": "2026-10-07",
+   "acting": true,
+   "sector": "seed_generalist",
+   "new_capital": false,
+   "note": "Interview on how seed VCs evaluate founders"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/jobs-territory_lumio-fundingalert-seriesa-activity-7513931269169205249-pyRu",
+   "firm_name": "Stellaris Venture Partners",
+   "headline": "Jobs Territory's Post",
+   "published_at": "2026-10-08",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Series A participation, sector unclear"
+  },
+  {
+   "url": "https://dealroom.co/news",
+   "firm_name": "Endiya Partners",
+   "headline": "Startup & venture capital news | Dealroom.co",
+   "published_at": "2026-10-02",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Seed in semiconductor verification"
+  },
+  {
+   "url": "https://www.openpr.com/news/4649488/legalogic-advises-enemtech-capital-on-investment-in-incosteam",
+   "firm_name": "Pentathlon Ventures",
+   "headline": "LegaLogic Advises Enemtech Capital on Investment in IncoSteam International Pvt. Ltd.",
+   "published_at": "2026-10-02",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Seed in fintech AI; headline names a different investor"
+  },
+  {
+   "url": "https://www.instagram.com/p/Dd6Nc7SN3-K",
+   "firm_name": "Rajan Anandan",
+   "headline": "Instagram",
+   "published_at": "2026-09-30",
+   "acting": true,
+   "sector": "seed_generalist",
+   "new_capital": false,
+   "note": "Instagram post about the Surge programme"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/audaciousinvestor_accel-closes-oversubscribed-550m-india-fund-activity-7508983160454443008-NJr9",
+   "firm_name": "Accel India",
+   "headline": "Accel India Raises $550M for Fund IX, Investing in Indian ...",
+   "published_at": "2026-09-24",
+   "acting": true,
+   "sector": "seed_generalist",
+   "new_capital": true,
+   "note": "Fund IX close"
+  },
+  {
+   "url": "https://lvxventures.com/lvx-day",
+   "firm_name": "LetsVenture",
+   "headline": "LVX Day",
+   "published_at": "2026-10-06",
+   "acting": true,
+   "sector": "seed_generalist",
+   "new_capital": false,
+   "note": "Hosted event for early-stage founders"
+  },
+  {
+   "url": "https://www.instagram.com/p/DdY4gv8iPvZ",
+   "firm_name": "Aakrit Vaish",
+   "headline": "Instagram",
+   "published_at": "2026-09-20",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": true,
+   "note": "Debut AI fund close (via Instagram)"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/karo-startup_agenticai-ai-proactiveai-activity-7508489072185827328-9MSG",
+   "firm_name": "Nexus Venture Partners",
+   "headline": "Sol AI Raises $4M from General Catalyst and Nexus ...",
+   "published_at": "2026-09-23",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Consumer AI seed round"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/goyallaw_transactions-venturecapital-edtech-activity-7510246947140718594-nwT4",
+   "firm_name": "Eximius Ventures",
+   "headline": "Goyel & Goyal's Post",
+   "published_at": "2026-09-28",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": false,
+   "note": "Seed in AI software company"
+  },
+  {
+   "url": "https://www.billionaires.africa/2026/10/04/indian-billionaire-nikhil-kamath-backs-ai-startup-that-screens-children-for-autism",
+   "firm_name": "Nikhil Kamath",
+   "headline": "Nikhil Kamath backs AI autism screening startup Aignosis",
+   "published_at": "2026-10-04",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Seed in AI health screening"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/shah-karishma_hiring-curated-another-list-of-15-recently-activity-7504950723990974465-Q5C0",
+   "firm_name": "Chiratae Ventures",
+   "headline": "15 Bengaluru Startups Funded and Hiring",
+   "published_at": "2026-09-13",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Unnamed Series A in a list post"
+  },
+  {
+   "url": "https://m.economictimes.com/tech/technology/paytms-vijay-shekhar-sharma-wants-india-to-build-its-own-ai-models-ready-to-fund-the-builders/articleshow/134768479.cms",
+   "firm_name": "Vijay Shekhar Sharma",
+   "headline": "Paytm's Vijay Shekhar Sharma wants India to build its own AI models, ready to fund the builders - Th",
+   "published_at": "2026-10-07",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Pledge to fund foundational-AI builders"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/rivena-innovation-foundation_assamstartup-indiaaccelerator-startupfunding-activity-7509530217925750785-jO0e",
+   "firm_name": "India Accelerator",
+   "headline": "India Accelerator Partners with Assam Startup for ₹100 ...",
+   "published_at": "2026-09-26",
+   "acting": true,
+   "sector": "seed_generalist",
+   "new_capital": true,
+   "note": "Fund pool programme for Northeast startups"
+  },
+  {
+   "url": "https://www.williamblair.com/News-List",
+   "firm_name": "B Capital",
+   "headline": "News List | William Blair",
+   "published_at": "2026-10-06",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": false,
+   "note": "Series C lead, field-operations software"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/ivycap-ventures-private-limited_techxperience-indiafortheworld-defectmonitoring-activity-7504407666686046209-n8p9",
+   "firm_name": "IvyCap Ventures",
+   "headline": "AI-powered visual inspection for real-time quality control",
+   "published_at": "2026-09-12",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": false,
+   "note": "Pre-Series B lead, industrial AI inspection"
+  },
+  {
+   "url": "https://www.startbase.com/news/finmid-holt-sich-17-millionen-euro",
+   "firm_name": "pi Ventures",
+   "headline": "finmid raises 17 million euros",
+   "published_at": "2026-10-07",
+   "acting": false,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Page is about 'Big Pi Ventures', a different firm"
+  },
+  {
+   "url": "https://timesofindia.indiatimes.com/business/india-business/activate-closes-debut-ai-fund-at-105-mn/articleshow/134291515.cms",
+   "firm_name": "Girish Mathrubootham",
+   "headline": "Activate closes debut AI fund at $105 mn",
+   "published_at": "2026-09-16",
+   "acting": true,
+   "sector": "b2b_software",
+   "new_capital": false,
+   "note": "Named LP of an AI fund"
+  },
+  {
+   "url": "https://indianstartupnews.com/news/iit-madras-unicorn-india-ventures-announce-rs-450-crore-first-close-of-rs-1000-crore-deeptech-fund-12579537",
+   "firm_name": "Unicorn India Ventures",
+   "headline": "IIT Madras, Unicorn India Ventures announce Rs 450 crore first close of Rs 1,000 crore deeptech fund",
+   "published_at": "2026-09-28",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": true,
+   "note": "Deeptech fund first close"
+  },
+  {
+   "url": "https://www.linkedin.com/posts/bhatia-ashish_most-people-underestimate-how-long-it-takes-activity-7506225626148663298-JxwI",
+   "firm_name": "Shastra VC",
+   "headline": "Building Companies Takes Time and Patience | Ashish ...",
+   "published_at": "2026-09-17",
+   "acting": true,
+   "sector": "adjacent",
+   "new_capital": false,
+   "note": "Round participation, sector unclear"
+  }
+ ]
+}

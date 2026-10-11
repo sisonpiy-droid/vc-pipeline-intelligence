@@ -1,7 +1,7 @@
 import type { Db } from "@/lib/db";
 import { ACTION_THRESHOLDS, RELEVANCE_MIN } from "@/lib/scoring/score";
 import { windowStart } from "@/lib/signals/window";
-import { listPipeline, type PipelineRow } from "./read";
+import { effRel, listPipeline, type PipelineRow } from "./read";
 
 /**
  * "What changed since last time" — the weekly brief. Everything here is derived from stored run outcomes, so it
@@ -87,7 +87,7 @@ export async function getBrief(db: Db, today: string): Promise<Brief> {
               s.relevance_score, s.source_name, s.new_capital
          from signals s join investors i on i.id = s.investor_id
         where s.run_id = $1 and s.verification_status = 'verified' and s.duplicate_of is null
-          and s.relevance_score >= ${RELEVANCE_MIN} and s.published_at >= $2::date
+          and ${effRel("s")} >= ${RELEVANCE_MIN} and s.published_at >= $2::date
         order by s.relevance_score desc, s.published_at desc limit 12`,
       [run.id, windowStart(new Date(`${today}T00:00:00Z`))],
     )).rows;
@@ -124,13 +124,13 @@ const GROUPS: { key: string; label: string; reasons: string[]; note: string }[] 
   { key: "page", label: "An event, not a profile page", reasons: ["profile_or_directory_page"], note: "Dropped: static profile / directory pages (Crunchbase, LinkedIn profiles, …)." },
   { key: "date", label: "Dated inside the 30-day window", reasons: ["missing_date", "out_of_window", "future_date", "contradictory_dates"], note: "Dropped: undated, too old, future, or contradictory dates." },
   { key: "dedupe", label: "Distinct events", reasons: ["duplicate_event", "over_candidate_cap", "insufficient_content"], note: "Dropped: repeat coverage of the same event, or too little content." },
-  { key: "ai", label: "Verified by Gemini and in code", reasons: ["investor_not_involved", "investor_unclear", "not_a_specific_event", "excerpt_not_in_source"], note: "Dropped: investor not actually involved, not a specific event, or the quote was not in the source." },
+  { key: "ai", label: "Verified by Gemini and in code", reasons: ["investor_not_involved", "investor_unclear", "not_a_specific_event", "excerpt_not_in_source", "second_pass_not_acting"], note: "Dropped: investor not actually involved, not a specific event, the quote was not in the source, or the second-pass review found it was a different firm." },
 ];
 
 /** Where the candidates found by one run were filtered out. Counts come from the stored verdict of every candidate. */
 export async function getFunnel(db: Db, runId: string): Promise<{ total: number; stages: FunnelStage[]; review: number; relevant: number }> {
   const rows = (await db.query<{ s: string; r: string; rel: boolean; n: number }>(
-    `select verification_status as s, coalesce(rejection_reason, '-') as r, coalesce(relevance_score >= ${RELEVANCE_MIN}, false) as rel, count(*)::int as n
+    `select verification_status as s, coalesce(rejection_reason, '-') as r, coalesce(${effRel("signals")} >= ${RELEVANCE_MIN}, false) as rel, count(*)::int as n
        from signals where run_id = $1 group by 1, 2, 3`,
     [runId],
   )).rows;

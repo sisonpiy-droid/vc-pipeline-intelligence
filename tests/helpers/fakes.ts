@@ -59,8 +59,19 @@ export interface AiRule {
   summary?: string;
 }
 
-/** A Gemini double: parses candidates from the prompt and answers from a per-URL rule table. */
-export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage" | "down" | "malicious" = "ok", angle: string | Error = "Congratulations on backing a freight marketplace; we are building software for the same trucking fleets."): AiClient & { calls: number; prompts: string[] } {
+export interface ReviewRule {
+  firm_acting?: boolean;
+  sector_match?: "logistics" | "b2b_software" | "seed_generalist" | "adjacent" | "unrelated";
+  clean_headline?: string;
+  note?: string;
+}
+
+/**
+ * A Gemini double: parses candidates from the prompt and answers from a per-URL rule table.
+ * `review` answers the second-pass review calls (default: the firm is acting and the topic is logistics);
+ * pass a function of the item's title to vary it, or an Error to make that call fail.
+ */
+export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage" | "down" | "malicious" = "ok", angle: string | Error = "Congratulations on backing a freight marketplace; we are building software for the same trucking fleets.", review: ((item: { index: number; title: string; summary: string }) => ReviewRule) | Error = () => ({})): AiClient & { calls: number; prompts: string[] } {
   const state = { calls: 0, prompts: [] as string[] };
   return {
     get calls() { return state.calls; },
@@ -72,6 +83,11 @@ export function fakeAi(rules: Record<string, AiRule> = {}, mode: "ok" | "garbage
       if ("angle" in ((req.responseSchema as { properties?: object }).properties ?? {})) {
         if (angle instanceof Error) throw angle;
         return { angle };
+      }
+      if ("reviews" in ((req.responseSchema as { properties?: object }).properties ?? {})) {
+        if (review instanceof Error) throw review;
+        const items = [...req.prompt.matchAll(/<item index="(\d+)"[^>]*>\nTITLE: (.*)\nSUMMARY: (.*)\n/g)].map((m) => ({ index: Number(m[1]), title: m[2]!, summary: m[3]! }));
+        return { reviews: items.map((it) => { const r = review(it); return { index: it.index, firm_acting: r.firm_acting ?? true, sector_match: r.sector_match ?? "logistics", clean_headline: r.clean_headline ?? "", note: r.note ?? "" }; }) };
       }
       if (mode === "garbage") return { assessments: "not an array", extra: "<script>" };
       const cands = [...req.prompt.matchAll(/<candidate index="(\d+)" url="([^"]+)"/g)].map((m) => ({ index: Number(m[1]), url: m[2]! }));

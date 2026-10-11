@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import { analyzeCandidates, type Verdict } from "@/lib/ai/analyze";
 import { generateAngle, type AngleEvidence } from "@/lib/ai/angle";
+import { pickDisplayHeadline, reviewSignals, type ReviewInput } from "@/lib/ai/review";
 import type { Db, Queryable } from "@/lib/db";
-import { RELEVANCE_MIN, scoreInvestor, STARTUP, type Confidence, type ScoredSignal } from "@/lib/scoring/score";
-import { ageInDays } from "@/lib/signals/window";
+import { RELEVANCE_MIN, type Confidence, type SectorMatch } from "@/lib/scoring/score";
+import { previousAngle, scoreAndWrite } from "./rescore";
 import { research, type CoverageEntry, type Deps, type InvestorRow, type ResearchCandidate, type Rejected } from "./research";
-import { applySignalUpdate, sanitizeSummary, SIGNAL_COLUMNS } from "./write";
+import { sanitizeSummary, SIGNAL_COLUMNS } from "./write";
 
 export interface Counters {
   sources_checked: number;
@@ -36,7 +37,11 @@ interface SignalRow {
   relevance_score: number | null; evidence_confidence: Confidence | null;
   verification_status: "verified" | "needs_review" | "rejected"; rejection_reason: string | null;
   content_hash: string | null; duplicate_of_url?: string; new_capital: boolean;
+  /** Second-pass review (null = not reviewed). */
+  sector_match: SectorMatch | null; firm_acting: boolean | null; display_headline: string | null; review_note: string | null; reviewed: boolean;
 }
+
+const UNREVIEWED = { sector_match: null, firm_acting: null, display_headline: null, review_note: null, reviewed: false } as const;
 
 function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): SignalRow[] {
   const byIndex = new Map(verdicts.map((v) => [v.index, v]));
@@ -52,13 +57,13 @@ function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): Sign
         ...base, signal_type: a.signal_type, evidence_excerpt: a.evidence_excerpt,
         summary: sanitizeSummary(a.summary, 300), relevance_explanation: sanitizeSummary(a.why_it_matters, 450),
         relevance_score: a.relevance, evidence_confidence: capConfidence(a.confidence, !c.fetched || c.date_source === "search_estimate"),
-        verification_status: "verified", rejection_reason: null, new_capital: a.new_capital,
+        verification_status: "verified", rejection_reason: null, new_capital: a.new_capital, ...UNREVIEWED,
       };
     }
     return {
       ...base, signal_type: null, evidence_excerpt: null, summary: null, relevance_explanation: null,
       relevance_score: v.assessment?.relevance ?? null, evidence_confidence: null,
-      verification_status: v.status, rejection_reason: v.reason, new_capital: false,
+      verification_status: v.status, rejection_reason: v.reason, new_capital: false, ...UNREVIEWED,
     };
   });
 }
@@ -66,29 +71,31 @@ function rowsFromVerdicts(cands: ResearchCandidate[], verdicts: Verdict[]): Sign
 const rejectedRow = (r: Rejected): SignalRow => ({
   url: r.url, canonical_url: r.canonical_url, headline: r.title.slice(0, 300), source_name: r.source_name, published_at: r.published_at,
   date_source: null, signal_type: null, evidence_excerpt: null, summary: null, relevance_explanation: null, relevance_score: null,
-  evidence_confidence: null, verification_status: "rejected", rejection_reason: r.reason, content_hash: null, duplicate_of_url: r.duplicate_of_url, new_capital: false,
+  evidence_confidence: null, verification_status: "rejected", rejection_reason: r.reason, content_hash: null, duplicate_of_url: r.duplicate_of_url, new_capital: false, ...UNREVIEWED,
 });
 
 async function upsertSignal(q: Queryable, runId: string, investorId: string, s: SignalRow): Promise<string | null> {
   const { rows } = await q.query<{ id: string }>(
     `insert into signals (investor_id, run_id, url, canonical_url, headline, source_name, published_at, date_basis, date_source,
         signal_type, evidence_excerpt, summary, relevance_explanation, relevance_score, evidence_confidence,
-        verification_status, rejection_reason, content_hash, new_capital)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+        verification_status, rejection_reason, content_hash, new_capital, sector_match, firm_acting, display_headline, review_note, reviewed_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,case when $24 then now() end)
      on conflict (investor_id, canonical_url) do update set
         run_id = excluded.run_id, headline = excluded.headline, published_at = excluded.published_at,
         date_basis = excluded.date_basis, date_source = excluded.date_source, signal_type = excluded.signal_type,
         evidence_excerpt = excluded.evidence_excerpt, summary = excluded.summary,
         relevance_explanation = excluded.relevance_explanation, relevance_score = excluded.relevance_score,
         evidence_confidence = excluded.evidence_confidence, verification_status = excluded.verification_status,
-        rejection_reason = excluded.rejection_reason, content_hash = excluded.content_hash, new_capital = excluded.new_capital, retrieved_at = now()
+        rejection_reason = excluded.rejection_reason, content_hash = excluded.content_hash, new_capital = excluded.new_capital,
+        sector_match = excluded.sector_match, firm_acting = excluded.firm_acting, display_headline = excluded.display_headline,
+        review_note = excluded.review_note, reviewed_at = excluded.reviewed_at, retrieved_at = now()
       -- a settled verdict is never overwritten; only unresolved items and cap-dropped ones are reconsidered
       where signals.verification_status = 'needs_review' or signals.rejection_reason = 'over_candidate_cap'
      returning id`,
     [
       investorId, runId, s.url, s.canonical_url, s.headline, s.source_name, s.published_at, s.published_at ? "published" : "unknown",
       s.date_source, s.signal_type, s.evidence_excerpt, s.summary, s.relevance_explanation, s.relevance_score, s.evidence_confidence,
-      s.verification_status, s.rejection_reason, s.content_hash, s.new_capital,
+      s.verification_status, s.rejection_reason, s.content_hash, s.new_capital, s.sector_match, s.firm_acting, s.display_headline, s.review_note, s.reviewed,
     ],
   );
   return rows[0]?.id ?? null;
@@ -162,6 +169,35 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
     return { ok: false, retryable: RETRYABLE.has(analysis.ai_error.category), error: `ai_failed:${analysis.ai_error.category}`, counters };
   }
 
+  // Second pass: only for evidence that is verified AND relevant enough to influence a score. A failure here never fails
+  // the investor: the signals simply stay "not reviewed", which the scoring rules treat conservatively.
+  const reviewable = signalRows.flatMap((s, i) => (s.verification_status === "verified" && (s.relevance_score ?? 0) >= RELEVANCE_MIN ? [{ s, c: res.candidates[i]! }] : []));
+  if (reviewable.length) {
+    const inputs: ReviewInput[] = reviewable.map(({ s, c }) => ({ index: c.index, title: s.headline, summary: s.summary, excerpt: s.evidence_excerpt, source: s.source_name, published_at: s.published_at! }));
+    const rv = await reviewSignals(deps.ai, inv, inputs);
+    counters.ai_calls += rv.ai_calls;
+    counters.sources_checked += rv.ai_calls;
+    if (rv.ok) {
+      const byIndex = new Map(rv.verdicts.map((v) => [v.index, v]));
+      let notActing = 0;
+      for (const { s, c } of reviewable) {
+        const v = byIndex.get(c.index);
+        if (!v) continue;
+        s.reviewed = true;
+        s.sector_match = v.sector_match;
+        s.firm_acting = v.firm_acting;
+        s.review_note = v.note ? sanitizeSummary(v.note, 300) : null;
+        s.display_headline = pickDisplayHeadline(s.headline, v.clean_headline, inv);
+        if (!v.firm_acting) { s.verification_status = "rejected"; s.rejection_reason = "second_pass_not_acting"; notActing++; }
+      }
+      coverage.push({ source: "gemini_review", status: "ok", result_count: rv.verdicts.length, error_category: null, note: notActing ? `${notActing} signal${notActing > 1 ? "s" : ""} rejected: the excerpt did not show this firm acting` : null });
+    } else {
+      coverage.push({ source: "gemini_review", status: "error", result_count: 0, error_category: rv.category, note: `${rv.message}; signals stay unreviewed (they cannot trigger "reach out now" yet)` });
+    }
+  } else {
+    coverage.push({ source: "gemini_review", status: "skipped", result_count: 0, error_category: null, note: "no new relevant signal to review" });
+  }
+
   const accepted = signalRows.filter((s) => s.verification_status === "verified");
   counters.signals_accepted = accepted.length;
   const partial = res.incompleteSources > 0;
@@ -182,72 +218,36 @@ export async function processInvestor(rdb: Db, deps: Deps, runId: string, inv: I
     }
     for (const c of coverage) await upsertCoverage(q, runId, inv.id, c);
 
-    // Everything verified and not a duplicate, across all runs — evidence persists until it ages out.
-    const stored = (await q.query<{
-      id: string; published_at: string; relevance_score: number; evidence_confidence: Confidence; headline: string; summary: string; evidence_excerpt: string | null;
-    }>(
-      `select id, published_at::text as published_at, relevance_score, evidence_confidence, headline, summary, evidence_excerpt
-         from signals where investor_id = $1 and verification_status = 'verified' and duplicate_of is null and published_at is not null`,
-      [inv.id],
-    )).rows;
-
     const now = deps.now();
-    const inWindow = stored.filter((s) => { const a = ageInDays(s.published_at, now); return a >= -1 && a <= 30; });
-    const scored: ScoredSignal[] = inWindow.map((s) => ({ id: s.id, published_at: s.published_at, relevance: s.relevance_score, confidence: s.evidence_confidence, headline: s.summary || s.headline }));
-    const result = scoreInvestor({
-      now, signals: scored,
-      profile: { stage_preference: inv.stage_preference, sectors: inv.sectors, geography: inv.geography, thesis_text: inv.investment_thesis ?? inv.fit_rationale },
-      relationship: { status: inv.relationship_status, last_contact_date: inv.last_contact_date },
-      coverage: partial ? "partial" : "complete",
-    });
-
-    const relevantEver = stored.filter((s) => s.relevance_score >= RELEVANCE_MIN).map((s) => s.published_at).sort();
-    const lastSignalDate = relevantEver.at(-1) ?? null;
-    const lead = stored.find((s) => s.id === result.lead_signal?.id);
-    let summary: string;
-    if (lead) summary = lead.summary + (result.relevant_signal_count > 1 ? ` (+${result.relevant_signal_count - 1} more relevant signal${result.relevant_signal_count > 2 ? "s" : ""})` : "");
-    else if (inWindow.length) summary = `${inWindow.length} verified signal${inWindow.length > 1 ? "s" : ""} in the last 30 days, none relevant to ${STARTUP.sector}.`;
-    else summary = lastSignalDate ? `No relevant signal in the last 30 days (most recent: ${lastSignalDate}).` : "No verified signal in the last 30 days.";
-    if (!lead && partial) summary += " Some sources failed, so this is not conclusive.";
-
-    const changed = await applySignalUpdate(q, inv.id, {
-      last_signal_date: lastSignalDate,
-      signal_summary: sanitizeSummary(summary),
-      follow_up_score: result.score,
-      recommended_action: result.action,
-    });
+    const sc = await scoreAndWrite(q, inv, { now, partial, runId, source: "refresh" });
+    const { result, lead } = sc;
 
     // Reuse the previous opening angle while the lead signal is the same: no repeat AI call, stable wording.
-    const prev = (await q.query<{ angle: string | null; lead: string | null }>(
-      `select outcome->>'angle' as angle, outcome->>'lead_signal_id' as lead from run_items
-        where investor_id = $1 and run_id <> $2 and status = 'done' order by finished_at desc limit 1`,
-      [inv.id, runId],
-    )).rows[0];
+    const prev = await previousAngle(q, inv.id, sc.historyId);
     const reusedAngle = result.action === "reach_out_now" && result.lead_signal?.id && prev?.lead === result.lead_signal.id ? prev.angle : null;
+    if (reusedAngle) await q.query(`update score_history set angle = $2 where id = $1`, [sc.historyId, reusedAngle]);
 
     const rejectedByReason: Record<string, number> = {};
     for (const s of [...signalRows.filter((x) => x.verification_status !== "verified"), ...res.rejected.map(rejectedRow)])
       rejectedByReason[s.rejection_reason ?? "unknown"] = (rejectedByReason[s.rejection_reason ?? "unknown"] ?? 0) + 1;
     const outcome = {
-      score: result.score, action: result.action, explanation: result.explanation, breakdown: result.breakdown,
+      score: result.score, action: result.action, explanation: result.explanation, breakdown: result.breakdown, capped_by: result.capped_by,
       lead_signal_id: result.lead_signal?.id ?? null, relevant_signals: result.relevant_signal_count,
       accepted_new: accepted.length, skipped_already_assessed: res.skippedKnown, rejected: rejectedByReason,
-      coverage: partial ? "partial" : "complete", ai_calls: analysis.ai_calls, columns_changed: changed,
-      ...(reusedAngle ? { angle: reusedAngle } : {}),
+      coverage: partial ? "partial" : "complete", ai_calls: counters.ai_calls, columns_changed: sc.changed,
     };
-    await audit(q, runId, inv.id, "info", "signal_columns_updated", { fields: SIGNAL_COLUMNS, changed, score: result.score, action: result.action });
+    await audit(q, runId, inv.id, "info", "signal_columns_updated", { fields: SIGNAL_COLUMNS, changed: sc.changed, score: result.score, action: result.action, capped_by: result.capped_by });
     await q.query(`update run_items set status = 'done', finished_at = now(), error = null, outcome = $3::jsonb where run_id = $1 and investor_id = $2`, [runId, inv.id, JSON.stringify(outcome)]);
     // A suggested opening angle is worth generating only for the investors we recommend approaching now.
     const angleFor: AngleEvidence | null =
       result.action === "reach_out_now" && lead && !reusedAngle ? { headline: lead.headline, summary: lead.summary, excerpt: lead.evidence_excerpt, published_at: lead.published_at } : null;
-    return { changed, angleFor };
+    return { changed: sc.changed, angleFor, historyId: sc.historyId };
   });
 
   if (outcome.angleFor) {
     counters.ai_calls++;
     const angle = await generateAngle(deps.ai, inv.firm_name, outcome.angleFor);
-    if (angle)
-      await rdb.query(`update run_items set outcome = outcome || jsonb_build_object('angle', $3::text) where run_id = $1 and investor_id = $2`, [runId, inv.id, angle]);
+    if (angle) await rdb.query(`update score_history set angle = $2 where id = $1`, [outcome.historyId, angle]);
   }
 
   counters.records_updated = outcome.changed ? 1 : 0;

@@ -57,13 +57,13 @@ describe("angle in the pipeline", () => {
     await runChunk(rdb, deps, run_id, { batchEstimateMs: 0 });
     return run_id;
   };
-  const angleOf = async (run_id: string) => ((await db.query(`select outcome->>'angle' a from run_items ri join investors i on i.id=ri.investor_id where run_id=$1 and i.firm_name='Alpha'`, [run_id])).rows[0] as { a: string | null }).a;
+  const angleOf = async (run_id: string) => ((await db.query(`select sh.angle a from score_history sh join investors i on i.id=sh.investor_id where sh.run_id=$1 and i.firm_name='Alpha'`, [run_id])).rows[0] as { a: string | null }).a;
 
   it("is stored for a 'reach out now' investor, but never for others (no wasted AI calls)", async () => {
     const ai = fakeAi({ [u]: { relevance: 92 } });
     const id = await run(ai);
     expect(await angleOf(id)).toMatch(/freight marketplace/);
-    expect((await db.query(`select count(*)::int n from run_items where run_id=$1 and outcome ? 'angle'`, [id])).rows[0]).toEqual({ n: 1 });
+    expect((await db.query(`select count(*)::int n from score_history where run_id=$1 and angle is not null`, [id])).rows[0]).toEqual({ n: 1 });
     expect(ai.prompts.filter((p) => p.includes("<event"))).toHaveLength(1); // one angle call: Beta had no signal
   });
 

@@ -13,7 +13,7 @@ const base: ScoreInput = {
 };
 const withSignal = (over: Partial<ScoreInput["signals"][number]> = {}, input: Partial<ScoreInput> = {}): ScoreInput => ({
   ...base,
-  signals: [{ published_at: daysAgo(2), relevance: 90, confidence: "high", headline: "X invests in logistics SaaS", ...over }],
+  signals: [{ published_at: daysAgo(2), relevance: 90, confidence: "high", headline: "X invests in logistics SaaS", sector_match: "logistics", tier: "press", ...over }],
   ...input,
 });
 
