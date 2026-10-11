@@ -1,4 +1,7 @@
-# Improvement plan (proposal — nothing here is implemented until approved)
+# Improvement plan
+
+> **Status (2026-10-11): Phases 0, 1 and 2 are implemented, tested (302 tests) and deployed; Phase 3 is intentionally deferred.**
+> Measured outcomes: official feeds exist for 9 of 50 firms (5 with recent posts); golden AI cases 10/10 live; a manual run inside 36 h now costs 0 credits; the credit meter reads real spend. The CI workflow is written but inactive (needs a GitHub token scope). Original proposal follows.
 
 Basis: [REFERENCES.md](REFERENCES.md) + the three real production runs so far. Constraints: **free tiers only** (Tavily, Gemini Flash, Supabase, Vercel Hobby, direct HTTP), **Gemini only for runtime AI**, founder-owned data untouched by refresh, build deadline **EOD 12 Oct**, viva 15 Oct.
 

@@ -45,3 +45,10 @@ is once per day with ±59 min precision (so Mon+Thu fits), functions up to 300 s
 
 Controls: manual runs limited to one per 10 minutes; one active run; per-investor candidate cap (6); content-hash +
 verdict caching; search is the only per-investor cost that scales linearly.
+
+## Measured coverage and free-tier controls (Oct 2026)
+
+- **Official feeds** (`npm run check:feeds`, free, all 50 firms with a website): **9 publish an RSS/Atom feed**, **5 of them had a post in the last 30 days (13 items)**, 40 have none, 1 errored. A live run on three feed-publishing firms returned `official_feed: ok` for all three and ingested their posts dated by the feed.
+- **LinkedIn** costs +1 credit per investor and is opt-in per manual run; the scheduled run never uses it.
+- **GSAP** is used under its free "no charge" licence (https://gsap.com/standard-license); it is the only new runtime dependency in this phase (plus Phosphor icons, MIT).
+- **Credits**: tracked in `runs.search_calls`; the dashboard meter shows spent / budget / remaining. After the improvements, an unchanged quiet universe costs roughly a third of a naive refresh, and repeated or manual runs inside 36 h cost nothing.

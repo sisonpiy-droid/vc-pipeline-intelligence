@@ -20,3 +20,13 @@ use `dev:fixture` data on camera (it is `[FIXTURE]`-labelled and local only).
 
 **If something fails on camera:** say so — the product is designed to show failure honestly (failed refresh, partial run).
 That is a feature to demonstrate, not hide.
+
+## Additions to show (about +90 s)
+
+| Show | Say |
+|---|---|
+| `/brief` | "What changed since the last refresh": new signals, score movers (only with two real checks), who to contact, who to hold. Print/PDF button. |
+| Top card "Suggested opening angle" | "Drafted by Gemini from the verified signal only; any number or link not in the evidence is rejected." |
+| Investor page, **Edit relationship** | Mark "awaiting response", enter the passcode. "A refresh can't touch this, and this can't change a score — but the next refresh will recommend *waiting*." |
+| `/runs`: credit meter and evidence funnel | "Free-tier guard: skips investors checked recently, searches quiet ones weekly, stops at the budget. The funnel shows where candidates were filtered out, with reasons." |
+| `/pipeline`, press `/` and type | Live search; click any pill (status, action, sector) to filter. |

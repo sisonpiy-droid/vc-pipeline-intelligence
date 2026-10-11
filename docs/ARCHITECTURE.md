@@ -112,3 +112,31 @@ All responses under `/api/*` are `Cache-Control: no-store`. Error bodies name mi
 - **Evidence kept when rejected** (`signals.verification_status='rejected'` + reason): auditability and a cache that stops
   re-spending AI calls on URLs already judged.
 - **Scoring is code, not a prompt**: reproducible, testable, explainable; the model only supplies a bounded relevance judgement.
+
+## 8. Run planning and the free-tier budget (`refresh/plan.ts`)
+
+`startRun(…, plan)` first asks `planRun` which investors are *due*: not checked within 36 h (a failed check is always retried), "cold" investors only about weekly, then — if a monthly budget is set — as many as the remaining credits allow, in priority order (active signal by score → retries → never checked → stalest). Only due investors get a `run_items` row. Skipped investors are **not touched**: they keep their four columns and their real last-checked time, so skipping can never read as "quiet". `runs` records `search_calls`, `include_linkedin`, `skipped` and the plan; failed calls count (the provider may bill them). A run with nothing due completes at once with zero credits. LinkedIn is a per-run option chosen by the caller (the cron never enables it).
+
+## 9. Discovery sources
+
+| Source | Cost | Date comes from | Authority |
+|---|---|---|---|
+| Tavily web search | 1 credit / investor | page metadata, else the provider's estimate (confidence capped) | normal |
+| Tavily LinkedIn search (opt-in) | +1 credit | decoded from the post ID (`id >> 22`); no ID ⇒ rejected | snippet only, capped medium |
+| **Official RSS/Atom feed** | **free** (direct HTTP, SSRF-guarded, robots-aware) | the feed itself; a page date that contradicts it by > 3 days ⇒ rejected | highest (5) and Gemini is told the post is the investor's own |
+
+Feeds are located via the homepage's `<link rel="alternate">` then common paths (≤ 4 tries). "No feed" is normal (`skipped`); a feed that errors is recorded as `error` but does not make the investor "partial", because it is a bonus source.
+
+## 10. The founder-owned write path (`lib/founder.ts`)
+
+The mirror of the refresh boundary. A strict zod schema allows exactly four columns (`relationship_status`, `last_contact_date`, `contact_history` — append-only, `personal_notes`); SQL is built from that constant list; it runs as the database owner (the refresh role cannot write these columns at all) behind the same passcode and lockout as the manual refresh; the audit row records **field names only**. Tests assert: nothing else changes, including every signal column; a refresh after an edit leaves it intact; and the behavioural effect (awaiting-response ⇒ the next refresh recommends *waiting*; passed ⇒ *no action*).
+
+## 11. AI additions and their guards
+
+- `specific_recent_event`, `new_capital` and an `official` hint extend the structured output; all are validated by zod and the verbatim-quote check still applies.
+- **Opening angle** (`ai/angle.ts`): generated only for "reach out now", from the lead signal's headline/summary/excerpt; returns null on any failure; every number must appear in the evidence and links are refused; reused while the lead signal is unchanged; optional and never part of the decision.
+- **Golden cases** (`tests/evals/cases.json`) pin the prompt's behaviour; `npm run eval:live` re-checks them against the live model.
+
+## 12. Interaction layer
+
+GSAP lives only in isolated `"use client"` components under `src/components/motion/` with `gsap.context` cleanup. Entrance reveals are CSS (the page is complete without JS); the hero starts hidden but un-hides itself after 1.2 s if the script never runs. Pointer effects (tilt, magnet) are mouse-only and everything is disabled for `prefers-reduced-motion`. Only `transform` and `opacity` are animated.

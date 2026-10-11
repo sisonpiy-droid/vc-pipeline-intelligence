@@ -12,7 +12,7 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 | Components Map | 10% | `docs/components-map.png` / `.html` (only components that exist; status chips) | [x] status chips reflect live verification |
 | Working Vercel link | 10% | https://vc-pipeline-intelligence.vercel.app | [x] live, connected to Supabase, populated by real refreshes |
 | Design | 10% | 6 pages, token-based light/dark system, responsive, loading/empty/error states | [x] checked in browser at desktop and 375 px |
-| Backend logic & build quality | 25% | `src/lib/**`, `supabase/migrations`, 221 tests | [x] incl. live run + live boundary check |
+| Backend logic & build quality | 25% | `src/lib/**`, `supabase/migrations`, 302 tests | [x] incl. live run + live boundary check |
 | Demo video | 5% | script in `docs/DEMO.md` | [ ] recording is yours |
 | Viva (40%) | — | `docs/VIVA.md` | prep done |
 
@@ -47,7 +47,7 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 | Safe signal-only updates | [x] |
 | Scheduled + manual refresh | [x] logic & auth tested (22 API tests); [~] on Vercel |
 | Run monitoring & audit | [x] `/runs`, `audit_logs`, `source_coverage` |
-| Automated tests | [x] **221 passing**, typecheck clean, production build clean |
+| Automated tests | [x] **302 passing**, typecheck clean, production build clean |
 | `.env.example` | [x] |
 | README · API/architecture docs | [x] `README.md`, `docs/ARCHITECTURE.md` |
 | Components Map | [~] reflects only components that exist; live-status badges to be updated after verification |
@@ -67,7 +67,12 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 7. **Run 3 on production**: 82/82, 0 errors. Cached verdicts meant 93 candidates instead of 280 and only 13 new signals; 0 duplicate (investor, URL) rows after three runs; dashboard 20 active / 62 quiet / 0 needing review; founder columns unchanged (all 82 still `not_contacted`, no notes).
 8. `npm run verify:boundary` against live Supabase: all denials/permissions as designed.
 9. **LinkedIn + UI links (run 4 on production)**: a LinkedIn-restricted search per investor (the app never fetches LinkedIn itself). Live probe showed Tavily returns LinkedIn posts but leaves them undated, so dates are decoded from the timestamp inside the post ID (cross-checked against a post Tavily dated: 13 Nov decoded vs 15 Nov estimate, the consistent direction since Tavily's estimate lags). Result: 82/82, 0 errors, 69 verified LinkedIn signals (confidence capped at medium), 116 non-mentions / 56 profile pages / 96 not-involved rejected. Dashboard then showed 33 active, 6 "reach out now".
-10. Still unobserved: the **scheduled** cron firing (first due Mon 12 Oct 04:00 UTC).
+10. **Improvement phases 0-2 (after the reference study)**: credit planner with budget (tested; a manual run inside 36 h now costs nothing); `/brief`, evidence funnel, credit meter, freshness chips; official-feed discovery (measured 9/50 firms, live run on 3 firms `official_feed: ok`); founder edit workflow with refresh-preservation and CRM-effect tests; grounded opening angle (reused while the signal is unchanged); new-capital flag, source tiers, 5 sourced aliases; GSAP interaction layer.
+11. `npm run eval:live`: **10/10 golden AI cases pass against live Gemini** (the three real failures, a prompt injection, new-capital and official-post cases).
+12. Live smoke test of the new pipeline: `refresh:some` on 3 firms = **3 search credits**, run succeeded, credit meter counted exactly 3, feed signals dated `feed`, angle generated for Lightspeed. Production deploy verified: all routes 200; browser checks of the hero, live search (`/` shortcut) and mobile overflow on 5 pages.
+13. Not verifiable here: mobile animation timing (the preview pane reported `document.hidden`), and the **scheduled** cron firing (first due Mon 12 Oct 04:00 UTC).
+14. CI: the workflow is ready (`docs/ci.yml.example`) but **not active**: pushing it needs the GitHub token `workflow` scope (`gh auth refresh -s workflow`, then move it to `.github/workflows/ci.yml`).
+15. Still unobserved: the **scheduled** cron firing (first due Mon 12 Oct 04:00 UTC).
 
 ## Known limitations
 

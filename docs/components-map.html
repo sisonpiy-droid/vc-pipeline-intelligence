@@ -52,7 +52,7 @@
     <span class="chip t">tested</span> automated tests / manual check run
     <span class="chip t">verified live</span> exercised against the real service on the deployed app
     <span class="chip n">not built</span> deliberately out of scope
-    <span style="margin-left:auto"><b>221 tests passing</b> · typecheck clean · production build clean · deployed on Vercel · 3 real runs completed</span>
+    <span style="margin-left:auto"><b>302 tests passing</b> · typecheck clean · production build clean · deployed on Vercel · 4 full real runs + targeted live checks</span>
   </div>
 
   <div class="row r1">
@@ -63,6 +63,7 @@
       <div class="card"><b>Public web pages <span class="chip t">tested</span></b><p>Direct HTTPS fetch, SSRF-guarded, robots.txt-aware; date read from page metadata</p></div>
       <div class="card"><b>Gemini API (Flash only) <span class="chip t">verified live</span></b><p>Classification + relevance judgement · no fallback model</p></div>
       <div class="card"><b>Investor workbook (.xlsx) <span class="chip t">tested</span></b><p>50 VC firms + 32 angels → 82 investors, 0 import issues</p></div>
+      <div class="card"><b>Firms' own RSS/Atom feeds <span class="chip t">verified live</span></b><p>Direct HTTP, free; 9 of 50 firms publish one</p></div>
       <div class="card dashed"><b>Not used <span class="chip n">not built</span></b><p>Firecrawl / Jina · Crunchbase · SerpAPI · Brave · independent crawl of official portfolio pages</p></div>
       <span class="arrow">➜</span>
     </section>
@@ -77,9 +78,12 @@
         <div class="card"><b>Gemini Flash analysis <span class="chip t">verified live</span></b><p>1 batched call / investor · zod schema · involvement must be “verified” · quoted excerpt must appear verbatim in the page · 1 retry.</p></div>
         <div class="card"><b>Scoring engine <span class="chip t">tested</span></b><p>recency 30 · relevance 30 · evidence 20 · fit 15 · relationship 5 · relevance gate &amp; floor · 5 actions with reasons.</p></div>
         <div class="card"><b>Safe signal writer <span class="chip t">tested</span></b><p><span class="mono">applySignalUpdate</span>: strict 4-field schema, runs as DB role <span class="mono">vc_refresh</span>, one transaction per investor.</p></div>
+        <div class="card"><b>Run planner (free-tier guard) <span class="chip t">verified live</span></b><p>skips investors checked &lt; 36 h ago, searches quiet ones ~weekly, enforces a monthly credit budget, LinkedIn opt-in per run.</p></div>
+        <div class="card"><b>Official-site feeds <span class="chip t">verified live</span></b><p>RSS/Atom over plain HTTP, dated by the feed, no search credits. Measured: 9 of 50 firms publish one.</p></div>
+        <div class="card"><b>Founder edit path <span class="chip t">tested</span></b><p>passcode-gated, owner role, 4 founder columns only, audited by field name. Mirror of the refresh boundary.</p></div>
         <div class="card" style="grid-column:span 3"><b>Run monitor &amp; audit <span class="chip t">tested</span></b><p>per-run counters (investors, sources queried, evidence found, accepted, duplicates removed, records updated, errors) · per-source coverage (ok / empty / error / skipped) · audit log · failed items keep their previous score, never reported as “quiet”.</p></div>
       </div>
-      <p class="foot">* tested with provider doubles and local servers; two real production runs completed 82/82 with 0 errors (the second after tightening the evidence filters).</p>
+      <p class="foot">* tested with provider doubles and local servers; four full production runs completed 82/82 with 0 errors, plus targeted live runs of the feed / angle / credit-meter features; 10/10 golden AI cases pass on live Gemini.</p>
       <span class="arrow">➜</span>
     </section>
 
@@ -100,8 +104,9 @@
     <section class="panel fe">
       <h2>Frontend <small>(Next.js server components)</small></h2>
       <div class="card"><b>Priority queue <span class="mono">/</span> <span class="chip t">tested</span></b><p>counts that partition all investors · ranked cards · “don’t chase this week”</p></div>
+      <div class="card"><b>Weekly brief <span class="mono">/brief</span> <span class="chip t">verified live</span></b><p>new signals, score movers, contact / hold lists, attention list; printable</p></div>
       <div class="card"><b>Pipeline <span class="mono">/pipeline</span> <span class="chip t">tested</span></b><p>search · 9 filters · sort · 4 statuses</p></div>
-      <div class="card"><b>Investor detail <span class="mono">/investors/:id</span> <span class="chip t">tested</span></b><p>profile, evidence timeline, score breakdown, read-only notes, coverage</p></div>
+      <div class="card"><b>Investor detail <span class="mono">/investors/:id</span> <span class="chip t">tested</span></b><p>profile, evidence timeline, score breakdown, founder edit form, coverage, opening angle</p></div>
       <div class="card"><b>Signal feed <span class="mono">/signals</span> <span class="chip t">tested</span></b><p>provenance, excerpt, confidence, duplicates</p></div>
       <div class="card"><b>Quiet investors <span class="mono">/quiet</span> <span class="chip t">tested</span></b><p>failed · partial · not checked · older signals · searched-nothing</p></div>
       <div class="card"><b>Runs &amp; audit <span class="mono">/runs</span> <span class="chip t">tested</span></b><p>history, failures with actions, coverage, audit log</p></div>
