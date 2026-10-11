@@ -25,6 +25,8 @@ without ever overwriting the founder's own notes, contact history or relationshi
 | **Protects** | the refresh runs as a Postgres role that can `UPDATE` only `last_signal_date`, `signal_summary`, `follow_up_score`, `recommended_action` and cannot even *read* notes or contact history |
 | **Never confuses failure with quiet** | a failed search keeps the previous score and shows as "Failed refresh"; partial coverage shows as "Needs review"; only a *complete* empty search is "Quiet" |
 
+Status pills, relationship, sector and category labels are links that filter the pipeline or signal feed.
+
 Pages: **Priority queue** (`/`) · **Pipeline** (`/pipeline`) · **Investor detail** (`/investors/:id`) ·
 **Signal feed** (`/signals`) · **Quiet investors** (`/quiet`) · **Runs & audit** (`/runs`).
 
@@ -35,7 +37,7 @@ npm install
 cp .env.example .env            # then set DATABASE_URL=pglite://.data/dev  (in-process Postgres)
 npm run import                  # applies the migration, imports data/india_vc_and_angel_profiles.xlsx (82 investors)
 npm run dev                     # http://localhost:3000
-npm test                        # 213 tests, ~30 s
+npm test                        # 221 tests, ~30 s
 ```
 
 To see a populated dashboard without API keys: `npm run dev:fixture` runs the **real pipeline** over canned
@@ -77,12 +79,13 @@ src/lib/refresh    research → process → durable chunked run lifecycle → fo
 src/lib/read.ts    dashboard read model (state derivation, filters, feeds)
 src/app            pages + /api/cron/refresh · /api/refresh · /api/refresh/continue · /api/health
 supabase/migrations  schema, ownership boundary, least-privilege role, RLS
-tests/             213 tests; the real migration runs on PGlite
+tests/             221 tests; the real migration runs on PGlite
 docs/              architecture, scoring, providers & costs, references, demo, viva, checklist, components map
 ```
 
 ## Known limitations (stated up front)
 
+- **LinkedIn is searched but never fetched** (its terms forbid it): posts are judged from search snippets, so their confidence is capped at "medium". No LinkedIn profile URLs are stored or guessed; profile pages link to a LinkedIn search instead.
 - **Official-site crawling is not implemented.** Official domains get higher authority when they appear in search results, but the app does not independently crawl portfolio pages (they rarely carry dates, so "new in the last 30 days" cannot be proven from one snapshot).
 - **Search recall is bounded** by one Tavily query per investor to stay inside a free tier (~710 of ~1,000 monthly credits at two full runs a week).
 - **Workbook data is unverified**: geography is "India (confirm)", every thesis is "No – verify", partners are blank. The UI says so rather than guessing.

@@ -66,6 +66,7 @@ columns only, guarded by `IS DISTINCT FROM` so an unchanged re-import writes not
 |---|---|
 | Publication date comes from the **page** (JSON-LD `datePublished`, `article:published_time`, meta, `<time>`); `dateModified` ignored | `providers/extract.ts` |
 | Two page dates >2 days apart ⇒ `contradictory_dates`, rejected | `extract.ts` |
+| LinkedIn post with no provider date ⇒ date decoded from the post ID (`date_source=post_id`); no ID ⇒ `missing_date` | `signals/linkedin.ts` |
 | Only a search-provider date ⇒ accepted but `date_source=search_estimate`, confidence capped at *medium* | `research.ts`, `process.ts` |
 | No date at all ⇒ `missing_date`, rejected — never defaulted to "recent" | `signals/window.ts` |
 | Outside [now−30d, now+1d] ⇒ `out_of_window` / `future_date` | `signals/window.ts` |
