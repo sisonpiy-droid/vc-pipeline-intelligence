@@ -197,7 +197,7 @@ function chooseAction(a: {
   }
   if (a.lead) {
     if (a.score >= ACTION_THRESHOLDS.reachOutNow)
-      return { action: "reach_out_now", why: `A recent, relevant, well-evidenced signal supports reaching out now: ${a.lead.headline ?? "see evidence"}.` };
+      return { action: "reach_out_now", why: `A recent, relevant, well-evidenced signal supports reaching out now: ${(a.lead.headline ?? "see evidence").replace(/[.\s]+$/, "")}.` };
     if (a.score >= ACTION_THRESHOLDS.prepareOutreach)
       return { action: "prepare_targeted_outreach", why: `There is a relevant signal but it is not strong enough for a cold approach; prepare a targeted message that references it.` };
     return { action: "research_further", why: "A relevant signal exists but the case is weak (age, confidence or relevance); verify before spending outreach effort." };

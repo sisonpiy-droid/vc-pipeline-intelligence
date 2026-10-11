@@ -1,7 +1,9 @@
 import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 import { notFound } from "next/navigation";
+import { CaretLeft, LockSimple } from "@phosphor-icons/react/dist/ssr";
 import { SignalCard } from "@/components/SignalCard";
-import { Bar, Card, ExternalLink, PageTitle, Pill, ScoreBadge, SetupError } from "@/components/ui";
+import { Bar, Card, Eyebrow, ExternalLink, Pill, ScoreBadge, SetupError } from "@/components/ui";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL, STATE_META, ago, explainError, fmtDate, fmtDateTime, hostOf } from "@/lib/format";
 import { load, today } from "@/lib/page";
 import { getInvestor } from "@/lib/read";
@@ -21,14 +23,16 @@ const FLAG_LABEL: Record<string, string> = {
   entity_type_heuristic: "Type inferred from text",
   relationship_status_placeholder: "Relationship status is the workbook's default",
 };
+const idx = (n: number) => ({ "--i": n }) as CSSProperties;
 
-function Dl({ rows }: { rows: [string, React.ReactNode][] }) {
+/** Stacked label / value rows divided by hairlines — a ledger, not a grid of boxes. */
+function Ledger({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-[8.5rem_1fr] gap-x-3 gap-y-2 text-sm">
+    <dl className="divide-y divide-line border-y border-line text-sm">
       {rows.map(([k, v]) => (
-        <div key={k} className="contents">
-          <dt className="text-muted">{k}</dt>
-          <dd className="min-w-0 break-words">{v}</dd>
+        <div key={k} className="py-3">
+          <dt className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-muted">{k}</dt>
+          <dd className="mt-1 min-w-0 break-words leading-relaxed">{v}</dd>
         </div>
       ))}
     </dl>
@@ -54,6 +58,7 @@ export default async function InvestorPage({ params }: Props) {
   const verified = signals.filter((s) => s.verification_status === "verified");
   const review = signals.filter((s) => s.verification_status === "needs_review");
   const rejected = signals.filter((s) => s.verification_status === "rejected");
+  const timeline = [...review, ...verified];
   const outcome = latest?.outcome as { breakdown?: Record<string, { points: number; max: number; note: string }>; explanation?: string } | null | undefined;
   const history = (i.contact_history as { date?: string | null; channel?: string; note?: string }[]) ?? [];
   const action = i.recommended_action as string | null;
@@ -61,155 +66,228 @@ export default async function InvestorPage({ params }: Props) {
   const flags = ((i.data_flags as string[]) ?? []).filter((f) => f !== "relationship_status_placeholder" || untouched);
   const sectors = (i.sectors as string[]) ?? [];
   const sources = (i.source_urls as string[]) ?? [];
+  const failedErr = latest?.status === "failed" ? explainError(latest.error) : null;
 
   return (
     <>
-      <p className="mb-2 text-sm"><Link href="/pipeline" className="text-accent hover:underline">← Pipeline</Link></p>
-      <PageTitle
-        title={String(i.firm_name)}
-        sub={
-          <span className="flex flex-wrap items-center gap-2">
-            <Pill>{ENTITY_LABEL[i.entity_type as string]}</Pill>
-            {i.role_title ? <span>{String(i.role_title)}</span> : null}
+      <Link href="/pipeline" className="press inline-flex items-center gap-1 text-sm text-muted hover:text-ink">
+        <CaretLeft aria-hidden size={14} weight="bold" /> Pipeline
+      </Link>
+
+      {/* Hero: who they are and what to do, beside the score and the maths behind it */}
+      <section className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+        <div className="reveal">
+          <Eyebrow>
+            {ENTITY_LABEL[i.entity_type as string]}
+            {i.role_title ? ` · ${String(i.role_title)}` : ""}
+          </Eyebrow>
+          <h1 className="mt-3 text-3xl font-semibold leading-[1.08] tracking-tight md:text-[2.75rem]">{String(i.firm_name)}</h1>
+          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             {i.website_url ? <ExternalLink href={i.website_url as string}>{hostOf(i.website_url as string)}</ExternalLink> : null}
             {i.profile_url ? <ExternalLink href={i.profile_url as string}>profile</ExternalLink> : null}
-          </span>
-        }
-      />
+          </p>
 
-      {/* Recommendation */}
-      <Card className="p-5">
-        <div className="flex flex-wrap gap-5">
-          <ScoreBadge score={i.follow_up_score as number | null} size="lg" />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <Pill tone={st.tone} title={st.help}>{st.label}</Pill>
-              {action && <Pill tone={ACTION_TONE[action]}>{ACTION_LABEL[action]}</Pill>}
-              {latest?.status === "failed" && <Pill tone="bad">Last refresh failed</Pill>}
-            </div>
-            <p className="mt-2 text-sm">{(i.signal_summary as string | null) ?? "Not refreshed yet."}</p>
-            {outcome?.explanation && <p className="mt-2 text-sm text-muted">{outcome.explanation}</p>}
-            {latest?.status === "failed" && (
-              <p className="mt-2 text-sm text-bad">{explainError(latest.error).title}. <span className="text-muted">{explainError(latest.error).action}</span></p>
-            )}
-            <p className="mt-2 text-xs text-muted">
-              Last checked {latest?.finished_at ? `${fmtDateTime(latest.finished_at)} (${ago(latest.finished_at)})` : "never"} · Last relevant signal {fmtDate(i.last_signal_date as string | null)}
-            </p>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <Pill tone={st.tone} title={st.help}>{st.label}</Pill>
+            {action && <Pill tone={ACTION_TONE[action]}>{ACTION_LABEL[action]}</Pill>}
+            {latest?.status === "failed" && <Pill tone="bad">Last refresh failed</Pill>}
           </div>
-        </div>
-      </Card>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        {/* Score breakdown */}
-        <Card className="p-5">
-          <h2 className="text-base font-semibold">Score breakdown</h2>
-          <p className="mb-3 mt-1 text-xs text-muted">Computed by fixed rules (see docs/SCORING.md), not by the AI. Recency, relevance, evidence, fit and relationship are scored separately.</p>
-          {outcome?.breakdown ? (
-            <div className="space-y-3">{ORDER.filter((k) => outcome.breakdown![k]).map((k) => <Bar key={k} label={k} {...outcome.breakdown![k]!} />)}</div>
-          ) : (
-            <p className="text-sm text-muted">No score yet — this investor has not completed a refresh.</p>
+          <p className="mt-5 max-w-[60ch] text-lg font-medium leading-snug tracking-tight">{(i.signal_summary as string | null) ?? "Not refreshed yet."}</p>
+          {outcome?.explanation && <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-muted">{outcome.explanation.replace(/\.{2}(?=\s)/g, ".")}</p>}
+          {failedErr && (
+            <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-bad">
+              {failedErr.title}. <span className="text-muted">{failedErr.action}</span>
+            </p>
           )}
-        </Card>
+          <p className="num mt-5 text-[0.7rem] leading-relaxed text-muted">
+            Checked {latest?.finished_at ? `${fmtDateTime(latest.finished_at)} · ${ago(latest.finished_at)}` : "never"}
+            <span aria-hidden> &nbsp;/&nbsp; </span>
+            Last relevant signal {fmtDate(i.last_signal_date as string | null)}
+          </p>
+        </div>
 
-        {/* Profile */}
-        <Card className="p-5">
-          <h2 className="mb-3 text-base font-semibold">Profile</h2>
-          <Dl
-            rows={[
-              ["Stage", (i.stage_preference as string) ?? <span className="text-muted">unknown</span>],
-              ["Sectors", sectors.length ? <span className="flex flex-wrap gap-1">{sectors.map((s) => <Pill key={s}>{s}</Pill>)}</span> : <span className="text-muted">none recorded</span>],
-              ["Geography", (i.geography as string) ?? <span className="text-muted">unknown</span>],
-              [
-                "Thesis",
-                i.thesis_verified ? (
-                  <><Pill tone="good">Verified</Pill> <span className="block mt-1">{String(i.investment_thesis)}</span></>
-                ) : i.fit_rationale ? (
-                  <><Pill tone="warn">Unverified — from workbook</Pill> <span className="block mt-1">{String(i.fit_rationale)}</span></>
-                ) : <span className="text-muted">none recorded</span>,
-              ],
-              ["Partner", i.partner_name ? <>{String(i.partner_name)} <span className="text-xs text-muted">(entered by you)</span></> : <span className="text-muted">None verified — none shown rather than guessed</span>],
-              ...(((i.notable_investments as string[]) ?? []).length ? [["Notable investments", (i.notable_investments as string[]).join(", ")] as [string, React.ReactNode]] : []),
-              ["Verification", <><Pill tone={i.verification_status === "unverified" ? "warn" : "good"}>{String(i.verification_status).replace("_", " ")}</Pill>{i.verification_note ? <span className="block mt-1 text-muted">{String(i.verification_note)}</span> : null}</>],
-              ["Sources", sources.length ? <ul className="space-y-1">{sources.map((u) => <li key={u}><ExternalLink href={u}>{hostOf(u)}</ExternalLink></li>)}</ul> : <span className="text-muted">none</span>],
-            ]}
-          />
-          {flags.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1">
-              {flags.map((f) => <Pill key={f} tone="neutral" title="Data quality flag from import">{FLAG_LABEL[f] ?? f}</Pill>)}
+        <div className="reveal" style={idx(1)}>
+          <Card className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Eyebrow>Follow-up score</Eyebrow>
+                <p className="mt-1.5 max-w-[28ch] text-xs leading-relaxed text-muted">Computed by fixed rules, not by the AI. Each factor is scored separately.</p>
+              </div>
+              <ScoreBadge score={i.follow_up_score as number | null} size="lg" />
             </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Signals */}
-      <h2 className="mb-3 mt-8 text-lg font-semibold">Signal timeline</h2>
-      {verified.length === 0 && review.length === 0 ? (
-        <Card className="p-5 text-sm text-muted">
-          No verified signal on record. {state === "failed" ? "The last search failed, so this is unknown rather than quiet." : state === "quiet_complete" ? "Every source answered and found nothing relevant in the last 30 days." : ""}
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {[...review, ...verified].map((s) => <SignalCard key={s.id} s={s} showInvestor={false} />)}
+            {outcome?.breakdown ? (
+              <div className="mt-6 space-y-4 border-t border-line pt-5">
+                {ORDER.filter((k) => outcome.breakdown![k]).map((k, n) => (
+                  <Bar key={k} label={k} index={n} {...outcome.breakdown![k]!} />
+                ))}
+              </div>
+            ) : (
+              <p className="mt-6 border-t border-line pt-5 text-sm text-muted">No score yet — this investor has not completed a refresh.</p>
+            )}
+          </Card>
         </div>
-      )}
-      {rejected.length > 0 && (
-        <details className="mt-3 rounded-xl border border-line bg-surface p-4 text-sm">
-          <summary className="font-medium">{rejected.length} candidate{rejected.length > 1 ? "s" : ""} rejected (kept for audit and to avoid re-checking)</summary>
-          <ul className="mt-3 space-y-2">
-            {rejected.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-baseline gap-x-2">
-                <Pill tone="neutral">{(s.rejection_reason ?? "rejected").replace(/_/g, " ")}</Pill>
-                <ExternalLink href={s.url}>{s.headline}</ExternalLink>
-                <span className="text-xs text-muted">{fmtDate(s.published_at)}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
+      </section>
 
-      {/* Relationship — read only */}
-      <h2 className="mb-1 mt-8 text-lg font-semibold">Relationship &amp; notes</h2>
-      <p className="mb-3 text-sm text-muted">Read-only here. This is your data: the refresh pipeline cannot read or change it (enforced by the database role it runs as).</p>
-      <Card className="p-5">
-        {hide ? (
-          <p className="text-sm text-muted">Hidden on this public deployment (HIDE_PRIVATE_NOTES is set).</p>
-        ) : (
-          <Dl
-            rows={[
-              ["Status", <><Pill tone="info">{REL_LABEL[i.relationship_status as string]}</Pill>{untouched && flags.includes("relationship_status_placeholder") && <span className="ml-2 text-xs text-muted">(workbook default — replace with real data)</span>}</>],
-              ["Last contact", fmtDate(i.last_contact_date as string | null)],
-              ["Contact history", history.length ? <ul className="space-y-1">{history.map((h, n) => <li key={n}><span className="text-muted">{h.date ? fmtDate(h.date) : "undated"}{h.channel ? ` · ${h.channel}` : ""}</span> — {h.note}</li>)}</ul> : <span className="text-muted">None recorded</span>],
-              ["Personal notes", i.personal_notes ? <span className="whitespace-pre-wrap">{String(i.personal_notes)}</span> : <span className="text-muted">None recorded</span>],
-            ]}
-          />
-        )}
-      </Card>
+      <div className="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        {/* Evidence timeline */}
+        <section aria-labelledby="timeline-h">
+          <div className="mb-6 flex items-baseline justify-between">
+            <h2 id="timeline-h" className="text-lg font-semibold tracking-tight">Evidence timeline</h2>
+            <span className="num text-xs text-muted">{verified.length} verified{review.length ? ` · ${review.length} to review` : ""}</span>
+          </div>
 
-      {/* Coverage */}
-      <h2 className="mb-3 mt-8 text-lg font-semibold">Source coverage</h2>
-      {coverage.length === 0 ? (
-        <Card className="p-5 text-sm text-muted">No sources have been checked yet.</Card>
-      ) : (
-        <Card className="overflow-x-auto">
-          <table className="w-full min-w-[36rem] text-left text-sm">
-            <caption className="sr-only">Per-source retrieval status for this investor</caption>
-            <thead className="border-b border-line text-xs uppercase tracking-wide text-muted">
-              <tr><th scope="col" className="px-4 py-2 font-medium">Source</th><th scope="col" className="px-3 py-2 font-medium">Status</th><th scope="col" className="px-3 py-2 font-medium">Results</th><th scope="col" className="px-3 py-2 font-medium">Checked</th><th scope="col" className="px-3 py-2 font-medium">Note</th></tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {coverage.map((c) => (
-                <tr key={c.source}>
-                  <th scope="row" className="px-4 py-2 font-medium">{c.source.replace(/_/g, " ")}</th>
-                  <td className="px-3 py-2"><Pill tone={c.status === "ok" ? "good" : c.status === "error" ? "bad" : "neutral"}>{c.status === "empty" ? "searched, nothing found" : c.status}</Pill></td>
-                  <td className="px-3 py-2 tabular-nums">{c.result_count}</td>
-                  <td className="px-3 py-2 text-muted">{ago(c.checked_at)}</td>
-                  <td className="px-3 py-2 text-muted">{c.error_category ? `${c.error_category}${c.note ? ` — ${c.note}` : ""}` : c.note ?? ""}</td>
-                </tr>
+          {timeline.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-line px-6 py-10 text-sm leading-relaxed text-muted">
+              No verified signal on record.{" "}
+              {state === "failed"
+                ? "The last search failed, so this is unknown rather than quiet."
+                : state === "quiet_complete"
+                  ? "Every source answered and found nothing relevant in the last 30 days."
+                  : ""}
+            </div>
+          ) : (
+            <ol className="relative space-y-6 border-l border-line pl-6 sm:pl-8">
+              {timeline.map((s, n) => (
+                <li key={s.id} className="reveal relative" style={idx(Math.min(n, 6))}>
+                  <span aria-hidden className={`absolute -left-[1.9rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-bg sm:-left-[2.4rem] ${s.verification_status === "needs_review" ? "bg-warn" : "bg-accent"}`} />
+                  <p className="num mb-2 text-xs text-muted">{fmtDate(s.published_at)}</p>
+                  <SignalCard s={s} showInvestor={false} />
+                </li>
               ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
+            </ol>
+          )}
+
+          {rejected.length > 0 && (
+            <details className="mt-8 rounded-2xl border border-line p-4 text-sm">
+              <summary className="font-medium">{rejected.length} candidate{rejected.length > 1 ? "s" : ""} rejected <span className="font-normal text-muted">(kept for audit, and so they are not re-checked)</span></summary>
+              <ul className="mt-4 divide-y divide-line">
+                {rejected.map((s) => (
+                  <li key={s.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
+                    <Pill tone="neutral">{(s.rejection_reason ?? "rejected").replace(/_/g, " ")}</Pill>
+                    <ExternalLink href={s.url}>{s.headline}</ExternalLink>
+                    <span className="num text-xs text-muted">{fmtDate(s.published_at)}</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
+        </section>
+
+        {/* Rail */}
+        <aside className="space-y-10 lg:sticky lg:top-28 lg:self-start">
+          <section aria-labelledby="profile-h" className="reveal" style={idx(2)}>
+            <Eyebrow>Profile</Eyebrow>
+            <h2 id="profile-h" className="sr-only">Profile</h2>
+            <div className="mt-3">
+              <Ledger
+                rows={[
+                  ["Stage", (i.stage_preference as string) ?? <span className="text-muted">unknown</span>],
+                  ["Sectors", sectors.length ? <span className="flex flex-wrap gap-1">{sectors.map((s) => <Pill key={s}>{s}</Pill>)}</span> : <span className="text-muted">none recorded</span>],
+                  ["Geography", (i.geography as string) ?? <span className="text-muted">unknown</span>],
+                  [
+                    "Thesis",
+                    i.thesis_verified ? (
+                      <>
+                        <Pill tone="good">Verified</Pill>
+                        <span className="mt-1.5 block">{String(i.investment_thesis)}</span>
+                      </>
+                    ) : i.fit_rationale ? (
+                      <>
+                        <Pill tone="warn">Unverified, from workbook</Pill>
+                        <span className="mt-1.5 block text-muted">{String(i.fit_rationale)}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted">none recorded</span>
+                    ),
+                  ],
+                  ["Partner", i.partner_name ? <>{String(i.partner_name)} <span className="text-xs text-muted">(entered by you)</span></> : <span className="text-muted">None verified, so none shown rather than guessed</span>],
+                  ...(((i.notable_investments as string[]) ?? []).length ? ([["Notable investments", (i.notable_investments as string[]).join(", ")]] as [string, ReactNode][]) : []),
+                  [
+                    "Verification",
+                    <>
+                      <Pill tone={i.verification_status === "unverified" ? "warn" : "good"}>{String(i.verification_status).replace("_", " ")}</Pill>
+                      {i.verification_note ? <span className="mt-1.5 block text-muted">{String(i.verification_note)}</span> : null}
+                    </>,
+                  ],
+                  ["Sources", sources.length ? <ul className="space-y-1">{sources.map((u) => <li key={u}><ExternalLink href={u}>{hostOf(u)}</ExternalLink></li>)}</ul> : <span className="text-muted">none</span>],
+                ]}
+              />
+            </div>
+            {flags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {flags.map((f) => <Pill key={f} tone="neutral" title="Data-quality flag from import">{FLAG_LABEL[f] ?? f}</Pill>)}
+              </div>
+            )}
+          </section>
+
+          <section aria-labelledby="rel-h" className="reveal" style={idx(3)}>
+            <Eyebrow>Relationship &amp; notes</Eyebrow>
+            <h2 id="rel-h" className="sr-only">Relationship and notes</h2>
+            <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-muted">
+              <LockSimple aria-hidden size={14} weight="bold" className="mt-px shrink-0" />
+              Read-only here. This is your data; the refresh role cannot read or change it, and that is enforced by the database.
+            </p>
+            <div className="mt-3">
+              {hide ? (
+                <p className="rounded-xl border border-dashed border-line p-4 text-sm text-muted">Hidden on this public deployment.</p>
+              ) : (
+                <Ledger
+                  rows={[
+                    [
+                      "Status",
+                      <>
+                        <Pill tone="info">{REL_LABEL[i.relationship_status as string]}</Pill>
+                        {untouched && flags.includes("relationship_status_placeholder") && <span className="mt-1.5 block text-xs text-muted">Workbook default. Replace with real data.</span>}
+                      </>,
+                    ],
+                    ["Last contact", <span className="num">{fmtDate(i.last_contact_date as string | null)}</span>],
+                    [
+                      "Contact history",
+                      history.length ? (
+                        <ul className="space-y-1.5">
+                          {history.map((h, n) => (
+                            <li key={n}>
+                              <span className="num text-xs text-muted">{h.date ? fmtDate(h.date) : "undated"}{h.channel ? ` · ${h.channel}` : ""}</span>
+                              <span className="block">{h.note}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-muted">None recorded</span>
+                      ),
+                    ],
+                    ["Personal notes", i.personal_notes ? <span className="whitespace-pre-wrap">{String(i.personal_notes)}</span> : <span className="text-muted">None recorded</span>],
+                  ]}
+                />
+              )}
+            </div>
+          </section>
+
+          <section aria-labelledby="cov-h" className="reveal" style={idx(4)}>
+            <Eyebrow>Source coverage</Eyebrow>
+            <h2 id="cov-h" className="sr-only">Source coverage</h2>
+            {coverage.length === 0 ? (
+              <p className="mt-3 text-sm text-muted">No sources have been checked yet.</p>
+            ) : (
+              <ul className="mt-3 divide-y divide-line border-y border-line text-sm">
+                {coverage.map((c) => (
+                  <li key={c.source} className="py-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-medium capitalize">{c.source.replace(/_/g, " ")}</span>
+                      <Pill tone={c.status === "ok" ? "good" : c.status === "error" ? "bad" : "neutral"}>{c.status === "empty" ? "searched, nothing found" : c.status}</Pill>
+                    </div>
+                    <p className="num mt-1 text-xs text-muted">
+                      {c.result_count} result{c.result_count === 1 ? "" : "s"} · {ago(c.checked_at)}
+                    </p>
+                    {(c.error_category || c.note) && <p className="mt-1 text-xs leading-relaxed text-muted">{c.error_category ? `${c.error_category}${c.note ? ` — ${c.note}` : ""}` : c.note}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </aside>
+      </div>
     </>
   );
 }
