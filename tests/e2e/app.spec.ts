@@ -366,6 +366,17 @@ test("startups: add one, read its rubric and exact workflow, evaluate it, edit t
   done();
 });
 
+test("board: the Reach out now button opens the draft in the mail app, and the brief counts the whole reach-out pool", async ({ page }) => {
+  await page.goto("/board");
+  const mail = page.getByRole("link", { name: /Reach out now/ }).filter({ has: page.locator("xpath=self::a[starts-with(@href,'mailto:')]") }).first();
+  await expect(mail).toBeVisible();
+  const href = (await mail.getAttribute("href"))!;
+  expect(decodeURIComponent(href)).toMatch(/calendly/i); // the meeting link is in the draft body
+  await page.goto("/brief");
+  await expect(page.getByText(/of \d+ investors are worth reaching out to/)).toBeVisible();
+  await expect(page.getByText("Possible fit: worth a look")).toBeVisible();
+});
+
 test("send mail moves the investor to Contacted (with undo), and replies are logged into the outreach workflow", async ({ page }) => {
   const done = failOnConsoleErrors(page);
   await page.goto("/pipeline?q=Athera");

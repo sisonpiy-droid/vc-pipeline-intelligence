@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Envelope } from "@phosphor-icons/react";
 import { ACTION_LABEL, ACTION_TONE, ENTITY_LABEL, REL_LABEL } from "@/lib/format";
 import { gsap, prefersReducedMotion } from "./motion/gsap";
 import { Pill } from "./ui";
@@ -17,6 +18,8 @@ export interface BoardCard {
   status: string;
   last_contact_date: string | null;
   headline: string | null;
+  /** Draft links for an investor not yet contacted: opens the founder's own mail app or Gmail. */
+  mail?: { mailto: string; gmail: string } | null;
   cadence: { label: string; tone: "good" | "warn" | "bad" | "info" | "neutral"; due: boolean } | null;
 }
 
@@ -130,7 +133,11 @@ export function Board({ cards: initial, needPass, hiddenInFirst }: { cards: Boar
                     <p className="mt-0.5 flex items-center gap-1.5 text-[0.7rem] text-muted">{ENTITY_LABEL[c.entity_type]}{c.demo && <Pill tone="warn" title="Synthetic demo account: not a real investor">Demo account</Pill>}</p>
                     {c.headline && <p className="mt-2 line-clamp-2 text-xs leading-snug text-muted">{c.headline}</p>}
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {c.action && <Pill tone={ACTION_TONE[c.action]}>{ACTION_LABEL[c.action]}</Pill>}
+                      {c.action && (c.mail && c.status === "not_contacted" ? (
+                        <a href={c.mail.mailto} onClick={() => void move(c.id, "contacted")} draggable={false} title="Opens your mail app with the draft and moves this card to Contacted. This application never sends email." className="press rounded-full hover:ring-1 hover:ring-accent/50">
+                          <Pill tone={ACTION_TONE[c.action]}>{ACTION_LABEL[c.action]} <Envelope aria-hidden size={11} weight="bold" /></Pill>
+                        </a>
+                      ) : <Pill tone={ACTION_TONE[c.action]}>{ACTION_LABEL[c.action]}</Pill>)}
                       {c.cadence && <Pill tone={c.cadence.tone} title="Follow-up cadence, from your last-contact date">{c.cadence.label}</Pill>}
                     </div>
                     <label className="mt-2.5 block">

@@ -1,7 +1,9 @@
 import { Board, type BoardCard } from "@/components/Board";
 import { isDemoView } from "@/lib/demoData/mode";
 import { PageTitle, SetupError } from "@/components/ui";
+import { draftLinks } from "@/components/EmailDraft";
 import { cadence } from "@/lib/cadence";
+import { composeEmail, subjectFor, templateDraft } from "@/lib/draft";
 import { isOpenDemo } from "@/lib/demo";
 import { load, today } from "@/lib/page";
 import { listPipeline, type PipelineRow } from "@/lib/read";
@@ -17,7 +19,14 @@ export default async function BoardPage() {
   const res = await load((db) => listPipeline(db, today(), demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
   const t = today();
+  // The same email the "Send mail" button builds elsewhere: the Gemini opening line if there is one, else a line from the source alone.
+  const mailOf = (r: PipelineRow) => {
+    if (r.relationship_status !== "not_contacted" || !["reach_out_now", "prepare_targeted_outreach"].includes(r.recommended_action ?? "")) return null;
+    const body = r.angle ? composeEmail({ opening: r.angle, firm: r.firm_name, kind: r.entity_type }).body : templateDraft(r);
+    return body ? draftLinks({ to: r.contact_email, subject: r.is_demo ? `[DEMO] ${subjectFor()}` : subjectFor(), body }) : null;
+  };
   const toCard = (r: PipelineRow): BoardCard => ({
+    mail: mailOf(r),
     id: r.id, firm_name: r.firm_name, demo: r.is_demo, entity_type: r.entity_type, score: r.follow_up_score, action: r.recommended_action, status: r.relationship_status,
     last_contact_date: r.last_contact_date, headline: r.lead?.headline ?? null, cadence: (() => { const c = cadence(r.relationship_status, r.last_contact_date, t); return c ? { label: c.label, tone: c.tone === "info" ? "neutral" : c.tone, due: c.due } : null; })(),
   });

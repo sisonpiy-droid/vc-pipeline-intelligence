@@ -97,6 +97,7 @@ export default async function Brief() {
   const res = await load((db) => getBrief(db, today(), demo));
   if (!res.ok) return <SetupError message={res.error} />;
   const b = res.data;
+  const pool = b.contact.length + b.prepare.length + b.research.length;
 
   if (!b.run)
     return (
@@ -115,8 +116,13 @@ export default async function Brief() {
         <PrintButton />
       </PageTitle>
 
-      <div className="mb-12 grid grid-cols-2 gap-x-8 gap-y-5 lg:grid-cols-4">
-        <Stat label="Contact now" value={b.contact.length} href="#contact-h" tone={b.contact.length ? "good" : undefined} />
+      <p className="mb-6 max-w-[60ch] text-lg font-medium leading-snug">
+        <span className="num text-accent">{pool}</span> of {b.counts.total} investors are worth reaching out to: {b.contact.length} strong, {b.prepare.length} good and {b.research.length} possible fits.
+      </p>
+      <div className="mb-12 grid grid-cols-2 gap-x-8 gap-y-5 lg:grid-cols-3">
+        <Stat label="Strong fit: contact now" value={b.contact.length} href="#contact-h" tone={b.contact.length ? "good" : undefined} hint="a fresh, clearly relevant signal" />
+        <Stat label="Good fit: prepare a message" value={b.prepare.length} href="#prep-h" hint="relevant, but not a clear match yet" />
+        <Stat label="Possible fit: worth a look" value={b.research.length} href="#res-h" hint="adjacent sector or a weaker case" />
         <Stat label="Follow-ups due" value={b.followUps.length} href={b.followUps.length ? "#fu-h" : undefined} />
         <Stat label="New signals" value={b.newSignals.length} href="#new-h" />
         <Stat label="Needs attention" value={b.attention.length} href="#att-h" tone={b.attention.length ? "warn" : undefined} />
@@ -184,6 +190,10 @@ export default async function Brief() {
 
           <Section id="prep-h" title="Prepare a targeted message" count={b.prepare.length} i={4}>
             {b.prepare.length === 0 ? <p className="text-sm text-muted">None this week.</p> : <ul>{b.prepare.slice(0, 6).map((r) => <PersonRow key={r.id} r={r} />)}</ul>}
+          </Section>
+
+          <Section id="res-h" title="Possible fits: worth a look" count={b.research.length} i={5}>
+            {b.research.length === 0 ? <p className="text-sm text-muted">None this week.</p> : <ul>{b.research.slice(0, 8).map((r) => <PersonRow key={r.id} r={r} />)}</ul>}
           </Section>
 
           <Section id="hold-h" title="Don't chase" count={b.hold.length} i={5}>

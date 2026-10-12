@@ -1,4 +1,5 @@
 import { EmailDraft } from "./EmailDraft";
+import { Linkified } from "./Linkified";
 
 /** A template draft email (see lib/draft.ts) with the two ways to open it in the founder's own mail app, and a preview. */
 export function TemplateDraft({ id, status, to, body, demo = false }: { id: string; status: string; to?: string | null; body: string; demo?: boolean }) {
@@ -10,7 +11,7 @@ export function TemplateDraft({ id, status, to, body, demo = false }: { id: stri
       </div>
       <details className="mt-1">
         <summary className="cursor-pointer text-xs font-medium text-accent">Preview the draft</summary>
-        <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink/90">{body}</pre>
+        <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink/90"><Linkified text={body} /></pre>
       </details>
       <p className="mt-2 text-[0.7rem] text-muted">
         Opens in your own mail app{to ? ` addressed to ${to}` : " with no address (this app stores no investor contact details)"}. Nothing is sent by this application.

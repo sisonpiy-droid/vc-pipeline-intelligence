@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Envelope } from "@phosphor-icons/react";
 import { CopyButton } from "./CopyButton";
+import { Linkified } from "./Linkified";
 
 type Msg = { tone: "good" | "warn" | "bad"; text: string; undo?: boolean };
 
@@ -25,6 +26,7 @@ export function MailActions({ id, body, mailto, gmail, status, tracked }: {
   const router = useRouter();
   const [msg, setMsg] = useState<Msg | null>(null);
   const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(false);
 
   async function track() {
     if (status !== "not_contacted") return;
@@ -51,7 +53,9 @@ export function MailActions({ id, body, mailto, gmail, status, tracked }: {
     <span className="inline-flex flex-wrap items-center gap-1.5" title="Opens your own mail app with this draft. This application never sends email.">
       <a href={mailto} onClick={track} className={chip}><Envelope aria-hidden size={12} weight="bold" /> Send mail</a>
       <a href={gmail} target="_blank" rel="noopener noreferrer" onClick={track} className={chip}>Gmail<span className="sr-only"> (opens in a new tab)</span></a>
+      <button type="button" onClick={() => setPreview((p) => !p)} aria-expanded={preview} className={chip}>{preview ? "Hide email" : "Preview email"}</button>
       <CopyButton text={body} />
+      {preview && <pre className="basis-full whitespace-pre-wrap rounded-lg border border-line bg-bg px-3 py-2.5 font-sans text-xs font-normal leading-relaxed text-ink/90"><Linkified text={body} /></pre>}
       {msg && (
         <span role="status" className={`basis-full text-xs leading-relaxed ${color[msg.tone]}`}>
           {msg.text}{" "}

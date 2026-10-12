@@ -49,6 +49,8 @@ export interface Brief {
   movers: Mover[];
   contact: PipelineRow[];
   prepare: PipelineRow[];
+  /** A relevant signal exists but the case is weaker or in an adjacent sector: worth a look, not yet a message. */
+  research: PipelineRow[];
   hold: PipelineRow[];
   attention: PipelineRow[];
   /** Investors you have already contacted whose follow-up is due today (your data, read-only). */
@@ -106,6 +108,7 @@ export async function getBrief(db: Db, today: string, demo = false): Promise<Bri
     movers,
     contact: active.filter((r) => !holdIt(r) && r.recommended_action === "reach_out_now").sort(byScore),
     prepare: active.filter((r) => !holdIt(r) && r.recommended_action === "prepare_targeted_outreach").sort(byScore),
+    research: active.filter((r) => !holdIt(r) && r.recommended_action === "research_further").sort(byScore),
     hold: active.filter(holdIt).sort(byScore),
     attention: pipeline.filter((r) => r.state === "failed" || r.state === "quiet_partial" || r.state === "not_checked"),
     followUps: pipeline.flatMap((row) => { const c = cadence(row.relationship_status, row.last_contact_date, today); return c?.due ? [{ row, cadence: c }] : []; }).sort((a, b) => (b.cadence.days ?? 0) - (a.cadence.days ?? 0)),
