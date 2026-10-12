@@ -79,13 +79,18 @@ export default async function Overview() {
 
   const due = pipeline.filter((r) => cadence(r.relationship_status, r.last_contact_date, today())?.due);
   const newCapital = pipeline.filter((r) => r.state === "active" && r.lead?.new_capital && !HOLD(r));
-  const top = picks[0]?.row;
+  const logistics = pipeline.filter((r) => r.state === "active" && r.lead?.sector_match === "logistics");
+  const fresh = pipeline.filter((r) => r.relationship_status === "not_contacted").length;
+  const official = pipeline.filter((r) => r.state === "active" && r.lead?.tier === "official");
   const stories: Story[] = [
-    top && { key: "top", kicker: "Email first", big: String(top.follow_up_score ?? "-"), title: top.firm_name, sub: top.lead?.headline ?? "The strongest case this week", href: `/investors/${top.id}` },
+    picks.length > 0 && { key: "top", kicker: "Email first", big: String(picks.length), title: `${picks.length === 1 ? "investor is" : "investors are"} worth an email this week`, sub: picks.slice(0, 3).map((p) => p.row.firm_name).join(", "), href: "#picks-h" },
     newCapital.length > 0 && { key: "capital", kicker: "New fund capital", big: String(newCapital.length), title: `${newCapital.length === 1 ? "Investor has" : "Investors have"} announced new capital`, sub: newCapital.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/signals" },
     due.length > 0 && { key: "due", kicker: "Follow-ups due", big: String(due.length), title: `${due.length === 1 ? "Reply is" : "Replies are"} overdue`, sub: due.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/brief#fu-h" },
     hold.length > 0 && { key: "hold", kicker: "Don't chase", big: String(hold.length), title: "Waiting on a reply, or they passed", sub: hold.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/pipeline?relationship=awaiting_response" },
     unknown > 0 && { key: "unknown", kicker: "Second look", big: String(unknown), title: `${unknown === 1 ? "Search" : "Searches"} failed or came back partial`, sub: "We couldn't check them yet, which is not the same as quiet.", href: "/quiet" },
+    { key: "logistics", kicker: "Logistics fit", big: String(logistics.length), title: `${logistics.length === 1 ? "investor has" : "investors have"} a signal about logistics`, sub: logistics.slice(0, 2).map((r) => r.firm_name).join(", ") || "None this week.", href: "/signals" },
+    official.length > 0 && { key: "official", kicker: "Official source", big: String(official.length), title: `${official.length === 1 ? "signal comes" : "signals come"} from the investor's own site`, sub: "The most trustworthy kind of evidence.", href: "/signals" },
+    { key: "fresh", kicker: "Not contacted yet", big: String(fresh), title: `${fresh === 1 ? "investor is" : "investors are"} still waiting for a first email`, sub: "Your untouched list, ready when you are.", href: "/pipeline?relationship=not_contacted" },
     { key: "quiet", kicker: "Quiet", big: String(counts.quiet), title: "Searched, nothing relevant", sub: "Where not to spend energy this week.", href: "/quiet" },
   ].filter((x): x is Story => Boolean(x));
 
