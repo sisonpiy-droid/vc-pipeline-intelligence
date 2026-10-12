@@ -198,12 +198,6 @@ summary {
   }
 }
 
-/* Story cards: colour says what kind of news it is (go, capital, due, hold, quiet). */
-.story-teal { background: linear-gradient(145deg, #0b5f5f, #167872); }
-.story-amber { background: linear-gradient(145deg, #86520a, #9a6411); }
-.story-rose { background: linear-gradient(145deg, #8f2a2c, #a8403d); }
-.story-slate { background: linear-gradient(145deg, #33495f, #46647f); }
-.story-sand { background: linear-gradient(145deg, #4d5048, #62665c); }
 .story-scroller { scroll-snap-type: x mandatory; scrollbar-width: none; }
 .story-scroller::-webkit-scrollbar { display: none; }
 .story-scroller > * { scroll-snap-align: start; }

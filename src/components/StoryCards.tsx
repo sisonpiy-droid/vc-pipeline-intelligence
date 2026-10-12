@@ -6,7 +6,6 @@ import { ArrowRight, CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 export interface Story {
   key: string;
-  tone: "teal" | "amber" | "rose" | "slate" | "sand";
   kicker: string;
   big: string;
   title: string;
@@ -33,16 +32,16 @@ export function StoryCards({ stories }: { stories: Story[] }) {
       </div>
       <div ref={row} className="story-scroller -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
         {stories.map((s) => (
-          <Link key={s.key} href={s.href} className={`story-${s.tone} group relative flex min-h-[15rem] w-[15.5rem] shrink-0 flex-col justify-between overflow-hidden rounded-3xl p-5 text-white shadow-[0_18px_30px_-20px_rgb(40_30_10/0.6)] transition-transform duration-300 hover:-translate-y-1`}>
-            <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10" />
-            <span aria-hidden className="pointer-events-none absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-white/10" />
-            <span className="relative text-[0.7rem] font-medium uppercase tracking-[0.14em] text-white/85">{s.kicker}</span>
+          <Link key={s.key} href={s.href} className="group relative flex min-h-[15rem] w-[15.5rem] shrink-0 flex-col justify-between overflow-hidden rounded-3xl border border-line bg-surface p-5 transition-all duration-300 hover:-translate-y-1 hover:border-accent/50">
+            <span aria-hidden className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-accent/10" />
+            <span aria-hidden className="pointer-events-none absolute -bottom-10 -left-6 h-28 w-28 rounded-full bg-accent/10" />
+            <span className="relative text-[0.7rem] font-medium uppercase tracking-[0.14em] text-muted">{s.kicker}</span>
             <span className="relative">
-              <span className="block text-5xl font-bold leading-none">{s.big}</span>
+              <span className="block text-5xl font-bold leading-none text-accent">{s.big}</span>
               <span className="mt-3 block text-[0.95rem] font-semibold leading-snug">{s.title}</span>
-              <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-white/85">{s.sub}</span>
+              <span className="mt-1 line-clamp-2 block text-xs leading-relaxed text-muted">{s.sub}</span>
             </span>
-            <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-medium text-white">Open <ArrowRight aria-hidden size={12} weight="bold" className="transition-transform duration-300 group-hover:translate-x-1" /></span>
+            <span className="relative mt-3 inline-flex items-center gap-1 text-xs font-medium text-accent">Open <ArrowRight aria-hidden size={12} weight="bold" className="transition-transform duration-300 group-hover:translate-x-1" /></span>
           </Link>
         ))}
       </div>

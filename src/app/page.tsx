@@ -81,12 +81,12 @@ export default async function Overview() {
   const newCapital = pipeline.filter((r) => r.state === "active" && r.lead?.new_capital && !HOLD(r));
   const top = picks[0]?.row;
   const stories: Story[] = [
-    top && { key: "top", tone: "teal", kicker: "Email first", big: String(top.follow_up_score ?? "-"), title: top.firm_name, sub: top.lead?.headline ?? "The strongest case this week", href: `/investors/${top.id}` },
-    newCapital.length > 0 && { key: "capital", tone: "amber", kicker: "New fund capital", big: String(newCapital.length), title: `${newCapital.length === 1 ? "Investor has" : "Investors have"} announced new capital`, sub: newCapital.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/signals" },
-    due.length > 0 && { key: "due", tone: "rose", kicker: "Follow-ups due", big: String(due.length), title: `${due.length === 1 ? "Reply is" : "Replies are"} overdue`, sub: due.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/brief#fu-h" },
-    hold.length > 0 && { key: "hold", tone: "slate", kicker: "Don't chase", big: String(hold.length), title: "Waiting on a reply, or they passed", sub: hold.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/pipeline?relationship=awaiting_response" },
-    unknown > 0 && { key: "unknown", tone: "amber", kicker: "Second look", big: String(unknown), title: `${unknown === 1 ? "Search" : "Searches"} failed or came back partial`, sub: "We couldn't check them yet, which is not the same as quiet.", href: "/quiet" },
-    { key: "quiet", tone: "sand", kicker: "Quiet", big: String(counts.quiet), title: "Searched, nothing relevant", sub: "Where not to spend energy this week.", href: "/quiet" },
+    top && { key: "top", kicker: "Email first", big: String(top.follow_up_score ?? "-"), title: top.firm_name, sub: top.lead?.headline ?? "The strongest case this week", href: `/investors/${top.id}` },
+    newCapital.length > 0 && { key: "capital", kicker: "New fund capital", big: String(newCapital.length), title: `${newCapital.length === 1 ? "Investor has" : "Investors have"} announced new capital`, sub: newCapital.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/signals" },
+    due.length > 0 && { key: "due", kicker: "Follow-ups due", big: String(due.length), title: `${due.length === 1 ? "Reply is" : "Replies are"} overdue`, sub: due.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/brief#fu-h" },
+    hold.length > 0 && { key: "hold", kicker: "Don't chase", big: String(hold.length), title: "Waiting on a reply, or they passed", sub: hold.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/pipeline?relationship=awaiting_response" },
+    unknown > 0 && { key: "unknown", kicker: "Second look", big: String(unknown), title: `${unknown === 1 ? "Search" : "Searches"} failed or came back partial`, sub: "We couldn't check them yet, which is not the same as quiet.", href: "/quiet" },
+    { key: "quiet", kicker: "Quiet", big: String(counts.quiet), title: "Searched, nothing relevant", sub: "Where not to spend energy this week.", href: "/quiet" },
   ].filter((x): x is Story => Boolean(x));
 
   return (
