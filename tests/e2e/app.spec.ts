@@ -310,7 +310,7 @@ test("send mail moves the investor to Contacted (with undo), and replies are log
   done();
 });
 
-for (const path of ["/", "/startups", "/startups/new", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare"]) {
+for (const path of ["/", "/startups", "/startups/new", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare", "/api-docs"]) {
   test(`phone width: ${path} has no horizontal page scroll and no console errors`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
