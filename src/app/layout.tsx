@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CommandPalette } from "@/components/CommandPalette";
 import { DemoBar } from "@/components/DemoBar";
 import { CompareTray } from "@/components/CompareTray";
-import { Nav } from "@/components/Nav";
+import { MobileMenu, SideNav } from "@/components/Nav";
 import { RunBar } from "@/components/RunBar";
 import { ScrollProgress } from "@/components/motion/ScrollProgress";
 import { isOpenDemo } from "@/lib/demo";
@@ -23,6 +23,20 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 export const dynamic = "force-dynamic"; // every page reads live data
 
+function Brand({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link href="/" aria-label="VC Pipeline Intelligence: go to the home screen" className="press flex items-center gap-2.5 rounded-lg">
+      <span aria-hidden className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-accent text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.25)] dark:text-black">
+        <Pulse size={17} weight="bold" />
+      </span>
+      <span className="leading-tight">
+        <span className="block text-[0.95rem] font-semibold tracking-tight">VC Pipeline</span>
+        {!compact && <span className="num block text-[0.65rem] uppercase tracking-[0.12em] text-muted">Seed · B2B logistics SaaS</span>}
+      </span>
+    </Link>
+  );
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const demo = await isDemoView();
   return (
@@ -32,32 +46,32 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           Skip to content
         </a>
         {demo && <DemoBar needPass={!isOpenDemo()} />}
-        <header className="sticky top-0 z-30 border-b border-line bg-surface/85 backdrop-blur-md">
-          <ScrollProgress />
-          <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 pt-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div className="flex items-center gap-2.5">
-              <Link href="/" aria-label="VC Pipeline Intelligence: go to the home screen" className="press flex items-center gap-2.5 rounded-lg">
-                <span aria-hidden className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-white dark:text-black">
-                  <Pulse size={16} weight="bold" />
-                </span>
-                <span className="text-[0.95rem] font-semibold tracking-tight">VC Pipeline Intelligence</span>
-              </Link>
-              <span className="num hidden text-[0.7rem] uppercase tracking-[0.12em] text-muted md:inline">Seed · B2B logistics SaaS</span>
-              <span className="ml-2"><CommandPalette /></span>
-              {/* A plain anchor, not a Link: this route has a side effect (it creates the demo data), so it must never be prefetched. */}
-              {!demo && <a href="/demo/on" className="press ml-1 hidden rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-muted hover:text-ink sm:inline-block" title="Explore the app with clearly labelled synthetic investors; real data is not touched">Demo mode</a>}
-            </div>
-            <Nav />
+        <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
+          {/* Desktop rail: brand, search, grouped navigation, and the demo switch. */}
+          <aside className="hidden h-dvh flex-col gap-6 overflow-y-auto border-r border-line bg-surface/60 px-4 py-5 lg:sticky lg:top-0 lg:z-40 lg:flex">
+            <Brand />
+            <CommandPalette wide />
+            <div className="flex-1"><SideNav /></div>
+            {/* A plain anchor, not a Link: this route has a side effect (it creates the demo data), so it must never be prefetched. */}
+            {!demo && <a href="/demo/on" className="press rounded-lg border border-line px-3 py-2 text-center text-xs font-medium text-muted transition-colors hover:border-accent/50 hover:text-ink" title="Explore the app with clearly labelled synthetic investors; real data is not touched">Try demo mode</a>}
+          </aside>
+          <div className="min-w-0">
+            <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface/85 px-4 py-2.5 backdrop-blur-md sm:px-6 lg:hidden">
+              <ScrollProgress />
+              <MobileMenu />
+              <Brand compact />
+              <span className="ml-auto"><CommandPalette /></span>
+            </header>
+            <RunBar demo={demo} />
+            <main id="main" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8 lg:py-12">
+              {children}
+            </main>
+            <CompareTray />
+            <footer className="mx-auto max-w-6xl border-t border-line px-4 py-6 text-xs leading-relaxed text-muted sm:px-8">
+              Signals come from public web pages, each linked to its source. Gemini Flash classifies evidence; scores are computed by fixed, documented rules.
+            </footer>
           </div>
-        </header>
-        <RunBar demo={demo} />
-        <main id="main" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
-          {children}
-        </main>
-        <CompareTray />
-        <footer className="mx-auto max-w-7xl px-4 pb-12 text-xs leading-relaxed text-muted sm:px-6">
-          Signals come from public web pages, each linked to its source. Gemini Flash classifies evidence; scores are computed by fixed, documented rules.
-        </footer>
+        </div>
       </body>
     </html>
   );

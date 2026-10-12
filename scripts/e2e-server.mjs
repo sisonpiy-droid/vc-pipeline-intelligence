@@ -16,6 +16,6 @@ const env = {
 
 rmSync(".data/e2e", { recursive: true, force: true });
 execSync("npm run -s import && npm run -s dev:fixture && npm run -s demo:seed", { stdio: "inherit", env });
-const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", PORT], { stdio: "inherit", env });
+const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", process.env.E2E_DEV ? "dev" : "start", "-p", PORT], { stdio: "inherit", env });
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { server.kill(); process.exit(0); });
 server.on("exit", (code) => process.exit(code ?? 0));

@@ -84,6 +84,7 @@ test("outreach board: moving a card changes the founder-owned status, persists, 
 });
 
 test("outreach board: drag and drop works too", async ({ page }) => {
+  await page.setViewportSize({ width: 1760, height: 900 }); // all six columns on screen: a drag needs a visible target
   await page.goto("/board");
   const card = page.locator("[data-card]").filter({ has: page.getByRole("link", { name: "Nithin Kamath" }) });
   // Grab the card by its title link (a link is draggable and the drag bubbles to the card).
@@ -165,6 +166,19 @@ test("the brand in the header takes you to the home screen from any page", async
   await page.getByRole("link", { name: /go to the home screen/i }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("investors have a fresh, relevant signal");
+});
+
+test("phone: the menu button opens the grouped navigation and a link takes you there", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open menu" }).click();
+  const menu = page.getByRole("dialog", { name: "Menu" });
+  await expect(menu.getByRole("link", { name: "Priority queue" })).toHaveAttribute("aria-current", "page");
+  await menu.getByRole("link", { name: "Investor database" }).click();
+  await expect(page).toHaveURL(/\/database$/);
+  await expect(page.getByRole("dialog", { name: "Menu" })).toHaveCount(0); // closes on navigation
+  await ctx.close();
 });
 
 test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, reset and simulate are demo-only, and real data never appears", async ({ page, request }) => {

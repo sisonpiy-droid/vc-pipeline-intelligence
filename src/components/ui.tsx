@@ -41,12 +41,13 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   return <section className={`card-shadow rounded-2xl border border-line bg-surface ${className}`}>{children}</section>;
 }
 
-export function PageTitle({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
+export function PageTitle({ title, sub, eyebrow, children }: { title: string; sub?: ReactNode; eyebrow?: string; children?: ReactNode }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-line pb-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {sub && <p className="mt-1.5 max-w-[65ch] text-sm leading-relaxed text-muted">{sub}</p>}
+        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+        <h1 className={`${eyebrow ? "mt-2 " : ""}text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.15rem]`}>{title}</h1>
+        {sub && <p className="mt-3 max-w-[68ch] text-[0.95rem] leading-relaxed text-muted">{sub}</p>}
       </div>
       {children}
     </div>

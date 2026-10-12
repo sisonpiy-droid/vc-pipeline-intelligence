@@ -76,7 +76,7 @@ export function Simulator({ investors, now }: { investors: SimInvestor[]; now: s
 
   return (
     <div className="grid gap-10 lg:grid-cols-[19rem_minmax(0,1fr)]">
-      <aside className="space-y-6 lg:sticky lg:top-28 lg:self-start">
+      <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
         <div>
           <p className="text-[0.7rem] font-medium uppercase tracking-[0.12em] text-muted">Start from</p>
           <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Presets">

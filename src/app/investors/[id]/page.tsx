@@ -226,7 +226,7 @@ export default async function InvestorPage({ params }: Props) {
         </section>
 
         {/* Rail */}
-        <aside className="space-y-10 lg:sticky lg:top-28 lg:self-start">
+        <aside className="space-y-10 lg:sticky lg:top-8 lg:self-start">
           <section aria-labelledby="profile-h" className="reveal" style={idx(2)}>
             <Eyebrow>Profile</Eyebrow>
             <h2 id="profile-h" className="sr-only">Profile</h2>

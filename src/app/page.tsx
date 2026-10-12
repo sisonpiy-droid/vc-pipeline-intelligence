@@ -21,6 +21,26 @@ export const metadata = { title: { absolute: "Priority queue · VC Pipeline Inte
 const HOLD = (r: PipelineRow) => r.recommended_action === "wait_for_response" || r.relationship_status === "passed" || r.relationship_status === "committed";
 const idx = (n: number) => ({ "--i": n }) as CSSProperties;
 
+/** The whole list at a glance: one bar, split by what is known about each investor. */
+function Mix({ total, parts }: { total: number; parts: { label: string; n: number; cls: string }[] }) {
+  if (total === 0) return null;
+  const label = parts.filter((p) => p.n > 0).map((p) => `${p.n} ${p.label.toLowerCase()}`).join(", ");
+  return (
+    <div>
+      <div role="img" aria-label={`Of ${total} investors: ${label}`} className="flex h-2.5 gap-[3px] overflow-hidden rounded-full">
+        {parts.filter((p) => p.n > 0).map((p, i) => (
+          <span key={p.label} style={{ width: `${(p.n / total) * 100}%`, ["--i" as string]: i }} className={`bar-fill block h-full min-w-[6px] rounded-full ${p.cls}`} />
+        ))}
+      </div>
+      <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[0.7rem] text-muted">
+        {parts.filter((p) => p.n > 0).map((p) => (
+          <li key={p.label} className="flex items-center gap-1.5"><span aria-hidden className={`h-2 w-2 rounded-full ${p.cls}`} />{p.label}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function LedgerRow({ label, hint, value, href, tone }: { label: string; hint: string; value: number; href: string; tone?: string }) {
   return (
     <Link href={href} className="group flex items-baseline justify-between gap-4 py-3.5 transition-colors hover:bg-neutral-soft/60">
@@ -59,7 +79,7 @@ export default async function Overview() {
       <section className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end">
         <HeroReveal>
           <div data-hero className="js-hide"><Eyebrow>This week</Eyebrow></div>
-          <h1 data-hero className="js-hide mt-3 max-w-[22ch] text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.6rem]">
+          <h1 data-hero className="js-hide mt-3 max-w-[20ch] text-4xl font-semibold leading-[1.04] tracking-tight md:text-[3.1rem]">
             {never ? (
               "Nothing to rank until the first refresh runs"
             ) : counts.active === 0 ? (
@@ -79,12 +99,20 @@ export default async function Overview() {
           </div>
         </HeroReveal>
 
-        <dl className="reveal divide-y divide-line border-y border-line" style={idx(1)}>
+        <div className="reveal" style={idx(1)}>
+          <Mix total={counts.total} parts={[
+            { label: "Active signal", n: counts.active, cls: "bg-accent" },
+            { label: "Older signals only", n: Math.max(0, counts.total - counts.active - counts.quiet - unknown), cls: "bg-info/50" },
+            { label: "No verified signal", n: counts.quiet, cls: "bg-neutral/35" },
+            { label: "Activity unknown", n: unknown, cls: "bg-warn" },
+          ]} />
+        <dl className="mt-4 divide-y divide-line border-y border-line">
           <LedgerRow label="Tracked investors" hint={demo ? "6 synthetic demo accounts" : `50 VC firms and 32 angels${demoCount ? `; ${demoCount} labelled demo accounts are listed separately` : ""}`} value={counts.total} href="/pipeline" />
           <LedgerRow label="Active signal, last 30 days" hint="verified and relevant" value={counts.active} href="/pipeline?state=active" tone="text-good" />
           <LedgerRow label="No verified signal" hint="every source answered" value={counts.quiet} href="/quiet" />
           <LedgerRow label="Activity unknown" hint="failed or partial, never counted as quiet" value={unknown} href="/quiet" tone={unknown ? "text-warn" : ""} />
         </dl>
+        </div>
       </section>
 
       {active && (
@@ -133,7 +161,7 @@ export default async function Overview() {
           )}
         </section>
 
-        <aside className="space-y-10 lg:sticky lg:top-28 lg:self-start">
+        <aside className="space-y-10 lg:sticky lg:top-8 lg:self-start">
           {hold.length > 0 && (
             <section aria-labelledby="hold-h" className="reveal" style={idx(3)}>
               <Eyebrow>Don't chase this week</Eyebrow>

@@ -26,7 +26,7 @@ export async function RunBar({ demo = false }: { demo?: boolean }) {
   return (
     <div className="border-b border-line text-[0.8rem]">
       <AutoRefresh active={!!d.active && !stalled} />
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-8 gap-y-1.5 px-4 py-2.5 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-8 gap-y-1.5 px-4 py-2.5 sm:px-8">
         <Item k="Run">
           {d.active ? (
             stalled ? (

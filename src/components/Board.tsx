@@ -106,7 +106,7 @@ export function Board({ cards: initial, needPass, hiddenInFirst }: { cards: Boar
               onDragOver={(e) => { e.preventDefault(); setOver(col); }}
               onDragLeave={() => setOver((o) => (o === col ? null : o))}
               onDrop={(e) => { e.preventDefault(); setOver(null); const id = dragging.current ?? e.dataTransfer.getData("text/plain"); dragging.current = null; if (id) void move(id, col); }}
-              className={`w-72 shrink-0 snap-start rounded-2xl border p-3 transition-colors ${over === col ? "border-accent bg-good-soft/40" : "border-line bg-surface"}`}
+              className={`w-64 shrink-0 snap-start rounded-2xl border p-3 transition-colors ${over === col ? "border-accent bg-good-soft/40" : "border-line bg-surface"}`}
             >
               <header className="mb-3 flex items-baseline justify-between px-1">
                 <h2 className="text-sm font-semibold">{REL_LABEL[col]}</h2>

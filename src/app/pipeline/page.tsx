@@ -14,7 +14,8 @@ export const metadata = { title: "Pipeline" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const SELECT = "w-full rounded-md border border-line bg-bg px-2 py-1.5 text-sm";
+const SELECT = "w-full rounded-lg border border-line bg-bg px-2.5 py-2 text-sm transition-colors hover:border-accent/40";
+const VIEWS = [{ key: "", label: "All" }, { key: "active", label: "Active signal" }, { key: "quiet", label: "Quiet" }, { key: "review", label: "Needs review" }, { key: "failed", label: "Failed" }] as const;
 
 function Field({ label, name, value, children }: { label: string; name: string; value?: string; children: React.ReactNode }) {
   return (
@@ -40,9 +41,33 @@ export default async function Pipeline({ searchParams }: Props) {
     <>
       <PageTitle title="Investor pipeline" sub={`${rows.length} of ${all.length} tracked investors. Statuses separate a quiet investor (searched, nothing found) from one we could not check.`} />
 
-      <form method="get" className="mb-4 rounded-xl border border-line bg-surface p-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
-          <LiveSearch initial={f.q ?? ""} />
+      <nav aria-label="Quick views" className="mb-4 flex flex-wrap gap-1.5">
+        {VIEWS.map((v) => {
+          const n = v.key ? all.filter((r) => displayStatus(r.state) === v.key).length : all.length;
+          const on = (f.state ?? "") === v.key;
+          return (
+            <Link key={v.label} href={v.key ? `/pipeline?state=${v.key}` : "/pipeline"} aria-current={on ? "true" : undefined}
+              className={`press inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition-colors ${on ? "border-accent bg-accent/10 font-medium text-ink" : "border-line text-muted hover:border-accent/40 hover:text-ink"}`}>
+              {v.label}<span className="num text-xs text-muted">{n}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <form method="get" className="mb-5 rounded-2xl border border-line bg-surface p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[14rem] flex-1"><LiveSearch initial={f.q ?? ""} /></div>
+          <div className="w-48"><Field label="Sort by" name="sort" value={f.sort}>
+            <option value="">Follow-up score</option>
+            <option value="recent">Latest signal date</option>
+            <option value="name">Name</option>
+          </Field></div>
+          <button className="press rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white dark:text-black">Apply</button>
+          {filtered && <Link href="/pipeline" className="press rounded-lg border border-line px-4 py-2 text-sm text-muted hover:text-ink">Reset</Link>}
+        </div>
+        <details className="group mt-3" open={Boolean(f.entity || f.sector || f.stage || f.relationship || f.category || f.freshness || f.priority || f.action)}>
+          <summary className="inline-flex cursor-pointer items-center gap-1.5 text-sm font-medium text-accent">More filters</summary>
+          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Field label="Status" name="state" value={f.state}>
             <option value="">All</option>
             <option value="active">Active signal</option>
@@ -91,16 +116,8 @@ export default async function Pipeline({ searchParams }: Props) {
             <option value="30">Last 30 days</option>
             <option value="none">No signal in window</option>
           </Field>
-          <Field label="Sort by" name="sort" value={f.sort}>
-            <option value="">Follow-up score</option>
-            <option value="recent">Latest signal date</option>
-            <option value="name">Name</option>
-          </Field>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <button className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white dark:text-black">Apply</button>
-          {filtered && <Link href="/pipeline" className="rounded-md border border-line px-4 py-1.5 text-sm">Reset</Link>}
-        </div>
+          </div>
+        </details>
       </form>
 
       {rows.length === 0 ? (
@@ -111,7 +128,7 @@ export default async function Pipeline({ searchParams }: Props) {
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[56rem] text-left text-sm">
             <caption className="sr-only">Tracked investors with status, score, latest signal and recommended action</caption>
-            <thead className="border-b border-line text-xs uppercase tracking-wide text-muted">
+            <thead className="border-b border-line bg-neutral-soft/40 text-[0.7rem] uppercase tracking-[0.1em] text-muted">
               <tr>
                 <th scope="col" className="px-4 py-2 font-medium">Investor</th>
                 <th scope="col" className="px-3 py-2 font-medium">Status</th>
@@ -132,7 +149,7 @@ export default async function Pipeline({ searchParams }: Props) {
                       <div className="mt-1 flex flex-wrap items-center gap-2 font-normal"><Fresh at={r.last_checked} /><CompareToggle id={r.id} name={r.firm_name} compact /></div>
                     </th>
                     <td className="px-3 py-3"><Pill tone={st.tone} title={st.help} href={`/pipeline?state=${displayStatus(r.state)}`}>{st.label}</Pill></td>
-                    <td className="px-3 py-3 text-right tabular-nums">{r.follow_up_score ?? <span className="text-muted">–</span>}</td>
+                    <td className="px-3 py-3 text-right">{r.follow_up_score === null ? <span className="text-muted">–</span> : <span className="ml-auto block w-14"><span className="num block text-base font-medium leading-none">{r.follow_up_score}</span><span className="mt-1.5 block h-[3px] overflow-hidden rounded-full bg-neutral-soft"><span style={{ width: `${r.follow_up_score}%` }} className={`block h-full rounded-full ${r.follow_up_score >= 75 ? "bg-good" : r.follow_up_score >= 55 ? "bg-info" : "bg-muted/60"}`} /></span></span>}</td>
                     <td className="max-w-xs px-3 py-3">
                       {r.lead ? (
                         <>

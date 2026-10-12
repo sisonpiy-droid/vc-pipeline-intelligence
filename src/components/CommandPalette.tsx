@@ -38,7 +38,7 @@ export function rank(items: Item[], q: string): Item[] {
 }
 
 /** Ctrl/Cmd+K: jump to any page or investor, or add an investor to the comparison. */
-export function CommandPalette() {
+export function CommandPalette({ wide = false }: { wide?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -76,9 +76,9 @@ export function CommandPalette() {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="press hidden items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-muted hover:text-ink sm:inline-flex" aria-label="Open search (Ctrl K)">
+      <button type="button" onClick={() => setOpen(true)} className={`press inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-xs text-muted transition-colors hover:border-accent/50 hover:text-ink ${wide ? "w-full py-2" : "py-1.5"}`} aria-label="Open search (Ctrl K)">
         <MagnifyingGlass aria-hidden size={13} weight="bold" /> Search
-        <kbd className="num ml-1 inline-flex items-center gap-0.5 rounded border border-line px-1 text-[0.65rem]"><Command aria-hidden size={9} weight="bold" />K</kbd>
+        <kbd className="num ml-auto inline-flex items-center gap-0.5 rounded border border-line px-1 text-[0.65rem]"><Command aria-hidden size={9} weight="bold" />K</kbd>
       </button>
       {open && (
         <div className="fixed inset-0 z-50 grid place-items-start justify-items-center bg-black/40 px-4 pt-[12vh] backdrop-blur-sm" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Check, Warning, X } from "@phosphor-icons/react/dist/ssr";
 import { AutoRefresh } from "@/components/AutoRefresh";
 import { RubricEditor } from "@/components/RubricEditor";
 import { StartupActions } from "@/components/StartupActions";
-import { Empty, ExternalLink, Eyebrow, Pill, SetupError } from "@/components/ui";
+import { Empty, ExternalLink, Eyebrow, PageTitle, Pill, SetupError } from "@/components/ui";
 import { isOpenDemo } from "@/lib/demo";
 import { ACTION_LABEL, ACTION_TONE, fmtDate, type Tone } from "@/lib/format";
 import { load } from "@/lib/page";
@@ -19,6 +20,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 const STATUS_TONE: Record<string, Tone> = { done: "good", partial: "warn", failed: "bad", running: "info", pending: "neutral" };
 const STATUS_LABEL: Record<string, string> = { done: "Done", partial: "Needs attention", failed: "Failed", running: "Running", pending: "Not run yet" };
+/** A numbered circle that says the step's state with an icon as well as colour. */
+function Node({ status, n }: { status: string; n: number }) {
+  const base = "relative z-[1] grid h-9 w-9 place-items-center rounded-full border text-sm font-medium";
+  if (status === "done") return <span className={`${base} border-accent bg-accent text-white dark:text-black`}><Check aria-hidden size={15} weight="bold" /></span>;
+  if (status === "partial") return <span className={`${base} border-warn/50 bg-warn-soft text-warn`}><Warning aria-hidden size={15} weight="bold" /></span>;
+  if (status === "failed") return <span className={`${base} border-bad/50 bg-bad-soft text-bad`}><X aria-hidden size={15} weight="bold" /></span>;
+  if (status === "running") return <span className={`${base} border-accent bg-surface text-accent`}><span aria-hidden className="beacon absolute inset-0 rounded-full text-accent" /><span className="num">{n}</span></span>;
+  return <span className={`${base} border-line bg-surface text-muted`}><span className="num">{n}</span></span>;
+}
+
 const GROUPS: { actions: string[]; title: string; open: boolean }[] = [
   { actions: ["reach_out_now"], title: "Reach out now", open: true },
   { actions: ["prepare_targeted_outreach"], title: "Prepare targeted outreach", open: true },
@@ -44,32 +55,31 @@ export default async function StartupPage({ params }: { params: Promise<{ slug: 
     <>
       <AutoRefresh active={running} />
       <p className="mb-4 text-sm"><Link href="/startups" className="text-accent hover:underline">← All startups</Link></p>
-      <div className="mb-10">
-        <h1 className="text-2xl font-semibold tracking-tight">{s.name}</h1>
-        <p className="mt-1.5 max-w-[70ch] text-sm leading-relaxed text-muted">{s.pitch}</p>
-        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
-          <span>{s.sector}</span><span aria-hidden>·</span><span>{STAGE_LABEL[s.stage]}</span><span aria-hidden>·</span><span>{s.geography}</span>
-          {s.round_size && <><span aria-hidden>·</span><span>{s.round_size}</span></>}
-        </p>
-        {s.ask && <p className="mt-1 text-xs text-muted">Wants from investors: {s.ask}</p>}
-      </div>
+      <PageTitle
+        eyebrow="Startup"
+        title={s.name}
+        sub={<>{s.pitch}<span className="mt-3 flex flex-wrap items-center gap-2 text-xs"><Pill tone="neutral">{s.sector}</Pill><Pill tone="neutral">{STAGE_LABEL[s.stage]}</Pill><Pill tone="neutral">{s.geography}</Pill>{s.round_size && <Pill tone="neutral">{s.round_size}</Pill>}</span>{s.ask && <span className="mt-2 block text-xs">Wants from investors: {s.ask}</span>}</>}
+      />
 
       {/* ───────── workflow ───────── */}
       <section aria-labelledby="wf-h" className="mb-14">
         <Eyebrow>Workflow</Eyebrow>
         <h2 id="wf-h" className="mt-1 text-lg font-semibold tracking-tight">What happens to this startup, step by step</h2>
-        <ol className="mt-5 divide-y divide-line border-y border-line">
+        <ol className="mt-6">
           {WORKFLOW.map((w, i) => {
             const st = statusOf(w.key, steps, results.length > 0);
+            const last = i === WORKFLOW.length - 1;
             return (
-              <li key={w.key} className="grid gap-x-4 gap-y-2 py-5 sm:grid-cols-[2rem_1fr_auto]">
-                <span className="num text-sm text-muted">{i + 1}</span>
-                <div className="min-w-0">
-                  <p className="font-medium">{w.title} <span className="ml-1 text-xs font-normal text-muted">by {w.by} · {w.cost}</span></p>
-                  <p className="mt-1 max-w-[75ch] text-sm leading-relaxed text-muted">{w.what}</p>
-                  {st.detail && <p className="mt-2 max-w-[75ch] rounded-lg bg-neutral-soft/60 px-3 py-2 text-sm leading-relaxed">{st.detail}</p>}
+              <li key={w.key} className="relative grid gap-x-5 pb-8 last:pb-0 sm:grid-cols-[2.25rem_minmax(0,1fr)_auto]">
+                {!last && <span aria-hidden className={`absolute left-[1.0625rem] top-9 h-[calc(100%-2.25rem)] w-px ${st.status === "done" ? "bg-accent/50" : "bg-line"}`} />}
+                <Node status={st.status} n={i + 1} />
+                <div className="min-w-0 pt-1">
+                  <p className="font-medium leading-snug">{w.title}</p>
+                  <p className="mt-0.5 text-xs text-muted">by {w.by} · {w.cost}</p>
+                  <p className="mt-2 max-w-[75ch] text-sm leading-relaxed text-muted">{w.what}</p>
+                  {st.detail && <p className="mt-3 max-w-[75ch] rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed">{st.detail}</p>}
                 </div>
-                <div className="sm:text-right"><Pill tone={STATUS_TONE[st.status]}>{STATUS_LABEL[st.status]}</Pill></div>
+                <div className="pt-1.5 sm:text-right"><Pill tone={STATUS_TONE[st.status]}>{STATUS_LABEL[st.status]}</Pill></div>
               </li>
             );
           })}

@@ -34,7 +34,7 @@ export function DemoBar({ needPass }: { needPass: boolean }) {
   const btn = "press rounded-md border border-current/30 px-2.5 py-1 text-xs font-medium hover:bg-white/30 disabled:opacity-50 dark:hover:bg-white/10";
   return (
     <div role="region" aria-label="Demo mode" className="border-b border-warn/40 bg-warn-soft text-warn">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-[0.8rem] sm:px-6">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 text-[0.8rem] sm:px-6">
         <p className="font-medium"><span className="num mr-2 rounded bg-warn px-1.5 py-0.5 text-[0.65rem] uppercase tracking-wider text-warn-soft">Demo mode</span>Synthetic investors and simulated runs. This is a demo account: nothing here is real investor intelligence.</p>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {needPass && <input type="password" aria-label="Admin passcode" placeholder="Admin passcode" autoComplete="off" value={pass} onChange={(e) => setPass(e.target.value)} className="w-32 rounded-md border border-current/30 bg-transparent px-2 py-1 text-xs placeholder:text-current/60" />}
