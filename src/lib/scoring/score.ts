@@ -55,8 +55,26 @@ export interface ScoredSignal {
   new_capital?: boolean;
 }
 
-/** Everything tunable. The production score uses DEFAULT_CONFIG; the what-if page passes its own (never stored). */
+/** What the startup's market is called in explanations. Defaults describe the founder's own startup (STARTUP). */
+export interface MarketConfig {
+  sector: string; // "B2B logistics / supply-chain SaaS"
+  core: string; // "logistics or supply chain": how the core market reads in a sentence
+}
+
+/** Words that decide how well an investor's profile fits a startup. Absent = the built-in logistics / seed / India rules. */
+export interface FitConfig {
+  coreTerms: string[]; // an investor sector or thesis containing one of these is a full sector fit
+  adjacentTerms: string[]; // ... one of these is a partial fit (0.6)
+  stageBest: string[]; // investor stage preference containing one of these is a full stage fit
+  stageOk: string[]; // ... a good fit (0.8)
+  stagePoor: string[]; // ... a poor fit (0.4)
+  geographyTerms: string[]; // empty = every geography fits
+}
+
+/** Everything tunable. The production score uses DEFAULT_CONFIG; the what-if page and other startups pass their own. */
 export interface ScoringConfig {
+  market?: MarketConfig;
+  fit?: FitConfig;
   weights: Record<"recency" | "relevance" | "evidence" | "fit" | "relationship", number>;
   thresholds: { reachOutNow: number; prepareOutreach: number };
   reachOutMinRelevance: number;
@@ -65,6 +83,9 @@ export interface ScoringConfig {
   /** Upper bound on a signal's relevance given its topic (a design-materials round cannot be 70% relevant to logistics). */
   sectorCap: Record<SectorMatch, number>;
 }
+
+export const DEFAULT_MARKET: MarketConfig = { sector: STARTUP.sector, core: "logistics or supply chain" };
+const marketOf = (cfg: ScoringConfig): MarketConfig => cfg.market ?? DEFAULT_MARKET;
 
 export const DEFAULT_CONFIG: ScoringConfig = {
   weights: { ...WEIGHTS },
@@ -120,8 +141,19 @@ export function recencyFactor(ageDays: number): number {
 
 const has = (hay: string, re: RegExp) => re.test(hay.toLowerCase());
 
-export function fitFactors(p: ScoreInput["profile"]) {
+const escapeRe = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const termsRe = (terms: string[]) => (terms.length ? new RegExp(terms.map(escapeRe).join("|"), "i") : null);
+
+export function fitFactors(p: ScoreInput["profile"], fitCfg?: FitConfig) {
   const stage = p.stage_preference;
+  const hay = [...p.sectors, p.thesis_text ?? ""].join(" ");
+  if (fitCfg) {
+    const hit = (text: string, terms: string[]) => termsRe(terms)?.test(text) ?? false;
+    const stageFit = !stage ? 0.3 : hit(stage, fitCfg.stageBest) ? 1 : hit(stage, fitCfg.stageOk) ? 0.8 : hit(stage, fitCfg.stagePoor) ? 0.4 : 0.3;
+    const sectorFit = !hay.trim() ? 0.2 : hit(hay, fitCfg.coreTerms) ? 1 : hit(hay, fitCfg.adjacentTerms) ? 0.6 : 0.2;
+    const geoFit = !p.geography ? 0.5 : fitCfg.geographyTerms.length === 0 || hit(p.geography, fitCfg.geographyTerms) ? 1 : 0.4;
+    return { stageFit, sectorFit, geoFit, fit: 0.4 * sectorFit + 0.4 * stageFit + 0.2 * geoFit };
+  }
   const stageFit = !stage
     ? 0.3 // unknown is not evidence of fit
     : has(stage, /seed|angel|accelerator|very early/)
@@ -131,7 +163,6 @@ export function fitFactors(p: ScoreInput["profile"]) {
         : has(stage, /series a|growth|scale/)
           ? 0.4
           : 0.3;
-  const hay = [...p.sectors, p.thesis_text ?? ""].join(" ");
   const sectorFit = !hay.trim()
     ? 0.2
     : has(hay, /logistic|supply.?chain|freight|transport|warehous|fleet|mobility/)
@@ -167,16 +198,17 @@ const tierOf = (s: ScoredSignal): SourceTier => s.tier ?? "other";
 export function reachOutBlockers(lead: ScoredSignal, relevant: ScoredSignal[], cfg: ScoringConfig = DEFAULT_CONFIG): string[] {
   const why: string[] = [];
   const eff = effectiveRelevance(lead, cfg);
+  const m = marketOf(cfg);
   if (lead.confidence === "low") why.push("the evidence is low-confidence");
-  if (eff < cfg.reachOutMinRelevance) why.push(`its relevance to ${STARTUP.sector} is only ${eff}/100 (needs ${cfg.reachOutMinRelevance}+)`);
+  if (eff < cfg.reachOutMinRelevance) why.push(`its relevance to ${m.sector} is only ${eff}/100 (needs ${cfg.reachOutMinRelevance}+)`);
   switch (lead.sector_match) {
     case "logistics": break;
     case "b2b_software":
     case "seed_generalist":
-      if (!lead.new_capital) why.push("it shows general seed or B2B-software activity, not logistics, and announces no new capital");
+      if (!lead.new_capital) why.push(`it shows general seed or B2B-software activity, not ${m.core}, and announces no new capital`);
       break;
-    case "adjacent": why.push("the deal is in an adjacent sector, not logistics or supply chain"); break;
-    case "unrelated": why.push("the signal is unrelated to logistics or supply chain"); break;
+    case "adjacent": why.push(`the deal is in an adjacent sector, not ${m.core}`); break;
+    case "unrelated": why.push(`the signal is unrelated to ${m.core}`); break;
     default: why.push("the signal has not had its second-pass sector review yet");
   }
   if (tierOf(lead) === "social" && !relevant.some((s) => s !== lead && tierOf(s) !== "social"))
@@ -194,7 +226,7 @@ export function scoreInvestor(input: ScoreInput): ScoreResult {
     .sort((a, b) => strength(b) - strength(a));
   const lead = relevant[0] ?? null;
 
-  const fit = fitFactors(profile);
+  const fit = fitFactors(profile, cfg.fit);
   const rel = relationshipFactor(relationship.status);
 
   let recency = 0, relevance = 0, evidence = 0;
@@ -213,7 +245,7 @@ export function scoreInvestor(input: ScoreInput): ScoreResult {
     relevance = W.relevance * (eff / 100);
     evidence = W.evidence * evFactor * gate;
     recencyNote = `lead signal is ${age} day${age === 1 ? "" : "s"} old` + (gate < 1 ? `, scaled by relevance (${Math.round(gate * 100)}%)` : "");
-    relevanceNote = `relevance ${eff}/100 to ${STARTUP.sector}` + (eff < lead.relevance ? ` (judged ${lead.relevance}, capped for a ${lead.sector_match?.replace(/_/g, " ")} topic)` : "");
+    relevanceNote = `relevance ${eff}/100 to ${marketOf(cfg).sector}` + (eff < lead.relevance ? ` (judged ${lead.relevance}, capped for a ${lead.sector_match?.replace(/_/g, " ")} topic)` : "");
     evidenceNote = `${lead.confidence} confidence${corroborated ? ", corroborated by a second event" : ""}` + (tierF < 1 ? `, ${tierOf(lead)} source counts ${Math.round(tierF * 100)}%` : "") + (gate < 1 ? `, scaled by relevance` : "");
   }
 
@@ -277,12 +309,12 @@ function chooseAction(a: {
       return {
         action: offTopic ? "research_further" : "prepare_targeted_outreach",
         capped_by: a.blockers,
-        why: `The score clears ${reachOutNow}, but a cold approach is not justified yet: ${a.blockers.join("; ")}. ${offTopic ? "Check whether the firm also backs logistics before spending effort." : "Prepare a targeted message that references the signal."}`,
+        why: `The score clears ${reachOutNow}, but a cold approach is not justified yet: ${a.blockers.join("; ")}. ${offTopic ? `Check whether the firm also backs ${marketOf(a.cfg).core} before spending effort.` : "Prepare a targeted message that references the signal."}`,
       };
     }
     const adjacent = a.lead.sector_match === "adjacent" || a.lead.sector_match === "unrelated";
     if (a.score >= prepareOutreach && adjacent)
-      return { action: "research_further", capped_by: a.blockers, why: `The signal is in an adjacent sector, not logistics or supply chain: ${a.blockers.join("; ")}. Check whether the firm also backs logistics before spending effort.` };
+      return { action: "research_further", capped_by: a.blockers, why: `The signal is in an adjacent sector, not ${marketOf(a.cfg).core}: ${a.blockers.join("; ")}. Check whether the firm also backs ${marketOf(a.cfg).core} before spending effort.` };
     if (a.score >= prepareOutreach)
       return { action: "prepare_targeted_outreach", capped_by: none, why: `There is a relevant signal but it is not strong enough for a cold approach; prepare a targeted message that references it.` };
     return { action: "research_further", capped_by: none, why: "A relevant signal exists but the case is weak (age, confidence or relevance); verify before spending outreach effort." };

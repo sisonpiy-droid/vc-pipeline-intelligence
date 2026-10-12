@@ -3,7 +3,7 @@
  * this page cannot drift from the code. Every endpoint is server-side only; there is no browser-held secret.
  */
 export interface Endpoint {
-  method: "GET" | "POST";
+  method: "GET" | "POST" | "DELETE";
   /** Next.js route path as it appears under src/app/api (dynamic segments in [brackets]). */
   path: string;
   summary: string;
@@ -95,5 +95,35 @@ export const ENDPOINTS: Endpoint[] = [
     auth: { kind: "none", detail: "Public read of dashboard facts; never notes or contact history." },
     responses: [{ status: 200, meaning: "{ investors: [{ id, name, type, score, action }] }" }, { status: 503, meaning: "Database unavailable." }],
     limits: "Not cached: the list depends on whether the browser is in demo mode (a cookie).",
+  },
+  {
+    method: "POST", path: "/api/startups",
+    summary: "Creates a startup and has Gemini Flash draft its scoring rubric. Every number the model returns is clamped by code; if Gemini fails, a plain default rubric built from the profile is stored and labelled as such. No search runs.",
+    auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
+    request: '{ "name", "pitch", "sector", "stage": "pre_seed"|"seed"|"series_a"|"series_b_plus", "geography"?, "round_size"?, "ask"? }',
+    responses: [{ status: 201, meaning: "{ slug, rubric_source: gemini|default, note }" }, { status: 400, meaning: "Validation failed (issues listed per field)." }, { status: 401, meaning: "Wrong passcode." }, { status: 409, meaning: "The limit of 25 startups is reached." }, { status: 429, meaning: "Too many wrong passcodes." }, { status: 503, meaning: "Not enabled." }],
+    limits: "One Gemini call. Writes only the startup tables; never investors, signals or the founder's own scores.",
+  },
+  {
+    method: "POST", path: "/api/startups/[slug]/evaluate",
+    summary: "Judges the evidence already stored (verified signals from the last 30 days) against this startup with Gemini, then scores every searched investor with the startup's rubric. Resumable and cached: judged signals are not asked again.",
+    auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
+    responses: [{ status: 202, meaning: "Started; progress is in the startup's workflow steps." }, { status: 200, meaning: "{ state: already_running }" }, { status: 404, meaning: "No such startup." }, { status: 401, meaning: "Wrong passcode." }],
+    limits: "No search and no Tavily credit. At most 80 Gemini calls and 4 minutes per evaluation; whatever is not finished is reported as not judged, never guessed.",
+  },
+  {
+    method: "POST", path: "/api/startups/[slug]/rubric",
+    summary: "Saves an edited rubric, or asks Gemini for a new one with { action: 'regenerate' }. Numbers and keyword edits re-score at once from cached judgements; changing what a topic class means clears the judgements so the next evaluation asks Gemini again.",
+    auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
+    request: '{ "rubric": { ... } }  or  { "action": "regenerate" }',
+    responses: [{ status: 200, meaning: "{ rubric_source, rescored, needs_evaluation }" }, { status: 502, meaning: "Gemini could not write a new rubric; the current one is kept." }, { status: 400, meaning: "Neither a rubric nor an action." }, { status: 404, meaning: "No such startup." }, { status: 401, meaning: "Wrong passcode." }],
+    limits: "Whatever is submitted is clamped by code before it can reach the scoring arithmetic (weights total 100, thresholds ordered, caps non-increasing).",
+  },
+  {
+    method: "DELETE", path: "/api/startups/[slug]",
+    summary: "Deletes a startup with its rubric, judgements and scores. Shared investors and evidence are untouched.",
+    auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
+    responses: [{ status: 200, meaning: "{ deleted: 1 }" }, { status: 404, meaning: "No such startup." }, { status: 401, meaning: "Wrong passcode." }],
+    limits: "Only the startup's own rows.",
   },
 ];

@@ -219,7 +219,56 @@ test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, re
   expect(await page.locator("tbody tr").count()).toBe(88); // the real investors are back, untouched, with the six labelled demo accounts last
 });
 
-for (const path of ["/", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare"]) {
+test("startups: add one, read its rubric and exact workflow, evaluate it, edit the rubric, delete it", async ({ page }) => {
+  const done = failOnConsoleErrors(page);
+  await page.goto("/startups");
+  await expect(page.getByText("Main workspace: Seed-stage B2B logistics SaaS")).toBeVisible();
+  await page.getByRole("link", { name: "Add a startup" }).click();
+
+  await page.getByLabel("Startup name").fill("Ledgerly");
+  await page.getByLabel("What it does").fill("Payments infrastructure that lets Indian SMEs reconcile invoices automatically.");
+  await page.getByLabel("Sector").fill("B2B payments infrastructure");
+  await page.getByRole("button", { name: "Create startup and its rubric" }).click();
+  await expect(page).toHaveURL(/\/startups\/ledgerly$/);
+
+  // the exact workflow: seven steps, each saying who does it and what it costs
+  const steps = page.locator("ol > li");
+  await expect(steps).toHaveCount(7);
+  await expect(steps.nth(1)).toContainText("by Gemini Flash");
+  await expect(steps.nth(3)).toContainText("No search credits");
+  // keys are empty in this server, so Gemini cannot write the rubric: the page says so instead of pretending
+  await expect(steps.nth(1)).toContainText("gemini_no_credentials");
+  await expect(page.getByText("Default (Gemini unavailable)")).toBeVisible();
+  await expect(page.getByText("Not evaluated yet")).toBeVisible();
+
+  await page.getByRole("button", { name: "Run evaluation" }).click();
+  await expect(page.getByText(/Starting|Evaluation running|Started/).first()).toBeVisible();
+  await expect.poll(async () => { await page.reload(); return await steps.nth(5).textContent(); }, { timeout: 30_000 }).toMatch(/Scored 81 investors/);
+  await expect(steps.nth(2)).toContainText("1 has not been searched yet"); // never searched: left out, not shown as quiet
+  await expect(steps.nth(4)).toContainText("could not be judged"); // no model available: said plainly, evidence left out of the scores
+  await expect(page.getByRole("heading", { name: "Investors for Ledgerly" })).toBeVisible();
+  await expect(page.getByText(/not been judged for this startup yet/).first()).toBeAttached();
+
+  // editing numbers re-scores at once, with no model call
+  await page.getByText("Edit the rubric").click();
+  await page.getByLabel("Reach out now at").fill("85");
+  await page.getByRole("button", { name: "Save rubric and re-score" }).click();
+  await expect(page.getByText("Every score was recalculated from your rubric.")).toBeVisible();
+  await expect(page.getByText("Edited by you", { exact: true })).toBeVisible();
+  await expect(page.getByText("score ≥ 85")).toBeVisible();
+
+  // invalid input is rejected by the server with a clear reason
+  const bad = await page.request.post("/api/startups", { data: { name: "x", pitch: "short", sector: "s", stage: "ipo" } });
+  expect(bad.status()).toBe(400);
+
+  await page.getByRole("button", { name: "Delete startup" }).click();
+  await page.getByRole("button", { name: "Yes, delete" }).click();
+  await expect(page).toHaveURL(/\/startups$/);
+  await expect(page.getByText("No other startups yet")).toBeVisible();
+  done();
+});
+
+for (const path of ["/", "/startups", "/startups/new", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare"]) {
   test(`phone width: ${path} has no horizontal page scroll and no console errors`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();

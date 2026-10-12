@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/board", label: "Board" },
   { href: "/signals", label: "Signals" },
   { href: "/quiet", label: "Quiet investors" },
+  { href: "/startups", label: "Startups" },
   { href: "/runs", label: "Runs & audit" },
 ];
 
