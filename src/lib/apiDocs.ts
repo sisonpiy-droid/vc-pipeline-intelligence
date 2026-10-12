@@ -109,6 +109,16 @@ export const ENDPOINTS: Endpoint[] = [
     limits: "Not cached: the list depends on whether the browser is in demo mode (a cookie).",
   },
   {
+    method: "POST", path: "/api/chat",
+    plain: "Ask about your pipeline", story: "The chat box. You ask a question in plain words and Gemini Flash answers from the dashboard's own data only. If Gemini is down, you get a plain summary of the same data instead.",
+    summary: "Answers a question about the pipeline with Gemini Flash. The model is given the dashboard's facts (scores, actions, lead evidence, relationship status) and never personal notes, contact history or contact emails. Names it cites are checked against the data before they become links.",
+    auth: { kind: "none", detail: "Public, like the dashboard it reads. Rate-limited per visitor." },
+    request: '{ "message": "Who should I email this week?", "history"?: [{ "role": "user"|"assistant", "text": "…" }] }   (message up to 500 characters, up to 6 earlier turns)',
+    responses: [{ status: 200, meaning: "{ answer, links: [{ id, name }], source: gemini|summary }" }, { status: 400, meaning: "Empty or too long a question." }, { status: 429, meaning: "More than 15 questions in 10 minutes from one visitor (Retry-After header)." }, { status: 503, meaning: "The pipeline data could not be read." }],
+    limits: "15 questions per 10 minutes per visitor (per server instance). Treats text from the web as data, never as instructions. Reads only; it changes nothing.",
+    example: `curl -X POST -H "content-type: application/json" -d '{"message":"Who should I email this week?"}' https://…/api/chat`,
+  },
+  {
     method: "POST", path: "/api/startups",
     plain: "Add a startup", story: "Saves a new startup and asks Gemini to draft its scoring rubric. If Gemini is down, a plain default rubric is used and labelled.",
     summary: "Creates a startup and has Gemini Flash draft its scoring rubric. Every number the model returns is clamped by code; if Gemini fails, a plain default rubric built from the profile is stored and labelled as such. No search runs.",

@@ -4,6 +4,7 @@ import { Pulse } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { CommandPalette } from "@/components/CommandPalette";
 import { DemoBar } from "@/components/DemoBar";
+import { ChatWidget } from "@/components/ChatWidget";
 import { CompareTray } from "@/components/CompareTray";
 import { MobileMenu, SideNav } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -74,6 +75,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {children}
             </main>
             <CompareTray />
+            <ChatWidget />
             <footer className="mx-auto max-w-6xl border-t border-line px-4 py-6 text-xs leading-relaxed text-muted sm:px-8">
               Signals come from public web pages, each linked to its source. Gemini Flash classifies evidence; scores are computed by fixed, documented rules.
             </footer>

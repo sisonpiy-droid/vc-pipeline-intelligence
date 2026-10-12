@@ -49,6 +49,30 @@ test("a failed search is never shown as quiet; partial coverage is its own state
   await expect(quiet).not.toContainText("Lightspeed India Partners");
 });
 
+test("chat: opens from every page, answers from the data (a plain summary when Gemini is unavailable), links to the investors, clears and closes", async ({ page }) => {
+  const done = failOnConsoleErrors(page);
+  await page.goto("/pipeline");
+  await page.getByRole("button", { name: "Ask about your pipeline" }).click();
+  const chat = page.getByRole("dialog", { name: "Ask about your pipeline" });
+  await expect(chat.getByText("It cannot send mail or see your private notes")).toBeVisible();
+  await chat.getByRole("button", { name: "Who should I email this week?" }).click();
+  // this server has no Gemini key, so it must say so and still answer from the real data instead of failing
+  await expect(chat.getByText(/could not reach Gemini/)).toBeVisible();
+  await expect(chat.getByText(/of \d+ investors have a fresh, relevant signal/)).toBeVisible();
+  await expect(chat.getByRole("link", { name: "Blume Ventures" })).toHaveAttribute("href", /\/investors\//);
+  await expect(chat.getByText("Plain summary: the model was unavailable.")).toBeVisible();
+  // an empty question is not sent
+  await expect(chat.getByRole("button", { name: "Send the question" })).toBeDisabled();
+  await chat.getByRole("button", { name: "Clear the conversation" }).click();
+  await expect(chat.getByText("Ask in plain words.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(chat).toHaveCount(0);
+  // the API itself rejects an oversized question
+  const bad = await page.request.post("/api/chat", { data: { message: "x".repeat(501) } });
+  expect(bad.status()).toBe(400);
+  done();
+});
+
 test("investor page: score breakdown, evidence with a verbatim quote, and the founder's data is read-only until edited", async ({ page }) => {
   await page.goto("/pipeline?q=Blume");
   await page.getByRole("link", { name: "Blume Ventures" }).first().click();

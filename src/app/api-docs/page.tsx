@@ -13,7 +13,7 @@ const VIEWS = [{ key: "", label: "All" }, { key: "none", label: "Public" }, { ke
 const METHOD = { GET: "bg-info-soft text-info", POST: "bg-good-soft text-good", DELETE: "bg-bad-soft text-bad" } as const;
 
 const GROUPS: { title: string; sub: string; match: (p: string) => boolean }[] = [
-  { title: "Pipeline and refresh", sub: "Health, the scheduled and manual refresh, and re-scoring.", match: (p) => /^\/api\/(health|cron|refresh|rescore|palette)/.test(p) },
+  { title: "Pipeline and refresh", sub: "Health, the scheduled and manual refresh, and re-scoring.", match: (p) => /^\/api\/(health|cron|refresh|rescore|palette|chat)/.test(p) },
   { title: "Founder data", sub: "The columns a refresh can never write.", match: (p) => p.startsWith("/api/investors") },
   { title: "Startups", sub: "Add a startup, its rubric and its evaluation.", match: (p) => p.startsWith("/api/startups") },
   { title: "Demo mode", sub: "Synthetic accounts only: real data is never touched.", match: (p) => p.startsWith("/api/demo") },
