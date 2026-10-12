@@ -48,4 +48,23 @@ manual trigger, no secrets client-side or in logs, RLS on, exact-pinned dependen
 per-instance memory; strict CSP needs nonces (documented).
 
 **Q. What is *not* verified yet?** (answer honestly — see the checklist)
-Live Tavily/Gemini/Supabase behaviour and the Vercel deployment, until `npm run check:live` and a deployed refresh have run.
+Everything below has been exercised on the deployed app: Supabase, Tavily, Gemini, the write boundary, the chat, the news
+feeds and the mail drafts. Two things have not run yet because they are scheduled: the first cron refresh that actually
+searches for new signals (Thursday 15 October, 09:30 IST) and the first scheduled Telegram digest
+(13 October, about 11:00 IST). The Telegram bot itself is connected: a test message was delivered.
+
+**Q. Did you consider an MCP server?**
+Yes, and I left it out on purpose. The brief needs a scheduled job and a database, not an agent interface. An MCP server
+would be a second way into the data, and the strongest guarantee here is that a refresh writes four columns and never
+touches notes or contact history. The chat assistant is built so it cannot see private data either. Later, a read-only
+MCP layer over the public pages would be reasonable; it is not a requirement today.
+
+**Q. Where is the private contact data, and who can see it?**
+Imported into one locked table (`investor_directory`): row-level security on, no grants to any role the app uses for
+pages. The only code that reads it returns aggregate counts for the Investor database page. No names or emails are rendered
+anywhere, and the chat assistant's context never includes it.
+
+**Q. The email draft: does the app send anything?**
+No. It builds the text (greeting, why this investor, what we do, one ask with the Calendly link) and opens it in the
+founder's own mail app or Gmail. Marking an investor Contacted is a founder action with one-click undo, because opening a
+draft is not proof it was sent. A mail link can only carry plain text, so the preview and the Copy button give a real link.

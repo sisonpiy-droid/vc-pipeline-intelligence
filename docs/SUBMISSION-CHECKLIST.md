@@ -47,11 +47,11 @@ Legend: **[x] Tested** = an automated test or a manual check was actually run ·
 | Safe signal-only updates | [x] |
 | Scheduled + manual refresh | [x] logic & auth tested (22 API tests); [~] on Vercel |
 | Run monitoring & audit | [x] `/runs`, `audit_logs`, `source_coverage` |
-| Automated tests | [x] **302 passing**, typecheck clean, production build clean |
+| Automated tests | [x] **473 unit + 40 browser tests passing**, typecheck clean, production build clean |
 | `.env.example` | [x] |
 | README · API/architecture docs | [x] `README.md`, `docs/ARCHITECTURE.md` |
-| Components Map | [~] reflects only components that exist; live-status badges to be updated after verification |
-| Demo script / video plan | [x] `docs/DEMO.md` · [ ] recording |
+| Components Map | [x] updated 12 Oct: `docs/components-map.png` / `.html`; reflects only components that exist, with live-verification chips; two scheduled items marked "built" until their first run |
+| Demo script / video plan | [x] `docs/DEMO.md` · [x] two-minute video on the site at `/video` |
 | Viva explanation | [x] `docs/VIVA.md` |
 | Provider evaluation, cost estimate | [x] `docs/PROVIDERS.md` (some vendor figures are third-party/unverified and labelled) |
 | GitHub-ready repository | [x] local git history with checkpoints; **not pushed** |
