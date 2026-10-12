@@ -16,7 +16,7 @@ export interface Sender {
 }
 
 const DEFAULT_BRIEF =
-  "We are building B2B SaaS for logistics and supply-chain teams. We are a first-time founding team in India, currently raising a Seed round. [Add one line of traction: customers, pilots or revenue.]";
+  "We are building B2B SaaS for logistics companies. I am a first-time founder, currently raising a Seed round. [Add one line of traction: customers, pilots or revenue.]";
 
 /**
  * Who is writing, from the server's environment (set in Vercel): FOUNDER_NAME, STARTUP_NAME, STARTUP_BRIEF, CALENDLY_URL.
@@ -49,7 +49,7 @@ export function composeEmail(o: { opening: string; firm: string; kind: string; s
     greeting(o.firm, o.kind),
     o.opening.trim(),
     `A little about us: ${s.brief}`,
-    `If this is relevant to what you are looking at, I would value 20 minutes with you. You can pick a time that suits you here: ${s.calendly}`,
+    `If this is relevant to what you are looking at, I would value 30 minutes with you. You can pick a time that suits you here: ${s.calendly}`,
     ["Thank you for your time,", s.name, s.company].filter(Boolean).join("\n"),
   ].join("\n\n");
   return { subject: subjectFor(s), body };
