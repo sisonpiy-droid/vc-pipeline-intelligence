@@ -6,6 +6,8 @@ import { CommandPalette } from "@/components/CommandPalette";
 import { DemoBar } from "@/components/DemoBar";
 import { CompareTray } from "@/components/CompareTray";
 import { MobileMenu, SideNav } from "@/components/Nav";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { THEME_SCRIPT } from "@/lib/theme";
 import { RunBar } from "@/components/RunBar";
 import { ScrollProgress } from "@/components/motion/ScrollProgress";
 import { isOpenDemo } from "@/lib/demo";
@@ -40,7 +42,11 @@ function Brand({ compact = false }: { compact?: boolean }) {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const demo = await isDemoView();
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Runs before first paint: the saved choice, else the OS setting. Prevents a light flash for night-mode visitors. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-dvh font-sans antialiased">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:rounded focus:bg-surface focus:px-3 focus:py-2">
           Skip to content
@@ -52,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Brand />
             <CommandPalette wide />
             <div className="flex-1"><SideNav /></div>
+            <ThemeToggle wide />
             {/* A plain anchor, not a Link: this route has a side effect (it creates the demo data), so it must never be prefetched. */}
             {!demo && <a href="/demo/on" className="press rounded-lg border border-line px-3 py-2 text-center text-xs font-medium text-muted transition-colors hover:border-accent/50 hover:text-ink" title="Explore the app with clearly labelled synthetic investors; real data is not touched">Try demo mode</a>}
           </aside>
@@ -60,7 +67,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <ScrollProgress />
               <MobileMenu />
               <Brand compact />
-              <span className="ml-auto"><CommandPalette /></span>
+              <span className="ml-auto flex items-center gap-2"><CommandPalette /><ThemeToggle /></span>
             </header>
             <RunBar demo={demo} />
             <main id="main" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8 lg:py-12">

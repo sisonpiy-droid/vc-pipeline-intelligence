@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-/* Design tokens. One neutral (cool zinc), one accent (desaturated emerald = "act"), semantic amber / rose.
+/* Night mode is a switch the visitor controls: Tailwind's dark: variant follows data-theme, not only the OS setting. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Design tokens. One neutral (warm sand / charcoal), one accent (deep teal = "act"), semantic amber / rose.
    Status colour is always paired with an icon and a text label — never colour alone. */
 @theme inline {
   --color-bg: var(--bg);
@@ -24,56 +27,55 @@
 }
 
 :root {
-  --bg: #f5f6f6;
-  --surface: #ffffff;
-  --line: #e3e6e7;
-  --ink: #16191a;
-  --muted: #596165;
-  --accent: #0e7a59;
-  --good: #0c6b4e;
-  --good-soft: #dff2e9;
+  --bg: #f6f3ec;
+  --surface: #fffdf9;
+  --line: #e4ddcf;
+  --ink: #1c211f;
+  --muted: #5c5f55;
+  --accent: #0f6b6b;
+  --good: #0b6358;
+  --good-soft: #d6ece6;
   --warn: #85570a;
-  --warn-soft: #f8edd1;
-  --bad: #a3262d;
-  --bad-soft: #fbe7e7;
-  --info: #3a5560;
-  --info-soft: #e4ecef;
-  --neutral: #475056;
-  --neutral-soft: #eceeef;
-  --shadow: 0 1px 0 rgb(22 40 34 / 0.04), 0 18px 32px -22px rgb(22 50 40 / 0.18);
+  --warn-soft: #f6e8c9;
+  --bad: #a3282a;
+  --bad-soft: #f8e2dd;
+  --info: #3d566f;
+  --info-soft: #e1e8ef;
+  --neutral: #4d5048;
+  --neutral-soft: #ebe7dd;
+  --shadow: 0 1px 0 rgb(60 50 30 / 0.05), 0 18px 32px -22px rgb(60 45 20 / 0.24);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1011;
-    --surface: #151819;
-    --line: #262b2d;
-    --ink: #e9ecec;
-    --muted: #98a1a5;
-    --accent: #5fd1a1;
-    --good: #72dbae;
-    --good-soft: #0f2d22;
-    --warn: #efc063;
-    --warn-soft: #2f2810;
-    --bad: #ff9a9d;
-    --bad-soft: #3a1618;
-    --info: #9fc2cf;
-    --info-soft: #152a31;
-    --neutral: #b3bcc1;
-    --neutral-soft: #212629;
-    --shadow: 0 1px 0 rgb(255 255 255 / 0.03), 0 18px 32px -22px rgb(0 0 0 / 0.6);
-  }
+:root[data-theme="dark"] {
+  --bg: #11120f;
+  --surface: #191a16;
+  --line: #2b2b24;
+  --ink: #ece8dd;
+  --muted: #a3a094;
+  --accent: #4fc3b7;
+  --good: #62d0c0;
+  --good-soft: #12332f;
+  --warn: #e9b85a;
+  --warn-soft: #2e2610;
+  --bad: #f0a099;
+  --bad-soft: #3a1816;
+  --info: #9db9d6;
+  --info-soft: #172633;
+  --neutral: #b5b2a5;
+  --neutral-soft: #24241e;
+  --shadow: 0 1px 0 rgb(255 240 210 / 0.04), 0 18px 32px -22px rgb(0 0 0 / 0.65);
 }
 
+:root { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 html {
-  color-scheme: light dark;
   scroll-behavior: smooth;
 }
 body {
   /* Ambient depth: a faint accent glow from the top right, then the flat base colour. */
   background:
     radial-gradient(900px 460px at 88% -8%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 62%),
-    radial-gradient(700px 420px at -6% 14%, color-mix(in srgb, var(--info) 7%, transparent), transparent 60%),
+    radial-gradient(700px 420px at -6% 14%, color-mix(in srgb, var(--warn) 7%, transparent), transparent 60%),
     var(--bg);
   background-attachment: fixed;
   color: var(--ink);
@@ -90,9 +92,7 @@ body::after {
   opacity: 0.035;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
-@media (prefers-color-scheme: dark) {
-  body::after { opacity: 0.05; }
-}
+[data-theme="dark"] body::after { opacity: 0.05; }
 h1, h2, h3 { text-wrap: balance; }
 p, li, dd { text-wrap: pretty; }
 ::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
@@ -111,11 +111,9 @@ summary {
   letter-spacing: -0.02em;
 }
 .card-shadow {
-  box-shadow: var(--shadow), inset 0 1px 0 rgb(255 255 255 / 0.5);
+  box-shadow: var(--shadow), inset 0 1px 0 rgb(255 255 255 / 0.6);
 }
-@media (prefers-color-scheme: dark) {
-  .card-shadow { box-shadow: var(--shadow), inset 0 1px 0 rgb(255 255 255 / 0.04); }
-}
+[data-theme="dark"] .card-shadow { box-shadow: var(--shadow), inset 0 1px 0 rgb(255 255 255 / 0.04); }
 
 /* Motion: transform + opacity only, spring-like easing, staggered by --i. Disabled for reduced motion below. */
 @keyframes rise {
@@ -164,9 +162,7 @@ summary {
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.35), transparent);
   animation: shimmer 1.4s infinite;
 }
-@media (prefers-color-scheme: dark) {
-  .skeleton::after { background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent); }
-}
+[data-theme="dark"] .skeleton::after { background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.06), transparent); }
 /* Hero items start hidden and are revealed by GSAP; if the script never runs they un-hide themselves after 1.2 s. */
 .js-hide {
   opacity: 0;

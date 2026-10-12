@@ -181,6 +181,28 @@ test("phone: the menu button opens the grouped navigation and a link takes you t
   await ctx.close();
 });
 
+test("night mode: starts from the OS setting, the toggle switches it, and the choice is remembered", async ({ browser }) => {
+  const dark = await browser.newContext({ colorScheme: "dark" });
+  const d = await dark.newPage();
+  await d.goto("/");
+  await expect(d.locator("html")).toHaveAttribute("data-theme", "dark"); // set before first paint from the OS setting
+  await d.getByRole("button", { name: "Switch to light mode" }).first().click();
+  await expect(d.locator("html")).toHaveAttribute("data-theme", "light");
+  await d.reload();
+  await expect(d.locator("html")).toHaveAttribute("data-theme", "light"); // the saved choice beats the OS setting
+  const bg = await d.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  expect(bg).toBe("rgb(246, 243, 236)"); // the sand paper colour of the light palette
+  await dark.close();
+
+  const light = await browser.newContext({ colorScheme: "light" });
+  const l = await light.newPage();
+  await l.goto("/pipeline");
+  await l.getByRole("button", { name: "Switch to night mode" }).first().click();
+  await expect(l.locator("html")).toHaveAttribute("data-theme", "dark");
+  expect(await l.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(17, 18, 15)");
+  await light.close();
+});
+
 test("demo mode: five labelled Piyush accounts, mail drafts open the mail app, reset and simulate are demo-only, and real data never appears", async ({ page, request }) => {
   // On the main site the demo accounts are listed, but labelled, last, and kept out of the real counts and the "Start here" shortlist.
   await page.goto("/");
