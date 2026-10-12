@@ -7,6 +7,7 @@ import { EmailDraft } from "@/components/EmailDraft";
 import { TemplateDraft } from "@/components/TemplateDraft";
 import { templateDraft } from "@/lib/draft";
 import { FounderEdit } from "@/components/FounderEdit";
+import { OutreachFlow } from "@/components/OutreachFlow";
 import { ScoreTrend } from "@/components/ScoreTrend";
 import { SignalCard } from "@/components/SignalCard";
 import { TimelineLine } from "@/components/motion/TimelineLine";
@@ -132,7 +133,7 @@ export default async function InvestorPage({ params }: Props) {
             <div className="mt-5 max-w-[62ch] rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Suggested opening angle</p>
-                <span className="flex items-center gap-1"><EmailDraft to={i.contact_email as string | null} angle={outcome.angle} firm={String(i.firm_name)} kind={String(i.entity_type)} demo={!!i.is_demo} /></span>
+                <span className="flex items-center gap-1"><EmailDraft id={String(i.id)} status={String(i.relationship_status)} to={i.contact_email as string | null} angle={outcome.angle} firm={String(i.firm_name)} kind={String(i.entity_type)} demo={!!i.is_demo} /></span>
               </div>
               <p className="mt-1.5 text-sm leading-relaxed">{outcome.angle}</p>
               <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified evidence only. Edit before using; nothing is sent.</p>
@@ -141,8 +142,9 @@ export default async function InvestorPage({ params }: Props) {
           {!(outcome?.angle && action === "reach_out_now") && (() => {
             const lead = verified.find((l) => (l.relevance_score ?? 0) >= 40 && l.published_at);
             const body = lead ? templateDraft({ relationship_status: String(i.relationship_status), firm_name: String(i.firm_name), entity_type: String(i.entity_type), lead: { headline: lead.headline, summary: lead.summary, published_at: lead.published_at! } }) : null;
-            return body ? <div className="max-w-[62ch]"><TemplateDraft to={i.contact_email as string | null} body={body} demo={!!i.is_demo} /></div> : null;
+            return body ? <div className="max-w-[62ch]"><TemplateDraft id={String(i.id)} status={String(i.relationship_status)} to={i.contact_email as string | null} body={body} demo={!!i.is_demo} /></div> : null;
           })()}
+          <OutreachFlow id={String(i.id)} status={String(i.relationship_status)} lastContact={(i.last_contact_date as string | null) ?? null} today={today()} needPass={!isOpenDemo()} />
           {failedErr && (
             <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-bad">
               {failedErr.title}. <span className="text-muted">{failedErr.action}</span>

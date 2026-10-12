@@ -81,7 +81,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
               <div className="mt-4 rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Suggested opening angle</p>
-                  <span className="flex items-center gap-1"><EmailDraft to={r.contact_email} angle={r.angle} firm={r.firm_name} kind={r.entity_type} demo={r.is_demo} /></span>
+                  <span className="flex items-center gap-1"><EmailDraft id={r.id} status={r.relationship_status} to={r.contact_email} angle={r.angle} firm={r.firm_name} kind={r.entity_type} demo={r.is_demo} /></span>
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed">{r.angle}</p>
                 <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified signal above only. Edit before using; nothing is sent.</p>
@@ -90,7 +90,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
 
             {!r.angle && (() => {
               const body = templateDraft(r);
-              return body ? <TemplateDraft to={r.contact_email} body={body} demo={r.is_demo} /> : null;
+              return body ? <TemplateDraft id={r.id} status={r.relationship_status} to={r.contact_email} body={body} demo={r.is_demo} /> : null;
             })()}
 
             {r.explanation && (

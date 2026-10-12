@@ -1,6 +1,9 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+// A client component rendered outside the app router: give it a router that does nothing.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 import { draftLinks, EmailDraft } from "@/components/EmailDraft";
 import type { Db } from "@/lib/db";
 import { DEMO_EMAIL, DEMO_SPECS, DEMO_TEXT, resetDemo, simulateRun } from "@/lib/demoData/seed";
@@ -197,10 +200,10 @@ describe("opening a draft in the founder's own mail app", () => {
   });
 
   it("the rendered control labels demo drafts and points at the right recipient", () => {
-    const html = renderToStaticMarkup(createElement(EmailDraft, { to: DEMO_EMAIL, angle: `${DEMO_TEXT} Hello Piyush.`, demo: true }));
+    const html = renderToStaticMarkup(createElement(EmailDraft, { id: "00000000-0000-4000-8000-000000000000", status: "not_contacted", to: DEMO_EMAIL, angle: `${DEMO_TEXT} Hello Piyush.`, demo: true }));
     expect(html).toContain("mailto:sisonpiy@gmail.com");
     expect(html).toContain("%5BDEMO%5D");
-    expect(html).toContain("Open in email app");
+    expect(html).toContain("Send mail");
     expect(html).toContain("This application never sends email");
   });
 });

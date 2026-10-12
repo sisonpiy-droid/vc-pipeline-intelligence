@@ -196,10 +196,10 @@ test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, re
   // Mail: a real investor's draft opens with NO address; a demo account's opens to the test address.
   await page.goto("/pipeline?q=Seafund");
   await page.getByRole("link", { name: "Seafund" }).first().click();
-  await expect(page.getByRole("link", { name: "Open in email app" }).first()).toHaveAttribute("href", /^mailto:\?subject=/);
+  await expect(page.getByRole("link", { name: "Send mail" }).first()).toHaveAttribute("href", /^mailto:\?subject=/);
   await page.goto("/pipeline?q=Piyush: High");
   await page.getByRole("link", { name: "Piyush: High priority (demo)" }).first().click();
-  await expect(page.getByRole("link", { name: "Open in email app" }).first()).toHaveAttribute("href", /^mailto:sisonpiy@gmail\.com\?subject=/);
+  await expect(page.getByRole("link", { name: "Send mail" }).first()).toHaveAttribute("href", /^mailto:sisonpiy@gmail\.com\?subject=/);
 
   await page.goto("/demo/on");
   await expect(page).toHaveURL(/\/$/);
@@ -213,9 +213,9 @@ test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, re
 
   await page.getByRole("link", { name: "Piyush: High priority (demo)" }).click();
   await expect(page.getByText("Demo account").first()).toBeVisible();
-  const mail = page.getByRole("link", { name: "Open in email app" });
+  const mail = page.getByRole("link", { name: "Send mail" });
   await expect(mail).toHaveAttribute("href", /^mailto:sisonpiy@gmail\.com\?subject=%5BDEMO%5D/);
-  await expect(page.getByRole("link", { name: /Open in Gmail/ })).toHaveAttribute("href", /to=sisonpiy%40gmail\.com/);
+  await expect(page.getByRole("link", { name: /^Gmail/ })).toHaveAttribute("href", /to=sisonpiy%40gmail\.com/);
   await page.getByRole("button", { name: "Edit relationship" }).click();
   await expect(page.getByLabel("Personal notes")).toHaveAttribute("placeholder", "This is a demo account");
 
@@ -279,6 +279,34 @@ test("startups: add one, read its rubric and exact workflow, evaluate it, edit t
   await page.getByRole("button", { name: "Yes, delete" }).click();
   await expect(page).toHaveURL(/\/startups$/);
   await expect(page.getByText("No other startups yet")).toBeVisible();
+  done();
+});
+
+test("send mail moves the investor to Contacted (with undo), and replies are logged into the outreach workflow", async ({ page }) => {
+  const done = failOnConsoleErrors(page);
+  await page.goto("/pipeline?q=Athera");
+  await page.getByRole("link", { name: "Athera Venture Partners" }).first().click();
+  const flow = page.getByRole("region", { name: "Outreach and replies" });
+  await expect(flow.getByText("Draft ready (current step)")).toBeVisible();
+  await expect(flow.getByText("Replies come to your own inbox. This app cannot read your mailbox")).toBeVisible();
+
+  // The real mail app must not open during a test: stop the browser's own navigation, keep the app's click handler.
+  await page.getByRole("link", { name: "Send mail" }).first().evaluate((a) => a.addEventListener("click", (e) => e.preventDefault()));
+  await page.getByRole("link", { name: "Send mail" }).first().click();
+  await expect(page.getByText("Moved to Contacted.")).toBeVisible();
+  await expect(flow.getByText("Sent. Waiting for a reply.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByText("Put back to Not contacted.")).toBeVisible();
+  await expect(flow.getByText("Nothing has been sent yet.")).toBeVisible();
+
+  await page.getByRole("link", { name: "Send mail" }).first().evaluate((a) => a.addEventListener("click", (e) => e.preventDefault()));
+  await page.getByRole("link", { name: "Send mail" }).first().click();
+  await expect(flow.getByText("Sent. Waiting for a reply.")).toBeVisible();
+  await flow.getByRole("button", { name: "They replied" }).click();
+  await expect(flow.getByText("They replied and you are talking.")).toBeVisible();
+  await page.reload();
+  await expect(flow.getByText("They replied and you are talking.")).toBeVisible(); // persisted
   done();
 });
 

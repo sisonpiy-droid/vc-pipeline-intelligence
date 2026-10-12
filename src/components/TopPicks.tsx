@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { templateDraft } from "@/lib/draft";
 import { ACTION_LABEL, SECTOR_LABEL, TIER_LABEL, fmtDate, hostOf } from "@/lib/format";
 import type { Pick } from "@/lib/picks";
 import { CompareToggle } from "./CompareToggle";
@@ -60,6 +61,8 @@ function Chips({ pick }: { pick: Pick }) {
 function PickCard({ pick, n, big }: { pick: Pick; n: number; big?: boolean }) {
   const r = pick.row;
   const l = r.lead;
+  // The email is built from the Gemini opening line when there is one, else from the source alone (null = nothing safe to say).
+  const mail = r.angle ? "angle" : templateDraft(r);
   return (
     <Interactive>
       <div className="reveal card-shadow h-full rounded-2xl border border-accent/40 bg-surface p-5 sm:p-6" style={{ "--i": 0 } as CSSProperties}>
@@ -79,7 +82,10 @@ function PickCard({ pick, n, big }: { pick: Pick; n: number; big?: boolean }) {
                   <span className="num">{fmtDate(l.published_at)}</span><span aria-hidden>·</span>
                   <ExternalLink href={l.url}>{hostOf(l.url)}</ExternalLink>
                 </p>
-                <div className="mt-2.5"><Chips pick={pick} /></div>
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Chips pick={pick} />
+                  {mail && <EmailDraft id={r.id} status={r.relationship_status} to={r.contact_email} angle={r.angle ?? undefined} body={r.angle ? undefined : mail} firm={r.firm_name} kind={r.entity_type} demo={r.is_demo} />}
+                </div>
                 {l.why && <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-muted">{l.why}</p>}
               </>
             )}
@@ -87,7 +93,6 @@ function PickCard({ pick, n, big }: { pick: Pick; n: number; big?: boolean }) {
               <div className="mt-4 rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Opening line</p>
-                  <span className="flex items-center gap-1"><EmailDraft to={r.contact_email} angle={r.angle} firm={r.firm_name} kind={r.entity_type} demo={r.is_demo} /></span>
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed">{r.angle}</p>
               </div>
