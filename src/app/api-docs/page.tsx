@@ -93,6 +93,11 @@ export default async function ApiDocs({ searchParams }: { searchParams: Promise<
           );
         })}
       </nav>
+      <dl className="mb-10 grid gap-x-8 gap-y-3 text-sm md:grid-cols-3">
+        <div><dt className="flex items-center gap-2 font-medium"><Pill tone="neutral">Public</Pill></dt><dd className="mt-1.5 text-xs leading-relaxed text-muted">Anyone can call it. It reveals only facts the dashboard already shows, never a key or a note.</dd></div>
+        <div><dt className="flex items-center gap-2 font-medium"><Pill tone="info">Passcode required</Pill></dt><dd className="mt-1.5 text-xs leading-relaxed text-muted">For actions a person takes in the app (refresh now, edit relationship, add a startup). The browser sends the admin passcode you type; it is never stored. On this open demo site the passcode is switched off, so these work without one.</dd></div>
+        <div><dt className="flex items-center gap-2 font-medium"><Pill tone="warn">Secret required</Pill></dt><dd className="mt-1.5 text-xs leading-relaxed text-muted">For machines, not people: the scheduled refresh, its internal hand-off and re-scoring. The caller must send a long server-side secret, which no page or browser ever holds, so these cannot be triggered from the website.</dd></div>
+      </dl>
       <div className="space-y-12">
         {GROUPS.map((g) => {
           const list = shown.filter((e) => g.match(e.path));
