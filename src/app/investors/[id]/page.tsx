@@ -203,7 +203,7 @@ export default async function InvestorPage({ params }: Props) {
                 <li key={s.id} className="reveal relative" style={idx(Math.min(n, 6))}>
                   <span aria-hidden className={`absolute -left-[1.9rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-bg sm:-left-[2.4rem] ${s.verification_status === "needs_review" ? "bg-warn" : "bg-accent"}`} />
                   <p className="num mb-2 text-xs text-muted">{fmtDate(s.published_at)}</p>
-                  <SignalCard s={s} showInvestor={false} />
+                  <SignalCard s={s} showInvestor={false} defaultOpen={n === 0} />
                 </li>
               ))}
             </ol>

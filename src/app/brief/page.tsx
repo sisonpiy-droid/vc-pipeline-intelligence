@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { isDemoView } from "@/lib/demoData/mode";
 import type { CSSProperties } from "react";
-import { ArrowDown, ArrowRight, ArrowUp } from "@phosphor-icons/react/dist/ssr";
+import { ArrowDown, ArrowRight, ArrowUp, ArrowUpRight, CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { Fresh } from "@/components/Fresh";
 import { PrintButton } from "@/components/PrintButton";
-import { Empty, Eyebrow, ExternalLink, Pill, SetupError } from "@/components/ui";
+import { Empty, PageTitle, Pill, SetupError, Stat } from "@/components/ui";
 import { getBrief, type Mover } from "@/lib/brief";
-import { ACTION_LABEL, ACTION_TONE, TYPE_LABEL, ago, fmtDate, fmtDateTime, hostOf } from "@/lib/format";
+import { ACTION_LABEL, ACTION_TONE, TYPE_LABEL, ago, fmtDate, fmtDateTime, hostOf, safeHref } from "@/lib/format";
 import { load, today } from "@/lib/page";
 import type { PipelineRow } from "@/lib/read";
 
@@ -17,13 +17,31 @@ const idx = (n: number) => ({ "--i": n }) as CSSProperties;
 
 function Section({ id, title, count, children, i = 0 }: { id: string; title: string; count?: number; children: React.ReactNode; i?: number }) {
   return (
-    <section aria-labelledby={id} className="reveal" style={idx(i)}>
-      <div className="mb-3 flex items-baseline justify-between border-b border-line pb-2">
-        <h2 id={id} className="text-base font-semibold tracking-tight">{title}</h2>
-        {count !== undefined && <span className="num text-xs text-muted">{count}</span>}
+    <section id={id} aria-labelledby={`${id}-t`} className="reveal scroll-mt-24" style={idx(i)}>
+      <div className="mb-3 flex items-center gap-2.5">
+        <h2 id={`${id}-t`} className="text-sm font-semibold tracking-tight">{title}</h2>
+        {count !== undefined && <span className="num rounded-full bg-neutral-soft px-2 py-0.5 text-[0.7rem] text-muted">{count}</span>}
       </div>
       {children}
     </section>
+  );
+}
+
+/** A row that is one line when closed and shows its detail when opened. */
+function Fold({ lead, title, sub, right, children }: { lead?: React.ReactNode; title: React.ReactNode; sub?: React.ReactNode; right?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <details className="group border-b border-line last:border-b-0">
+      <summary className="flex cursor-pointer list-none items-center gap-3 py-3 [&::-webkit-details-marker]:hidden">
+        {lead}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{title}</span>
+          {sub && <span className="mt-0.5 block truncate text-xs text-muted">{sub}</span>}
+        </span>
+        {right}
+        <CaretDown aria-hidden size={13} weight="bold" className="shrink-0 text-muted transition-transform duration-300 group-open:rotate-180" />
+      </summary>
+      <div className="space-y-3 pb-4 pl-0 pr-6 text-sm sm:pl-[3.25rem]">{children}</div>
+    </details>
   );
 }
 
@@ -55,17 +73,21 @@ function MoverRow({ m }: { m: Mover }) {
 
 function PersonRow({ r }: { r: PipelineRow }) {
   return (
-    <li className="py-3 text-sm">
-      <div className="flex items-baseline justify-between gap-3">
-        <Link href={`/investors/${r.id}`} className="font-medium hover:underline">{r.firm_name}</Link>
-        <span className="num text-lg font-medium">{r.follow_up_score ?? "–"}</span>
-      </div>
-      {r.lead && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{r.lead.headline}</p>}
-      {r.angle && <p className="mt-1.5 border-l-2 border-accent pl-2.5 text-xs leading-relaxed"><span className="font-medium text-good">Angle: </span>{r.angle}</p>}
-      <div className="mt-1.5 flex flex-wrap items-center gap-2">
-        {r.recommended_action && <Pill tone={ACTION_TONE[r.recommended_action]}>{ACTION_LABEL[r.recommended_action]}</Pill>}
-        <Fresh at={r.last_checked} />
-      </div>
+    <li>
+      <Fold
+        lead={<span className="num w-9 shrink-0 text-center text-lg font-medium">{r.follow_up_score ?? "–"}</span>}
+        title={r.firm_name}
+        sub={r.lead?.headline}
+        right={r.recommended_action ? <span className="hidden sm:block"><Pill tone={ACTION_TONE[r.recommended_action]}>{ACTION_LABEL[r.recommended_action]}</Pill></span> : null}
+      >
+        {r.lead && <p className="max-w-[65ch] leading-relaxed">{r.lead.headline}</p>}
+        {r.angle && <p className="max-w-[65ch] border-l-2 border-accent pl-3 leading-relaxed text-ink/85"><span className="font-medium text-good">Opening line: </span>{r.angle}</p>}
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted">
+          {r.recommended_action && <span className="sm:hidden"><Pill tone={ACTION_TONE[r.recommended_action]}>{ACTION_LABEL[r.recommended_action]}</Pill></span>}
+          <Fresh at={r.last_checked} />
+          <Link href={`/investors/${r.id}`} className="font-medium text-accent hover:underline">Open the evidence</Link>
+        </p>
+      </Fold>
     </li>
   );
 }
@@ -85,37 +107,40 @@ export default async function Brief() {
 
   return (
     <>
-      <header className="reveal mb-10 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <Eyebrow>Weekly brief</Eyebrow>
-          <h1 className="mt-3 max-w-[24ch] text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.4rem]">What changed since the last refresh</h1>
-          <p className="num mt-3 max-w-[70ch] text-xs leading-relaxed text-muted">
-            Run {fmtDateTime(b.run.completed_at)} ({b.run.trigger_type}, {ago(b.run.completed_at)}) · {b.run.investors_total} investors searched
-            {b.run.skipped ? ` · ${b.run.skipped} skipped to save search credits (checked recently or quiet)` : ""} · {b.run.search_calls} searches
-            {b.previous ? ` · compared with ${fmtDateTime(b.previous.completed_at)}` : " · first run, so there is nothing to compare with yet"}
-          </p>
-        </div>
+      <PageTitle
+        eyebrow="Weekly brief"
+        title="What changed since the last refresh"
+        sub={<>Run of {fmtDateTime(b.run.completed_at)} ({b.run.trigger_type}, {ago(b.run.completed_at)}): {b.run.investors_total} investors searched with {b.run.search_calls} searches{b.run.skipped ? `, ${b.run.skipped} skipped to save credits` : ""}. {b.previous ? `Compared with ${fmtDateTime(b.previous.completed_at)}.` : "First run, so there is nothing to compare with yet."}</>}
+      >
         <PrintButton />
-      </header>
+      </PageTitle>
 
-      <div className="grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <div className="mb-12 grid grid-cols-2 gap-x-8 gap-y-5 lg:grid-cols-4">
+        <Stat label="Contact now" value={b.contact.length} href="#contact-h" tone={b.contact.length ? "good" : undefined} />
+        <Stat label="Follow-ups due" value={b.followUps.length} href={b.followUps.length ? "#fu-h" : undefined} />
+        <Stat label="New signals" value={b.newSignals.length} href="#new-h" />
+        <Stat label="Needs attention" value={b.attention.length} href="#att-h" tone={b.attention.length ? "warn" : undefined} />
+      </div>
+
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="space-y-12">
           <Section id="contact-h" title="Contact now" count={b.contact.length} i={1}>
             {b.contact.length === 0 ? (
               <p className="text-sm text-muted">Nobody clears the bar for an immediate approach this week. That is a result, not an error.</p>
             ) : (
-              <ul className="divide-y divide-line">{b.contact.map((r) => <PersonRow key={r.id} r={r} />)}</ul>
+              <ul>{b.contact.map((r) => <PersonRow key={r.id} r={r} />)}</ul>
             )}
           </Section>
 
           {b.followUps.length > 0 && (
             <Section id="fu-h" title="Follow-ups due" count={b.followUps.length} i={2}>
               <p className="mb-2 text-xs leading-relaxed text-muted">Investors you already contacted, past the point where silence is normal. Based on the last-contact date you entered.</p>
-              <ul className="divide-y divide-line">
+              <ul>
                 {b.followUps.map(({ row, cadence: c }) => (
-                  <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 text-sm">
-                    <Link href={`/investors/${row.id}`} className="font-medium hover:underline">{row.firm_name}</Link>
-                    <Pill tone={c.tone} title={`${row.relationship_status.replace(/_/g, " ")}, last contact ${fmtDate(row.last_contact_date)}`}>{c.label}</Pill>
+                  <li key={row.id}>
+                    <Fold title={row.firm_name} sub={`${row.relationship_status.replace(/_/g, " ")}, last contact ${fmtDate(row.last_contact_date)}`} right={<Pill tone={c.tone}>{c.label}</Pill>}>
+                      <Link href={`/investors/${row.id}`} className="text-xs font-medium text-accent hover:underline">Open the investor</Link>
+                    </Fold>
                   </li>
                 ))}
               </ul>
@@ -126,20 +151,21 @@ export default async function Brief() {
             {b.newSignals.length === 0 ? (
               <p className="text-sm text-muted">This run found no new verified, relevant signal. Earlier signals are still on each investor's page until they leave the 30-day window.</p>
             ) : (
-              <ul className="divide-y divide-line">
-                {b.newSignals.map((s) => (
-                  <li key={s.url} className="py-3.5 text-sm">
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                      <Link href={`/investors/${s.investor_id}`} className="font-medium hover:underline">{s.firm_name}</Link>
-                      {s.new_capital && (
-                        <Pill tone="good" title="The investor announced a new fund, a close, or a larger cheque ceiling: capital is available to deploy">
-                          New fund capital
-                        </Pill>
-                      )}
-                      <span className="num text-xs text-muted">{fmtDate(s.published_at)}</span>
-                    </div>
-                    <p className="mt-1 leading-snug"><ExternalLink href={s.url}>{s.headline}</ExternalLink></p>
-                    <p className="mt-1 text-xs text-muted">{TYPE_LABEL[s.signal_type ?? "other"]} · {hostOf(s.url)} · relevance <span className="num">{s.relevance_score}</span></p>
+              <ul>
+                {b.newSignals.map((x) => (
+                  <li key={x.url}>
+                    <Fold
+                      lead={<span className="num w-9 shrink-0 text-center text-lg font-medium text-muted">{x.relevance_score}</span>}
+                      title={x.headline}
+                      sub={`${x.firm_name} · ${fmtDate(x.published_at)}`}
+                      right={x.new_capital ? <span className="hidden sm:block"><Pill tone="good" title="The investor announced a new fund, a close, or a larger cheque ceiling">New fund capital</Pill></span> : null}
+                    >
+                      <p className="text-xs text-muted">{TYPE_LABEL[x.signal_type ?? "other"]} · {hostOf(x.url)} · relevance <span className="num">{x.relevance_score}</span></p>
+                      <p className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+                        {safeHref(x.url) && <a href={safeHref(x.url)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-accent hover:underline">Open the source <ArrowUpRight aria-hidden size={12} weight="bold" /><span className="sr-only"> (opens in a new tab)</span></a>}
+                        <Link href={`/investors/${x.investor_id}`} className="font-medium text-accent hover:underline">Open {x.firm_name}</Link>
+                      </p>
+                    </Fold>
                   </li>
                 ))}
               </ul>
@@ -157,11 +183,11 @@ export default async function Brief() {
           </Section>
 
           <Section id="prep-h" title="Prepare a targeted message" count={b.prepare.length} i={4}>
-            {b.prepare.length === 0 ? <p className="text-sm text-muted">None this week.</p> : <ul className="divide-y divide-line">{b.prepare.slice(0, 6).map((r) => <PersonRow key={r.id} r={r} />)}</ul>}
+            {b.prepare.length === 0 ? <p className="text-sm text-muted">None this week.</p> : <ul>{b.prepare.slice(0, 6).map((r) => <PersonRow key={r.id} r={r} />)}</ul>}
           </Section>
 
           <Section id="hold-h" title="Don't chase" count={b.hold.length} i={5}>
-            {b.hold.length === 0 ? <p className="text-sm text-muted">Nobody on hold.</p> : <ul className="divide-y divide-line">{b.hold.map((r) => <PersonRow key={r.id} r={r} />)}</ul>}
+            {b.hold.length === 0 ? <p className="text-sm text-muted">Nobody on hold.</p> : <ul>{b.hold.map((r) => <PersonRow key={r.id} r={r} />)}</ul>}
           </Section>
 
           <Section id="att-h" title="Needs attention" count={b.attention.length} i={6}>
