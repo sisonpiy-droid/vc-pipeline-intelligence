@@ -20,11 +20,19 @@ export function ChatWidget() {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs, busy, open]);
   useEffect(() => { if (open) input.current?.focus(); }, [open]);
+  // The search box in the sidebar doubles as the assistant: it opens this panel (and sends the question, if it had one).
+  useEffect(() => {
+    const onAsk = (e: Event) => { setOpen(true); setPending(((e as CustomEvent<{ q?: string }>).detail?.q ?? "").trim() || null); };
+    window.addEventListener("vc:ask", onAsk);
+    return () => window.removeEventListener("vc:ask", onAsk);
+  }, []);
+  useEffect(() => { if (pending && open && !busy) { const q = pending; setPending(null); void ask(q); } }, [pending, open, busy]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);

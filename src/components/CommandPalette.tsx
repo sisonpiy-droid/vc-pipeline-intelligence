@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowElbowDownLeft, Command, MagnifyingGlass } from "@phosphor-icons/react";
+import { ArrowElbowDownLeft, ChatCircleDots, Command, MagnifyingGlass } from "@phosphor-icons/react";
 import { ACTION_LABEL, ENTITY_LABEL } from "@/lib/format";
 import { compareStore, useCompare } from "./compareStore";
 
 interface Inv { id: string; name: string; type: string; score: number | null; action: string | null }
-interface Item { key: string; label: string; hint: string; href: string; inv?: Inv }
+interface Item { key: string; label: string; hint: string; href: string; inv?: Inv; ask?: boolean }
 
 const PAGES: Item[] = [
   { key: "p-home", label: "Priority queue", hint: "Start here", href: "/" },
@@ -68,16 +68,26 @@ export function CommandPalette({ wide = false }: { wide?: boolean }) {
 
   const items = useMemo(() => {
     const inv: Item[] = (invs ?? []).map((i) => ({ key: i.id, label: i.name, hint: `${ENTITY_LABEL[i.type] ?? i.type}${i.score !== null ? ` · score ${i.score}` : ""}${i.action ? ` · ${ACTION_LABEL[i.action]}` : ""}`, href: `/investors/${i.id}`, inv: i }));
-    return rank([...PAGES, ...inv], q).slice(0, 12);
+    const found = rank([...PAGES, ...inv], q).slice(0, 11);
+    // The same box is also the assistant: a question goes to the chat. It leads when the text reads like a question, and trails otherwise.
+    const text = q.trim();
+    const ask: Item = { key: "ask", ask: true, href: "", label: text ? `Ask the assistant: “${text}”` : "Ask the assistant", hint: "Gemini answers from your pipeline data" };
+    const questionLike = !text || /\?$/.test(text) || text.split(/\s+/).length >= 3;
+    return questionLike ? [ask, ...found] : [...found, ask];
   }, [invs, q]);
 
   useEffect(() => setSel(0), [q]);
-  const go = (it: Item) => { close(); router.push(it.href); };
+  const go = (it: Item) => {
+    const question = q.trim();
+    close();
+    if (it.ask) window.dispatchEvent(new CustomEvent("vc:ask", { detail: { q: question } }));
+    else router.push(it.href);
+  };
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={`press inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-xs text-muted transition-colors hover:border-accent/50 hover:text-ink ${wide ? "w-full py-2" : "py-1.5"}`} aria-label="Open search (Ctrl K)">
-        <MagnifyingGlass aria-hidden size={13} weight="bold" /> Search
+      <button type="button" onClick={() => setOpen(true)} className={`press inline-flex items-center gap-2 rounded-lg border border-line bg-surface px-2.5 text-xs text-muted transition-colors hover:border-accent/50 hover:text-ink ${wide ? "w-full py-2" : "py-1.5"}`} aria-label="Search or ask (Ctrl K)">
+        <MagnifyingGlass aria-hidden size={13} weight="bold" /> Search or ask
         <kbd className="num ml-auto inline-flex items-center gap-0.5 rounded border border-line px-1 text-[0.65rem]"><Command aria-hidden size={9} weight="bold" />K</kbd>
       </button>
       {open && (
@@ -86,7 +96,7 @@ export function CommandPalette({ wide = false }: { wide?: boolean }) {
             <div className="flex items-center gap-2 border-b border-line px-4">
               <MagnifyingGlass aria-hidden size={16} weight="bold" className="text-muted" />
               <input
-                ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Jump to an investor or page…" autoComplete="off" role="combobox" aria-expanded aria-controls="palette-list" aria-activedescendant={items[sel] ? `pal-${items[sel]!.key}` : undefined}
+                ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search investors and pages, or ask a question…" autoComplete="off" role="combobox" aria-expanded aria-controls="palette-list" aria-activedescendant={items[sel] ? `pal-${items[sel]!.key}` : undefined}
                 onKeyDown={(e) => {
                   if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(items.length - 1, s + 1)); }
                   else if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(0, s - 1)); }
@@ -102,7 +112,7 @@ export function CommandPalette({ wide = false }: { wide?: boolean }) {
                 return (
                   <li key={it.key} id={`pal-${it.key}`} role="option" aria-selected={n === sel} onMouseEnter={() => setSel(n)} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm ${n === sel ? "bg-neutral-soft" : ""}`}>
                     <button type="button" className="min-w-0 flex-1 text-left" onClick={() => go(it)}>
-                      <span className="block truncate font-medium">{it.label}</span>
+                      <span className="flex items-center gap-2 truncate font-medium">{it.ask && <ChatCircleDots aria-hidden size={14} weight="bold" className="shrink-0 text-accent" />}<span className="truncate">{it.label}</span></span>
                       <span className="block truncate text-xs text-muted">{it.hint}</span>
                     </button>
                     {it.inv && (
@@ -114,7 +124,7 @@ export function CommandPalette({ wide = false }: { wide?: boolean }) {
               })}
               {items.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">{failed ? "Investor list unavailable right now." : invs ? "No match." : "Loading…"}</li>}
             </ul>
-            <p className="border-t border-line px-4 py-2 text-[0.7rem] text-muted">↑ ↓ to move · Enter to open · Esc to close</p>
+            <p className="border-t border-line px-4 py-2 text-[0.7rem] text-muted">↑ ↓ to move · Enter to open or ask · Esc to close</p>
           </div>
         </div>
       )}

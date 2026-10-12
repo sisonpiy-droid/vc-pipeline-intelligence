@@ -73,6 +73,23 @@ test("chat: opens from every page, answers from the data (a plain summary when G
   done();
 });
 
+test("the search box is also the assistant: a question goes to the chat, a name still finds the investor", async ({ page }) => {
+  const done = failOnConsoleErrors(page);
+  await page.goto("/pipeline");
+  await page.getByRole("button", { name: "Search or ask (Ctrl K)" }).first().click();
+  const box = page.getByRole("dialog", { name: "Search" }).getByRole("combobox");
+  await box.fill("seafund");
+  await expect(page.locator("#palette-list").getByRole("option").first()).toContainText("Seafund"); // a name: the investor leads
+  await expect(page.locator("#palette-list").getByRole("option").last()).toContainText("Ask the assistant");
+  await box.fill("who should I email this week");
+  await expect(page.locator("#palette-list").getByRole("option").first()).toContainText("Ask the assistant: “who should I email this week”"); // a question: the assistant leads
+  await page.keyboard.press("Enter");
+  const chat = page.getByRole("dialog", { name: "Ask about your pipeline" });
+  await expect(chat.getByText("who should I email this week")).toBeVisible();
+  await expect(chat.getByText(/of \d+ investors have a fresh, relevant signal/)).toBeVisible(); // answered from the data
+  done();
+});
+
 test("investor page: score breakdown, evidence with a verbatim quote, and the founder's data is read-only until edited", async ({ page }) => {
   await page.goto("/pipeline?q=Blume");
   await page.getByRole("link", { name: "Blume Ventures" }).first().click();
