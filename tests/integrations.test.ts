@@ -7,11 +7,11 @@ describe("integrations: names and states only, never values", () => {
   it("is 'not set' for everything on an empty environment, and lists Calendly (not WhatsApp)", () => {
     const s = state({});
     expect(Object.values(s).every((v) => v === "not_set")).toBe(true);
-    expect(Object.keys(s)).toEqual(["database", "gemini", "search", "mail", "calendly", "telegram", "cron", "admin"]);
+    expect(Object.keys(s)).toEqual(["database", "gemini", "backup", "search", "mail", "calendly", "telegram", "cron", "admin"]);
   });
 
   it("switches each one on from its own variables", () => {
-    const s = state({ DATABASE_URL: "postgres://x", GEMINI_API_KEY: "k", TAVILY_API_KEY: "k", FOUNDER_NAME: "A", STARTUP_BRIEF: "B", CALENDLY_URL: "https://calendly.com/x", TELEGRAM_BOT_TOKEN: "t", TELEGRAM_CHAT_ID: "1", CRON_SECRET: "c", ADMIN_PASSCODE: "p" });
+    const s = state({ DATABASE_URL: "postgres://x", GEMINI_API_KEY: "k", OPENROUTER_API_KEY: "k", TAVILY_API_KEY: "k", FOUNDER_NAME: "A", STARTUP_BRIEF: "B", CALENDLY_URL: "https://calendly.com/x", TELEGRAM_BOT_TOKEN: "t", TELEGRAM_CHAT_ID: "1", CRON_SECRET: "c", ADMIN_PASSCODE: "p" });
     expect(Object.values(s).every((v) => v === "configured")).toBe(true);
   });
 

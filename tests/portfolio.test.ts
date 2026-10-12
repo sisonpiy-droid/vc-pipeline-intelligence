@@ -119,10 +119,12 @@ describe("the portfolio check inside a refresh", () => {
     const ai = fakeAi({}, "ok", undefined, undefined, good);
     await run(world(ai));
     const id = ((await db.query(`select id from investors where firm_name = 'Alpha'`)).rows[0] as { id: string }).id;
-    expect(await portfolioDue(rdb, id, NOW)).toBe(false);
-    expect(await portfolioDue(rdb, id, new Date(NOW.getTime() + (PORTFOLIO_MAX_AGE_DAYS + 1) * 86_400_000))).toBe(true);
+    // The coverage row is stamped with the database's own clock, so the test measures from that stamp, never from a fixed date.
+    const stamped = new Date(((await db.query(`select checked_at from source_coverage where investor_id = $1 and source = 'portfolio_page'`, [id])).rows[0] as { checked_at: string }).checked_at);
+    expect(await portfolioDue(rdb, id, stamped)).toBe(false);
+    expect(await portfolioDue(rdb, id, new Date(stamped.getTime() + (PORTFOLIO_MAX_AGE_DAYS + 1) * 86_400_000))).toBe(true);
     await db.query(`update source_coverage set status = 'error' where source = 'portfolio_page'`);
-    expect(await portfolioDue(rdb, id, NOW)).toBe(true);
+    expect(await portfolioDue(rdb, id, stamped)).toBe(true);
   });
 
   it("a Gemini outage or an unreadable page keeps the previous list and records why; the investor still finishes", async () => {

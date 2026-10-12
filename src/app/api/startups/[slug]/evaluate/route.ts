@@ -1,5 +1,5 @@
 import { after, NextRequest, NextResponse } from "next/server";
-import { createGemini } from "@/lib/ai/gemini";
+import { createAi } from "@/lib/ai/chain";
 import { getDb } from "@/lib/db";
 import { evaluateStartup } from "@/lib/startups/evaluate";
 import { guard } from "@/lib/startups/guard";
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ slug: stri
   await setStep(db, s.id, "candidates", "running", "Starting…");
   after(async () => {
     try {
-      await evaluateStartup(db, createGemini(), s);
+      await evaluateStartup(db, createAi(), s);
     } catch (e) {
       console.error("[startup evaluation failed]", String((e as Error).message ?? e).slice(0, 300));
       await setStep(db, s.id, "score", "failed", "The evaluation stopped because of an unexpected error. Run it again.").catch(() => {});

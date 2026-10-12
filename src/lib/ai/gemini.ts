@@ -1,7 +1,7 @@
 /**
- * Gemini Flash adapter (REST, no SDK). This is the ONLY model the application talks to — there is
- * no fallback provider by design: if Gemini is unavailable the caller gets a typed AiError and the
- * run reports it, rather than silently producing output from a different model.
+ * Gemini Flash adapter (REST, no SDK). This is the ONLY model the application talks to. If a route to it is
+ * unavailable the caller gets a typed AiError and the run reports it, rather than silently producing output from a
+ * different model. `chain.ts` may try a second Google key, then the same model through OpenRouter, but never another model.
  */
 export type AiErrorCategory = "no_credentials" | "rate_limited" | "unavailable" | "timeout" | "blocked" | "invalid_output" | "bad_request";
 

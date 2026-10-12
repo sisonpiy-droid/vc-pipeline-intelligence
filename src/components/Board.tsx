@@ -88,7 +88,7 @@ export function Board({ cards: initial, needPass, hiddenInFirst }: { cards: Boar
 
   const tone = { good: "text-good", bad: "text-bad", warn: "text-warn" };
   return (
-    <div ref={root}>
+    <div ref={root} data-no-motion>
       {needPass && (
         <label className="mb-4 flex max-w-sm items-center gap-3 text-xs font-medium text-muted">
           Admin passcode

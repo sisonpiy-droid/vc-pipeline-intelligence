@@ -90,7 +90,7 @@ export default async function ApiDocs({ searchParams }: { searchParams: Promise<
       <section aria-labelledby="int-h" className="mb-10">
         <h2 id="int-h" className="text-lg font-semibold tracking-tight">Integrations</h2>
         <p className="mt-1 text-xs text-muted">Names of configured integrations only: secret values never leave the server.</p>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {integrations().map((i) => (
             <li key={i.key} title={i.note} className={`rounded-2xl border px-4 py-3 ${i.state === "configured" ? "border-good/30 bg-good-soft/50" : i.state === "open" ? "border-info/30 bg-info-soft/50" : "border-warn/30 bg-warn-soft/40"}`}>
               <div className="flex items-baseline justify-between gap-3">

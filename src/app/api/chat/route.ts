@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createGemini } from "@/lib/ai/gemini";
+import { createAi } from "@/lib/ai/chain";
 import { clientIp } from "@/lib/auth";
 import { answerQuestion, ChatInput } from "@/lib/chat/chat";
 import { allow } from "@/lib/chat/limit";
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const parsed = ChatInput.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "invalid", message: parsed.error.issues[0]?.message ?? "Invalid question" }, { status: 400 });
   try {
-    const reply = await answerQuestion(getDb(), createGemini(), parsed.data, { today: today(), scope: (await isDemoView()) ? true : false });
+    const reply = await answerQuestion(getDb(), createAi(), parsed.data, { today: today(), scope: (await isDemoView()) ? true : false });
     return NextResponse.json(reply, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     console.error("[chat failed]", String((e as Error).message ?? e).slice(0, 200));

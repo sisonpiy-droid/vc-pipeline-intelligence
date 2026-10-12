@@ -9,8 +9,12 @@ const env = {
   DATABASE_URL: "pglite://.data/e2e",
   DEMO_OPEN: "1",
   CRON_SECRET: "e2e-secret",
-  GEMINI_API_KEY: "", // empty on purpose: the server must be unable to call either provider
+  GEMINI_API_KEY: "", // empty on purpose: the server must be unable to call any provider, including the backups below
+  GEMINI_API_KEY_2: "",
+  OPENROUTER_API_KEY: "",
   TAVILY_API_KEY: "",
+  TELEGRAM_BOT_TOKEN: "",
+  TELEGRAM_CHAT_ID: "",
   NEXT_TELEMETRY_DISABLED: "1",
   NEWS_OFFLINE: "1", // the News page reads canned feeds, never the internet
 };

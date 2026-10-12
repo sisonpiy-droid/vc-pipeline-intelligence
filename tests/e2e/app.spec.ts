@@ -17,7 +17,7 @@ test.describe.configure({ mode: "serial" });
 test("the server cannot reach any paid or external provider (empty API keys), and says so", async ({ request }) => {
   const h = await (await request.get("/api/health")).json();
   expect(h.ok).toBe(true);
-  expect(h.configured).toMatchObject({ database: true, gemini: false, search: false, open_demo: true });
+  expect(h.configured).toMatchObject({ database: true, gemini: false, ai_backup: false, search: false, open_demo: true });
 });
 
 test("overview: the answer first, with evidence behind every recommendation", async ({ page }) => {
@@ -139,7 +139,7 @@ test("API reference: an Integrations panel shows names and states only (Calendly
   await page.goto("/api-docs");
   const panel = page.locator("section[aria-labelledby=int-h]");
   await expect(panel.getByRole("heading", { name: "Integrations" })).toBeVisible();
-  for (const name of ["Database", "Gemini", "Search", "Mail drafts", "Calendly", "Telegram", "Cron", "Admin"]) await expect(panel.getByText(name, { exact: true })).toBeVisible();
+  for (const name of ["Database", "Gemini", "AI backup", "Search", "Mail drafts", "Calendly", "Telegram", "Cron", "Admin"]) await expect(panel.getByText(name, { exact: true })).toBeVisible();
   await expect(panel.getByText(/whatsapp/i)).toHaveCount(0);
   await expect(panel.getByText("Not set").first()).toBeVisible(); // the test server has no keys: honest, not faked
 });

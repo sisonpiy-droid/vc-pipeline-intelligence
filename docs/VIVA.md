@@ -68,3 +68,12 @@ anywhere, and the chat assistant's context never includes it.
 No. It builds the text (greeting, why this investor, what we do, one ask with the Calendly link) and opens it in the
 founder's own mail app or Gmail. Marking an investor Contacted is a founder action with one-click undo, because opening a
 draft is not proof it was sent. A mail link can only carry plain text, so the preview and the Copy button give a real link.
+
+**Q. What happens when Gemini's free quota runs out? Is there a fallback?**
+Yes, and it is the same model. The AI client (`src/lib/ai/chain.ts`) tries Google Gemini Flash with the main key, then an
+optional second Google key (a different Google project has its own free quota), then the same Gemini Flash model through
+OpenRouter. It never switches to a different model, a blocked prompt is not retried elsewhere, and a route that just hit its
+quota is skipped for a minute so a long refresh does not stall. The backup is paid per use (cents for a full run) and only
+runs after Google has failed; every use is logged and the API page's Integrations panel shows whether a backup is set up.
+Without any backup the behaviour is as before: a typed error, the investor keeps its previous score, and the chat answers
+with a plain summary of the same data.

@@ -12,6 +12,7 @@ export function integrations(env: Record<string, string | undefined> = process.e
   return [
     { key: "database", name: "Database", state: on(has(env, "DATABASE_URL")), note: "Supabase Postgres holds investors, signals and runs." },
     { key: "gemini", name: "Gemini", state: on(has(env, "GEMINI_API_KEY")), note: "Gemini Flash reads and judges the evidence." },
+    { key: "backup", name: "AI backup", state: on(has(env, "OPENROUTER_API_KEY") || has(env, "GEMINI_API_KEY_2")), note: "A second route to the same Gemini Flash model, used only if the first fails." },
     { key: "search", name: "Search", state: on(has(env, "TAVILY_API_KEY")), note: "Tavily finds public pages about each investor." },
     { key: "mail", name: "Mail drafts", state: on(has(env, "FOUNDER_NAME", "STARTUP_BRIEF")), note: "Fills your name and pitch into each draft. It never sends mail." },
     { key: "calendly", name: "Calendly", state: on(/^https:\/\//i.test(env.CALENDLY_URL?.trim() ?? "")), note: "The meeting link added to every draft." },
