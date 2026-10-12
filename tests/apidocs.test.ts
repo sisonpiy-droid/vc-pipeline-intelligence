@@ -36,4 +36,12 @@ describe("the API reference matches the code", () => {
       expect(JSON.stringify(e)).not.toMatch(/sk-|AIza|tvly-|postgres(ql)?:\/\//);
     }
   });
+
+  it("every endpoint is explained in plain words: a short title and a story", () => {
+    for (const e of ENDPOINTS) {
+      expect(e.plain.length, e.path).toBeGreaterThan(5);
+      expect(e.plain.length, e.path).toBeLessThanOrEqual(45);
+      expect(e.story.length, e.path).toBeGreaterThan(40);
+    }
+  });
 });

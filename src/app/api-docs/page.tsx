@@ -38,19 +38,21 @@ function EndpointRow({ e }: { e: Endpoint }) {
   const id = `h-${e.method}-${e.path}`;
   return (
     <details className="group border-b border-line last:border-b-0">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1.5 py-3.5 [&::-webkit-details-marker]:hidden">
-        <span className={`num w-16 shrink-0 rounded-md px-2 py-0.5 text-center text-[0.7rem] font-semibold ${METHOD[e.method]}`}>{e.method}</span>
-        <h3 id={id} className="num text-sm font-medium">{e.path}</h3>
-        <span className="ml-auto flex items-center gap-2"><Pill tone={AUTH_TONE[e.auth.kind]}>{AUTH_LABEL[e.auth.kind]}</Pill><CaretDown aria-hidden size={13} weight="bold" className="text-muted transition-transform duration-300 group-open:rotate-180" /></span>
-        <span className="basis-full truncate text-xs text-muted sm:pl-[4.75rem]">{e.summary}</span>
+      <summary className="flex cursor-pointer list-none items-start gap-3.5 py-4 [&::-webkit-details-marker]:hidden">
+        <span className={`num mt-0.5 w-16 shrink-0 rounded-md px-2 py-0.5 text-center text-[0.7rem] font-semibold ${METHOD[e.method]}`}>{e.method}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[0.95rem] font-medium leading-snug">{e.plain}</span>
+          <h3 id={id} className="num mt-1 text-xs font-normal text-muted">{e.path}</h3>
+        </span>
+        <span className="flex shrink-0 items-center gap-2"><Pill tone={AUTH_TONE[e.auth.kind]}>{AUTH_LABEL[e.auth.kind]}</Pill><CaretDown aria-hidden size={13} weight="bold" className="text-muted transition-transform duration-300 group-open:rotate-180" /></span>
       </summary>
-      <div className="pb-5 sm:pl-[4.75rem]">
-        <p className="max-w-[75ch] text-sm leading-relaxed">{e.summary}</p>
-        <dl className="mt-4 grid gap-x-8 gap-y-4 text-sm md:grid-cols-[7rem_minmax(0,1fr)]">
-          <Label>Auth</Label>
+      <div className="pb-6 sm:pl-[4.75rem]">
+        <p className="max-w-[68ch] text-sm leading-relaxed">{e.story}</p>
+        <dl className="mt-5 grid gap-x-8 gap-y-4 text-sm md:grid-cols-[9rem_minmax(0,1fr)]">
+          <Label>Who can call it</Label>
           <dd className="leading-relaxed text-muted">{e.auth.detail}</dd>
-          {e.request && (<><Label>Body</Label><dd><Code>{e.request}</Code></dd></>)}
-          <Label>Responses</Label>
+          {e.request && (<><Label>What you send</Label><dd><Code>{e.request}</Code></dd></>)}
+          <Label>What you get back</Label>
           <dd>
             <ul className="space-y-1.5">
               {e.responses.map((r) => (
@@ -61,9 +63,11 @@ function EndpointRow({ e }: { e: Endpoint }) {
               ))}
             </ul>
           </dd>
-          <Label>Limits</Label>
+          <Label>Safety limits</Label>
           <dd className="leading-relaxed text-muted">{e.limits}</dd>
-          {e.example && (<><Label>Example</Label><dd><Code>{e.example}</Code></dd></>)}
+          <Label>Technical summary</Label>
+          <dd className="leading-relaxed text-muted">{e.summary}</dd>
+          {e.example && (<><Label>Try it</Label><dd><Code>{e.example}</Code></dd></>)}
         </dl>
       </div>
     </details>
@@ -79,7 +83,7 @@ export default async function ApiDocs({ searchParams }: { searchParams: Promise<
       <PageTitle
         eyebrow="Reference"
         title="API reference"
-        sub={`${ENDPOINTS.length} routes. Secrets live only in server-side environment variables; the browser holds none. Manual refreshes are limited to one per ${MANUAL_COOLDOWN_MIN} minutes. Open a route for its auth, body, responses and limits.`}
+        sub={`${ENDPOINTS.length} routes. Secrets live only in server-side environment variables; the browser holds none. Manual refreshes are limited to one per ${MANUAL_COOLDOWN_MIN} minutes. Each line says what the route does in plain words: click it for who can call it, what you send, what comes back and the safety limits.`}
       />
       <nav aria-label="Filter by access" className="mb-8 flex flex-wrap gap-1.5">
         {VIEWS.map((v) => {

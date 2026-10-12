@@ -6,6 +6,9 @@ export interface Endpoint {
   method: "GET" | "POST" | "DELETE";
   /** Next.js route path as it appears under src/app/api (dynamic segments in [brackets]). */
   path: string;
+  /** The route in plain words: a short title and one or two sentences, for someone who does not read code. */
+  plain: string;
+  story: string;
   summary: string;
   auth: { kind: "none" | "cron_secret" | "admin_passcode"; detail: string };
   request?: string;
@@ -17,6 +20,7 @@ export interface Endpoint {
 export const ENDPOINTS: Endpoint[] = [
   {
     method: "GET", path: "/api/health",
+    plain: "Is the site alive?", story: "A quick check that the app is running and which settings are in place. For each setting it says only yes or no, never the value.",
     summary: "Liveness and configuration presence. Booleans only: never a value, never a key.",
     auth: { kind: "none", detail: "Public. Reveals only whether things are configured." },
     responses: [{ status: 200, meaning: "{ ok: true, configured: { database, gemini, search, cron_secret, manual_refresh, open_demo } }" }, { status: 503, meaning: "The database is unreachable (ok: false)." }],
@@ -25,6 +29,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "GET", path: "/api/cron/refresh",
+    plain: "The automatic twice-weekly refresh", story: "Every Monday and Thursday the scheduler calls this. It picks the investors worth checking, looks for their news from the last 30 days, scores them and saves the four signal columns. Your notes are never touched.",
     summary: "The twice-weekly scheduled refresh (Vercel Cron: Monday and Thursday 04:00 UTC = 09:30 IST). Plans which investors are worth searching, creates a durable run, and returns at once; the work continues in the background in chunks.",
     auth: { kind: "cron_secret", detail: "Authorization: Bearer $CRON_SECRET (Vercel Cron sends it automatically). Fails closed if the secret is not set." },
     responses: [
@@ -38,6 +43,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/refresh",
+    plain: "The “Refresh now” button", story: "The same refresh, started by you from the page. It is limited to one every 10 minutes so the free search credits last.",
     summary: "Manual refresh from the dashboard button. Same pipeline as the cron, plus an opt-in LinkedIn search.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode. Not required when the deployment runs in open demo mode (DEMO_OPEN=1); disabled with 503 if neither is configured." },
     request: '{ "linkedin": true }   (optional; roughly doubles the search credits this run uses)',
@@ -53,6 +59,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/refresh/continue",
+    plain: "Finish a long refresh", story: "A refresh can take longer than one server run, so it hands the rest to a new run. The app calls this itself; people never do.",
     summary: "Internal hand-off: continues a run that did not fit in one invocation. Called by the app itself, not by people.",
     auth: { kind: "cron_secret", detail: "Authorization: Bearer $CRON_SECRET." },
     request: '{ "run_id": "<uuid>", "chain": 1..50 }',
@@ -61,6 +68,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/rescore",
+    plain: "Re-score without searching", story: "Recalculates every score from evidence that is already saved. It uses no search credits and no AI, and it makes older evidence fade day by day.",
     summary: "Re-scores every checked investor from the evidence already stored. No search credits, no model calls. Applies the passage of time and any scoring-rule change.",
     auth: { kind: "cron_secret", detail: "Authorization: Bearer $CRON_SECRET." },
     responses: [{ status: 200, meaning: "{ investors, changed, action_changes, angles, skipped }" }, { status: 409, meaning: "A refresh is in progress." }, { status: 401, meaning: "Missing or wrong secret." }],
@@ -69,6 +77,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/investors/[id]/founder",
+    plain: "Save your notes and status", story: "Edits only the columns that belong to you: relationship status, last contact date, contact history and personal notes. The refresh can never write these.",
     summary: "Edits the founder-owned fields of one investor: relationship status, last contact date, one appended contact-history entry, personal notes. The mirror image of the refresh boundary.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
     request: '{ "relationship_status"?, "last_contact_date"?: "YYYY-MM-DD"|null, "add_contact"?: { date?, channel?, note }, "personal_notes"?: string|null }   (strict: any other key is rejected)',
@@ -77,6 +86,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/demo/reset",
+    plain: "Reset the demo accounts", story: "Deletes the labelled demo investors and creates them again. Real investors are never touched.",
     summary: "Demo mode: deletes the synthetic demo investors (and only those, with the runs and audit lines they produced) and recreates the five labelled Piyush accounts. Real investors, signals, runs, notes and contact history are never touched.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode; not required in open demo mode." },
     responses: [{ status: 200, meaning: "{ removed, created, demo: true }" }, { status: 401, meaning: "Wrong passcode." }, { status: 429, meaning: "Too many wrong passcodes." }, { status: 503, meaning: "Not enabled on this server." }],
@@ -84,6 +94,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/demo/simulate",
+    plain: "Simulate a refresh on demo data", story: "Pretends to run a refresh on the demo accounts only: no searches, no AI, no credits.",
     summary: "Demo mode: a simulated refresh. Re-scores the demo investors from their stored synthetic evidence and records a run labelled as simulated.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode; not required in open demo mode." },
     responses: [{ status: 200, meaning: "{ run_id, investors, changed, action_changes, simulated: true }" }, { status: 401, meaning: "Wrong passcode." }, { status: 429, meaning: "Too many wrong passcodes." }, { status: 503, meaning: "Not enabled on this server." }],
@@ -91,6 +102,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "GET", path: "/api/palette",
+    plain: "Data for the search box", story: "Feeds the Ctrl+K search with each investor's name, score and recommended action.",
     summary: "Investor names, scores and actions for the Ctrl+K search palette: the same facts the pipeline page shows.",
     auth: { kind: "none", detail: "Public read of dashboard facts; never notes or contact history." },
     responses: [{ status: 200, meaning: "{ investors: [{ id, name, type, score, action }] }" }, { status: 503, meaning: "Database unavailable." }],
@@ -98,6 +110,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/startups",
+    plain: "Add a startup", story: "Saves a new startup and asks Gemini to draft its scoring rubric. If Gemini is down, a plain default rubric is used and labelled.",
     summary: "Creates a startup and has Gemini Flash draft its scoring rubric. Every number the model returns is clamped by code; if Gemini fails, a plain default rubric built from the profile is stored and labelled as such. No search runs.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
     request: '{ "name", "pitch", "sector", "stage": "pre_seed"|"seed"|"series_a"|"series_b_plus", "geography"?, "round_size"?, "ask"? }',
@@ -106,6 +119,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/startups/[slug]/evaluate",
+    plain: "Rank investors for a startup", story: "Gemini reads the evidence already collected and judges it for this startup, then fixed rules score every investor. No web search is run.",
     summary: "Judges the evidence already stored (verified signals from the last 30 days) against this startup with Gemini, then scores every searched investor with the startup's rubric. Resumable and cached: judged signals are not asked again.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
     responses: [{ status: 202, meaning: "Started; progress is in the startup's workflow steps." }, { status: 200, meaning: "{ state: already_running }" }, { status: 404, meaning: "No such startup." }, { status: 401, meaning: "Wrong passcode." }],
@@ -113,6 +127,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/startups/[slug]/rubric",
+    plain: "Edit or rewrite a rubric", story: "Saves your changes to a startup's rubric, or asks Gemini for a new one. Number changes re-score instantly.",
     summary: "Saves an edited rubric, or asks Gemini for a new one with { action: 'regenerate' }. Numbers and keyword edits re-score at once from cached judgements; changing what a topic class means clears the judgements so the next evaluation asks Gemini again.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
     request: '{ "rubric": { ... } }  or  { "action": "regenerate" }',
@@ -121,6 +136,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "DELETE", path: "/api/startups/[slug]",
+    plain: "Delete a startup", story: "Removes a startup with its rubric and scores. The shared investors and evidence stay.",
     summary: "Deletes a startup with its rubric, judgements and scores. Shared investors and evidence are untouched.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode (same lockout as /api/refresh); not required in open demo mode." },
     responses: [{ status: 200, meaning: "{ deleted: 1 }" }, { status: 404, meaning: "No such startup." }, { status: 401, meaning: "Wrong passcode." }],
