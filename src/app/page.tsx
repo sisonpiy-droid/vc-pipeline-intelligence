@@ -7,8 +7,10 @@ import { RefreshButton } from "@/components/RefreshButton";
 import { CountUp } from "@/components/motion/CountUp";
 import { HeroReveal } from "@/components/motion/HeroReveal";
 import { Magnetic } from "@/components/motion/Magnetic";
+import { StoryCards, type Story } from "@/components/StoryCards";
 import { Empty, Eyebrow, Pill, SetupError } from "@/components/ui";
-import { ACTION_LABEL, REL_LABEL, ago, fmtDateTime } from "@/lib/format";
+import { cadence } from "@/lib/cadence";
+import { ACTION_LABEL, REL_LABEL, ago, fmtDateTime, greeting } from "@/lib/format";
 import { isOpenDemo } from "@/lib/demo";
 import { load, today } from "@/lib/page";
 import { topPicks } from "@/lib/picks";
@@ -40,6 +42,8 @@ function Mix({ total, parts }: { total: number; parts: { label: string; n: numbe
     </div>
   );
 }
+
+const longDate = (now = new Date()) => new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kolkata" }).format(now);
 
 function LedgerRow({ label, hint, value, href, tone }: { label: string; hint: string; value: number; href: string; tone?: string }) {
   return (
@@ -73,13 +77,37 @@ export default async function Overview() {
   const unknown = counts.failed + counts.review;
   const { reachOutNow, prepareOutreach } = ACTION_THRESHOLDS;
 
+  const due = pipeline.filter((r) => cadence(r.relationship_status, r.last_contact_date, today())?.due);
+  const newCapital = pipeline.filter((r) => r.state === "active" && r.lead?.new_capital && !HOLD(r));
+  const top = picks[0]?.row;
+  const stories: Story[] = [
+    top && { key: "top", tone: "teal", kicker: "Email first", big: String(top.follow_up_score ?? "-"), title: top.firm_name, sub: top.lead?.headline ?? "The strongest case this week", href: `/investors/${top.id}` },
+    newCapital.length > 0 && { key: "capital", tone: "amber", kicker: "New fund capital", big: String(newCapital.length), title: `${newCapital.length === 1 ? "Investor has" : "Investors have"} announced new capital`, sub: newCapital.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/signals" },
+    due.length > 0 && { key: "due", tone: "rose", kicker: "Follow-ups due", big: String(due.length), title: `${due.length === 1 ? "Reply is" : "Replies are"} overdue`, sub: due.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/brief#fu-h" },
+    hold.length > 0 && { key: "hold", tone: "slate", kicker: "Don't chase", big: String(hold.length), title: "Waiting on a reply, or they passed", sub: hold.slice(0, 2).map((r) => r.firm_name).join(", "), href: "/pipeline?relationship=awaiting_response" },
+    unknown > 0 && { key: "unknown", tone: "amber", kicker: "Second look", big: String(unknown), title: `${unknown === 1 ? "Search" : "Searches"} failed or came back partial`, sub: "We couldn't check them yet, which is not the same as quiet.", href: "/quiet" },
+    { key: "quiet", tone: "sand", kicker: "Quiet", big: String(counts.quiet), title: "Searched, nothing relevant", sub: "Where not to spend energy this week.", href: "/quiet" },
+  ].filter((x): x is Story => Boolean(x));
+
   return (
     <>
+      {/* Greeting and the two things you do most */}
+      <header className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div>
+          <p className="text-sm font-medium text-accent">{longDate()}</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight md:text-4xl">{greeting()}, Vikram</h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {demo ? <span className="text-sm text-muted">Demo mode: use &ldquo;Run simulated refresh&rdquo; in the banner above.</span> : <Magnetic><RefreshButton needPass={!isOpenDemo()} /></Magnetic>}
+          <Link href="/brief" className="press inline-flex items-center rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-medium transition-colors hover:border-accent/50">Weekly brief</Link>
+        </div>
+      </header>
+
       {/* Hero: the answer on the left, the arithmetic behind it as a ledger on the right */}
       <section className="grid gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end">
         <HeroReveal>
           <div data-hero className="js-hide"><Eyebrow>This week</Eyebrow></div>
-          <h1 data-hero className="js-hide mt-3 max-w-[20ch] text-4xl font-semibold leading-[1.04] tracking-tight md:text-[3.1rem]">
+          <h2 data-hero className="js-hide mt-3 max-w-[20ch] text-4xl font-semibold leading-[1.04] tracking-tight md:text-[3.1rem]">
             {never ? (
               "Nothing to rank until the first refresh runs"
             ) : counts.active === 0 ? (
@@ -89,12 +117,11 @@ export default async function Overview() {
                 <span className="num text-accent">{counts.active}</span> of {counts.total} investors have a fresh, relevant signal
               </>
             )}
-          </h1>
+          </h2>
           <p data-hero className="js-hide mt-4 max-w-[58ch] text-sm leading-relaxed text-muted">
             Ranked by a transparent follow-up score. Every recommendation links to the public evidence behind it, and investors with no verified signal are listed rather than hidden.
           </p>
           <div data-hero className="js-hide mt-6 flex flex-wrap items-center gap-3">
-            {demo ? <span className="text-sm text-muted">Demo mode: use “Run simulated refresh” in the banner above.</span> : <Magnetic><RefreshButton needPass={!isOpenDemo()} /></Magnetic>}
             <Link href="/signals" className="press rounded-lg px-3 py-1.5 text-sm font-medium text-muted hover:text-ink">Browse all signals</Link>
           </div>
         </HeroReveal>
@@ -104,13 +131,13 @@ export default async function Overview() {
             { label: "Active signal", n: counts.active, cls: "bg-accent" },
             { label: "Older signals only", n: Math.max(0, counts.total - counts.active - counts.quiet - unknown), cls: "bg-info/50" },
             { label: "No verified signal", n: counts.quiet, cls: "bg-neutral/35" },
-            { label: "Activity unknown", n: unknown, cls: "bg-warn" },
+            { label: "Couldn't check yet", n: unknown, cls: "bg-warn" },
           ]} />
         <dl className="mt-4 divide-y divide-line border-y border-line">
           <LedgerRow label="Tracked investors" hint={demo ? `${counts.total} synthetic demo accounts` : `50 VC firms and 32 angels${demoCount ? `; ${demoCount} labelled demo accounts are listed separately` : ""}`} value={counts.total} href="/pipeline" />
           <LedgerRow label="Active signal, last 30 days" hint="verified and relevant" value={counts.active} href="/pipeline?state=active" tone="text-good" />
           <LedgerRow label="No verified signal" hint="every source answered" value={counts.quiet} href="/quiet" />
-          <LedgerRow label="Activity unknown" hint="failed or partial, never counted as quiet" value={unknown} href="/quiet" tone={unknown ? "text-warn" : ""} />
+          <LedgerRow label="Couldn't check yet" hint="a search failed, so we never call it quiet" value={unknown} href="/quiet" tone={unknown ? "text-warn" : ""} />
         </dl>
         </div>
       </section>
@@ -133,6 +160,8 @@ export default async function Overview() {
           <Link href="/quiet" className="font-medium underline underline-offset-2">See which and why</Link>.
         </div>
       )}
+
+      {!never && <StoryCards stories={stories} />}
 
       {!never && <TopPicks picks={picks} />}
 

@@ -42,6 +42,19 @@ export const ENDPOINTS: Endpoint[] = [
     example: 'curl -H "Authorization: Bearer $CRON_SECRET" https://vc-pipeline-intelligence.vercel.app/api/cron/refresh',
   },
   {
+    method: "GET", path: "/api/cron/digest",
+    plain: "The daily Telegram report", story: "Every morning the scheduler calls this. It sends you one short message: who to email first, how many follow-ups are due, and who not to chase. It reads the saved scores and changes nothing.",
+    summary: "Daily report (Vercel Cron: 05:30 UTC = 11:00 IST). Builds a plain-text summary from the stored pipeline and sends it through the Telegram Bot API. Read-only: no database writes, no search credits.",
+    auth: { kind: "cron_secret", detail: "Authorization: Bearer $CRON_SECRET (Vercel Cron sends it automatically). Fails closed if the secret is not set." },
+    responses: [
+      { status: 200, meaning: "{ sent: true }, or { sent: false, reason: telegram_not_configured } until TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set." },
+      { status: 401, meaning: "Missing or wrong secret." },
+      { status: 502, meaning: "Telegram refused the message." },
+    ],
+    limits: "One message a day. Carries firm names, scores and public headlines only: never contact history, notes or email addresses.",
+    example: 'curl -H "Authorization: Bearer $CRON_SECRET" https://vc-pipeline-intelligence.vercel.app/api/cron/digest',
+  },
+  {
     method: "POST", path: "/api/refresh",
     plain: "The “Refresh now” button", story: "The same refresh, started by you from the page. It is limited to one every 10 minutes so the free search credits last.",
     summary: "Manual refresh from the dashboard button. Same pipeline as the cron, plus an opt-in LinkedIn search.",

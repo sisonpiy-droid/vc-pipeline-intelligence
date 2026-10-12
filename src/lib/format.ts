@@ -161,3 +161,9 @@ export const TIER_LABEL: Record<string, { label: string; tone: Tone; help: strin
   social: { label: "Social post", tone: "warn", help: "A social-media post: counts less as evidence and cannot alone justify a cold approach." },
   other: { label: "Other source", tone: "neutral", help: "A website that is neither the investor's own nor a recognised publication." },
 };
+
+/** Good morning / afternoon / evening, by the founder's own clock (India Standard Time, as the schedule is). */
+export const greeting = (now = new Date()) => {
+  const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: "Asia/Kolkata" }).format(now));
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+};

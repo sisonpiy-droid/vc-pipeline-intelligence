@@ -23,7 +23,10 @@ test("the server cannot reach any paid or external provider (empty API keys), an
 test("overview: the answer first, with evidence behind every recommendation", async ({ page }) => {
   const done = failOnConsoleErrors(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("investors have a fresh, relevant signal");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/Good (morning|afternoon|evening), Vikram/);
+  await expect(page.getByRole("heading", { level: 2, name: /investors have a fresh, relevant signal/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your week in 30 seconds" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^Email first/ })).toBeVisible(); // the top pick as a story card
   await expect(page.getByRole("heading", { name: /investors? to email this week/ })).toBeVisible();
   const first = page.locator("#picks-h").locator("xpath=ancestor::section[1]");
   await expect(first.getByRole("link", { name: "Blume Ventures" }).first()).toBeVisible();
@@ -224,7 +227,7 @@ test("the brand in the header takes you to the home screen from any page", async
   await page.goto("/runs");
   await page.getByRole("link", { name: /go to the home screen/i }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("investors have a fresh, relevant signal");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(/Vikram/);
 });
 
 test("phone: the menu button opens the grouped navigation and a link takes you there", async ({ browser }) => {
@@ -240,12 +243,12 @@ test("phone: the menu button opens the grouped navigation and a link takes you t
   await ctx.close();
 });
 
-test("night mode: starts from the OS setting, the toggle switches it, and the choice is remembered", async ({ browser }) => {
+test("night mode: starts from the OS setting, the Light / Dark switch changes it, and the choice is remembered", async ({ browser }) => {
   const dark = await browser.newContext({ colorScheme: "dark" });
   const d = await dark.newPage();
   await d.goto("/");
   await expect(d.locator("html")).toHaveAttribute("data-theme", "dark"); // set before first paint from the OS setting
-  await d.getByRole("button", { name: "Switch to light mode" }).first().click();
+  await d.getByRole("button", { name: "Light theme" }).click();
   await expect(d.locator("html")).toHaveAttribute("data-theme", "light");
   await d.reload();
   await expect(d.locator("html")).toHaveAttribute("data-theme", "light"); // the saved choice beats the OS setting
@@ -256,7 +259,7 @@ test("night mode: starts from the OS setting, the toggle switches it, and the ch
   const light = await browser.newContext({ colorScheme: "light" });
   const l = await light.newPage();
   await l.goto("/pipeline");
-  await l.getByRole("button", { name: "Switch to night mode" }).first().click();
+  await l.getByRole("button", { name: "Dark theme" }).click();
   await expect(l.locator("html")).toHaveAttribute("data-theme", "dark");
   expect(await l.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgb(17, 18, 15)");
   await light.close();
@@ -265,7 +268,7 @@ test("night mode: starts from the OS setting, the toggle switches it, and the ch
 test("demo mode: five labelled Piyush accounts, mail drafts open the mail app, reset and simulate are demo-only, and real data never appears", async ({ page, request }) => {
   // On the main site the demo accounts are listed, but labelled, last, and kept out of the real counts and the "Start here" shortlist.
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("of 82 investors");
+  await expect(page.getByRole("heading", { level: 2, name: /of 82 investors/ })).toBeVisible();
   await expect(page.locator("#picks-h").locator("xpath=ancestor::section[1]")).not.toContainText("Piyush");
   const demoSection = page.locator("#demo-accounts");
   await expect(demoSection.getByRole("link", { name: /^Piyush:/ })).toHaveCount(5);

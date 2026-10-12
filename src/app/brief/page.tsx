@@ -195,7 +195,7 @@ export default async function Brief() {
               <p className="text-sm text-muted">Every investor searched this run was checked completely.</p>
             ) : (
               <>
-                <p className="mb-2 text-xs leading-relaxed text-muted">Activity unknown for these, which is different from quiet.</p>
+                <p className="mb-2 text-xs leading-relaxed text-muted">We couldn't check these yet, which is different from quiet.</p>
                 <ul className="divide-y divide-line">
                   {b.attention.slice(0, 8).map((r) => (
                     <li key={r.id} className="flex items-baseline justify-between gap-3 py-2.5 text-sm">

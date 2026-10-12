@@ -53,7 +53,7 @@ describe("helpers", () => {
   });
   it("vercel.json schedules exactly what the dashboard says it does", () => {
     const cfg = JSON.parse(readFileSync("vercel.json", "utf8"));
-    expect(cfg.crons).toEqual([{ path: "/api/cron/refresh", schedule: CRON_SCHEDULE }]);
+    expect(cfg.crons).toEqual([{ path: "/api/cron/refresh", schedule: CRON_SCHEDULE }, { path: "/api/cron/digest", schedule: "30 5 * * *" }]);
   });
 });
 
