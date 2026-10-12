@@ -3,227 +3,96 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VC Fundraising Pipeline Intelligence — Components Map (as built)</title>
+<title>VC Pipeline Intelligence · Components Map</title>
 <style>
-  :root{--ink:#14181f;--muted:#566070;--line:#d9dee6;--bg:#f4f6fa;
-    --src:#e6f0ff;--be:#efe9ff;--db:#e3f6ea;--fe:#ffeaea;--tech:#fff6dc;--flow:#e8f1ff;--schema:#eaf7ee;--sig:#f1ebff;
-    --ok:#146c3b;--okbg:#dff3e6;--warn:#85560a;--warnbg:#fbf0d6;--no:#566070;--nobg:#eceff3}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  .wrap{width:2240px;padding:28px 32px 32px}
-  h1{margin:0;font-size:34px;letter-spacing:-.5px}
-  .sub{color:var(--muted);margin:4px 0 6px;font-size:16px}
-  .legend{display:flex;gap:14px;align-items:center;margin:0 0 18px;color:var(--muted);font-size:13px}
-  .chip{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;white-space:nowrap}
-  .t{background:var(--okbg);color:var(--ok)} .b{background:var(--warnbg);color:var(--warn)} .n{background:var(--nobg);color:var(--no)}
-  .row{display:grid;gap:18px;margin-bottom:20px}
-  .r1{grid-template-columns:350px 1fr 360px 410px;align-items:stretch}
-  .r2{grid-template-columns:1fr 1.2fr 1fr 1fr}
-  .r3{grid-template-columns:1fr 1fr 1fr}
-  .panel{border:1px solid var(--line);border-radius:14px;padding:14px 14px 16px;position:relative}
-  .panel h2{margin:0 0 10px;font-size:19px}
-  .panel h2 small{font-weight:400;color:var(--muted);font-size:14px}
-  .src{background:var(--src)} .be{background:var(--be)} .db{background:var(--db)} .fe{background:var(--fe)}
-  .tech{background:var(--tech)} .flow{background:var(--flow)} .schema{background:var(--schema)} .sig{background:var(--sig)}
-  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:9px}
-  .card b{display:block;font-size:14px;margin-bottom:2px}
-  .card p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
-  .card.dashed{border-style:dashed;background:transparent}
-  .grid2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-  .grid2 .card{margin:0}
-  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
-  .arrow{position:absolute;right:-17px;top:50%;font-size:22px;color:#6b7690;z-index:2}
-  ol{margin:0;padding:0;list-style:none;counter-reset:s}
-  ol li{counter-increment:s;display:flex;gap:9px;align-items:flex-start;margin-bottom:7px;font-size:13px}
-  ol li:before{content:counter(s);flex:0 0 22px;height:22px;border-radius:50%;background:#2f5fd6;color:#fff;font-weight:700;font-size:12px;display:grid;place-items:center;margin-top:1px}
-  table{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff;border-radius:8px;overflow:hidden}
-  td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-  th{background:#f3f6fb;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-  .own{font-size:11px;font-weight:700}
-  .own.f{color:#8a3b00}.own.p{color:#1f4aa8}.own.s{color:#146c3b}
-  .foot{color:var(--muted);font-size:12.5px;margin-top:6px}
-  @media print{body{background:#fff}.wrap{width:auto}}
+  :root { --navy: #1f3556; --line: #c9d1de; --ink: #1c2b44; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #f6f4ef; color: var(--ink); font-family: "Segoe UI", Verdana, system-ui, sans-serif; }
+  .page { width: 2000px; padding: 44px 44px 48px; }
+  h1 { font-size: 52px; font-weight: 800; letter-spacing: -0.5px; color: #1b2f55; }
+  .sub { margin-top: 10px; font-size: 24px; color: #7a8294; }
+  #grid { position: relative; margin-top: 30px; display: grid; grid-template-columns: 255px repeat(6, 1fr); border: 2px solid var(--navy); background: #fff; }
+  .hd { background: var(--navy); color: #fff; font-weight: 800; font-size: 25px; text-align: center; padding: 26px 8px; border-right: 1px solid #38507a; }
+  .lab { background: var(--navy); color: #fff; text-align: center; padding: 14px 10px; display: flex; flex-direction: column; justify-content: center; border-top: 1px solid #38507a; }
+  .lab b { font-size: 22px; font-weight: 800; }
+  .lab span { font-size: 17px; color: #d3dcec; margin-top: 3px; }
+  .cell { border-top: 1px solid #dfe3ec; border-right: 1px solid #dfe3ec; position: relative; min-height: 128px; padding: 10px 56px 10px 14px; display: flex; align-items: center; }
+  .cell.z0 { background: #fdfdf8; } .cell.z1 { background: #f3f4f9; }
+  .box { width: 100%; border: 2px solid; border-radius: 12px; padding: 11px 12px; text-align: center; font-weight: 700; font-size: 19px; line-height: 1.22; position: relative; z-index: 3; }
+  .c-blue { background: #dce9fb; border-color: #86a9de; }
+  .c-yellow { background: #fbe8a8; border-color: #e1c15b; }
+  .c-green { background: #d2e9d2; border-color: #86bb86; }
+  .c-pink { background: #f5d0de; border-color: #de8fae; }
+  .c-orange { background: #f4cb9c; border-color: #e0a05a; }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; overflow: visible; }
+  .note { margin-top: 26px; background: #f7e7b5; border: 2px solid #e1c15b; border-radius: 18px; padding: 24px 30px; text-align: center; font-weight: 700; font-size: 24px; color: #2a3550; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>VC Fundraising Pipeline Intelligence — Components Map</h1>
-  <p class="sub">As built, 12 October 2026: every box is a component that exists in the repository and on the live site. Chips show verification status, not intent.</p>
-  <div class="legend">
-    <span class="chip t">tested</span> automated tests run
-    <span class="chip t">verified live</span> exercised on the deployed app or the real service
-    <span class="chip b">built</span> in place, first real run still to come
-    <span class="chip n">not built</span> deliberately out of scope
-    <span style="margin-left:auto"><b>473 unit tests + 40 browser tests passing</b> · typecheck clean · production build clean · live at vc-pipeline-intelligence.vercel.app</span>
-  </div>
-
-  <div class="row r1">
-    <!-- EXTERNAL -->
-    <section class="panel src">
-      <h2>External Services &amp; Data</h2>
-      <div class="card"><b>Tavily Search API <span class="chip t">verified live</span></b><p>1 query per investor · last 30 days · dated results only · free-tier credit meter</p></div>
-      <div class="card"><b>Public web pages <span class="chip t">tested</span></b><p>HTTPS fetch, SSRF-guarded, robots.txt-aware; date read from page metadata</p></div>
-      <div class="card"><b>Gemini API (Flash only) <span class="chip t">verified live</span></b><p>Evidence judging, opening angles, the chat assistant · no other model</p></div>
-      <div class="card"><b>Investor workbook (.xlsx) <span class="chip t">tested</span></b><p>50 VC firms + 32 angels → 82 investors, 0 import issues</p></div>
-      <div class="card"><b>Private contact lists <span class="chip t">tested</span></b><p>Imported into a locked table; the app shows aggregate counts only, never names or emails</p></div>
-      <div class="card"><b>Firms' own RSS/Atom feeds <span class="chip t">verified live</span></b><p>Direct HTTP, free; 9 of 50 firms publish one</p></div>
-      <div class="card"><b>VC news feeds (7 publications) <span class="chip t">verified live</span></b><p>TechCrunch · Crunchbase News · Entrackr · Inc42 · YourStory · ET Startups · Sifted · free public RSS</p></div>
-      <div class="card"><b>Telegram Bot API <span class="chip b">built</span></b><p>Daily report to the founder. Connected: a test message was delivered. First scheduled report: 13 Oct</p></div>
-      <div class="card"><b>Calendly + the founder's mail app <span class="chip t">verified live</span></b><p>A meeting link inside each draft; mail opens in the founder's own app or Gmail. The app never sends mail</p></div>
-      <div class="card dashed"><b>Not used <span class="chip n">not built</span></b><p>Claude API · Firecrawl / Jina · Crunchbase · SerpAPI · Brave · MCP servers · paid services of any kind</p></div>
-      <span class="arrow">➜</span>
-    </section>
-
-    <!-- BACKEND -->
-    <section class="panel be">
-      <h2>Backend <small>(Next.js route handlers + library on Vercel)</small></h2>
-      <div class="grid2">
-        <div class="card"><b>Triggers <span class="chip t">tested</span></b><p>Vercel Cron Mon+Thu 04:00 UTC → <span class="mono">GET /api/cron/refresh</span>; daily 05:30 UTC → <span class="mono">/api/cron/digest</span>; <span class="mono">POST /api/refresh</span> (10-min cooldown). Constant-time auth, fail-closed.</p></div>
-        <div class="card"><b>Durable run queue <span class="chip t">tested</span></b><p><span class="mono">runs</span> + <span class="mono">run_items</span>; one active run (unique index); 3 investors per claim, 240 s budget, hand-off to a new invocation, stale-run resume.</p></div>
-        <div class="card"><b>Research <span class="chip t">verified live</span></b><p>query → fetch page → date from metadata → entity + 30-day window checks → de-duplicate events → ≤ 6 candidates.</p></div>
-        <div class="card"><b>Gemini Flash analysis <span class="chip t">verified live</span></b><p>1 batched call / investor · zod schema · involvement must be “verified” · quoted excerpt must appear verbatim in the page · 1 retry.</p></div>
-        <div class="card"><b>Scoring engine <span class="chip t">tested</span></b><p>recency 30 · relevance 30 · evidence 20 · fit 15 · relationship 5 · relevance gate · 5 actions with reasons. Fixed code, not the AI.</p></div>
-        <div class="card"><b>Safe signal writer <span class="chip t">verified live</span></b><p><span class="mono">applySignalUpdate</span>: strict 4-field schema, DB role <span class="mono">vc_refresh</span>, one transaction per investor.</p></div>
-        <div class="card"><b>Run planner (free-tier guard) <span class="chip t">verified live</span></b><p>skips investors checked &lt; 36 h ago, searches quiet ones ~weekly, enforces a monthly credit budget.</p></div>
-        <div class="card"><b>Founder edit path <span class="chip t">tested</span></b><p>owner role, founder columns only, audited by field name. Mirror of the refresh boundary.</p></div>
-        <div class="card"><b>Run monitor &amp; audit <span class="chip t">tested</span></b><p>per-run counters, per-source coverage, audit log · failed items keep their previous score, never reported as “quiet”.</p></div>
-        <div class="card"><b>Startups engine <span class="chip t">tested</span></b><p>Add a startup → its own rubric (weights sum to 100, ordered thresholds) → Gemini judges stored signals → per-startup scores. Shared evidence, no extra search credits.</p></div>
-        <div class="card"><b>Chat assistant <span class="chip t">verified live</span></b><p><span class="mono">POST /api/chat</span> · Gemini Flash over data-only context (no notes, history or emails) · web text fenced as untrusted · verified investor links · per-IP limit.</p></div>
-        <div class="card"><b>VC news reader <span class="chip t">verified live</span></b><p>7 RSS feeds · VC-only filter · topic labels · “matters to you” flag · at most 12 per publication · nothing stored · failed feeds reported, not hidden.</p></div>
-        <div class="card"><b>Daily Telegram digest <span class="chip b">built</span></b><p>Who to email first, follow-ups due, who not to chase. Firm names, scores and public headlines only. Unit-tested; skips quietly if not configured.</p></div>
-        <div class="card"><b>Email draft composer <span class="chip t">verified live</span></b><p>greeting · why you (from the evidence) · what we do · one ask with the Calendly link on its own line · sign-off. Preview and rich copy keep the link clickable.</p></div>
-        <div class="card"><b>Integrations status <span class="chip t">verified live</span></b><p>Which services are switched on, by name only. Never returns a value; tested for leaks.</p></div>
-      </div>
-      <p class="foot">* Four full production runs completed 82/82 with 0 errors; 10/10 golden AI cases pass on live Gemini; the write boundary is verified on the live database (<span class="mono">npm run verify:boundary</span>).</p>
-      <span class="arrow">➜</span>
-    </section>
-
-    <!-- DB -->
-    <section class="panel db">
-      <h2>Supabase <small>(Postgres, 9 migrations)</small></h2>
-      <div class="card"><b>investors <span class="chip t">verified live</span></b><p>profile + founder-owned fields + the 4 signal-derived columns</p></div>
-      <div class="card"><b>signals <span class="chip t">verified live</span></b><p>one evidence row: URL, event date, retrieved-at, excerpt, summary, relevance, confidence, verdict, duplicate_of</p></div>
-      <div class="card"><b>runs · run_items · source_coverage <span class="chip t">verified live</span></b><p>run history, per-investor queue and score outcome, latest status per investor × source</p></div>
-      <div class="card"><b>audit_logs · provider_calls · score_history <span class="chip t">tested</span></b><p>events and field-update outcomes (never notes), provider health, score over time</p></div>
-      <div class="card"><b>portfolio_companies <span class="chip t">tested</span></b><p>what each firm already backs, from its own portfolio page</p></div>
-      <div class="card"><b>startups · startup_steps · startup_scores · startup_signal_reviews <span class="chip t">tested</span></b><p>one workspace per startup: its rubric, workflow, scores and cached Gemini reviews</p></div>
-      <div class="card"><b>investor_directory <span class="chip t">tested</span></b><p>private contact lists · row-level security on, no grants · only aggregate counts are ever read</p></div>
-      <div class="card"><b>Security <span class="chip t">verified live</span></b><p>role <span class="mono">vc_refresh</span>: UPDATE on 4 columns only, cannot read notes or contact history · RLS on · no public API</p></div>
-      <p class="foot">All migrations applied to Supabase.</p>
-      <span class="arrow">⇄</span>
-    </section>
-
-    <!-- FRONTEND -->
-    <section class="panel fe">
-      <h2>Frontend <small>(Next.js server components)</small></h2>
-      <div class="card"><b>Priority queue <span class="mono">/</span> <span class="chip t">verified live</span></b><p>greeting · counts that partition all investors · “Your week in 30 seconds” cards · Start here picks · don't chase</p></div>
-      <div class="card"><b>Outreach board <span class="mono">/board</span> <span class="chip t">verified live</span></b><p>kanban of relationship status · “Reach out now” opens the mail draft</p></div>
-      <div class="card"><b>Weekly brief <span class="mono">/brief</span> <span class="chip t">verified live</span></b><p>the whole reach-out pool (strong · good · possible), new signals, movers, follow-ups</p></div>
-      <div class="card"><b>Pipeline · Investor detail <span class="chip t">tested</span></b><p>search, filters, sort · evidence timeline, score breakdown, founder edit, mail draft, reply log</p></div>
-      <div class="card"><b>Signals · Quiet investors <span class="chip t">verified live</span></b><p>sortable evidence feed · failed / partial / quiet kept apart</p></div>
-      <div class="card"><b>What-if ranking <span class="mono">/simulate</span> <span class="chip t">verified live</span></b><p>re-rank with other weights; nothing saved</p></div>
-      <div class="card"><b>VC news <span class="mono">/news</span> <span class="chip t">verified live</span></b><p>read-these-first, topics in plain words, search, day groups</p></div>
-      <div class="card"><b>Startups · Investor database <span class="chip t">tested</span></b><p>multi-startup workspace and its rubric · aggregate directory counts</p></div>
-      <div class="card"><b>Runs &amp; audit · API reference <span class="chip t">verified live</span></b><p>history, coverage, credits · 15 routes in plain words + an Integrations panel</p></div>
-      <div class="card"><b>Demo video <span class="mono">/video</span> <span class="chip t">verified live</span></b><p>the two-minute walkthrough with chapters</p></div>
-      <div class="card"><b>Shell <span class="chip t">tested</span></b><p>Ask the assistant (floating + Search or ask) · light / dark · GSAP page motion · phone menu</p></div>
-    </section>
-  </div>
-
-  <div class="row r2">
-    <section class="panel tech">
-      <h2>Key Technologies</h2>
-      <table>
-        <tr><td><b>Next.js 16 · React 19 · TypeScript</b></td><td>App Router; UI + API routes in one deploy</td></tr>
-        <tr><td><b>Tailwind CSS 4 · GSAP</b></td><td>token-based light/dark design system · page choreography</td></tr>
-        <tr><td><b>Postgres (Supabase) · pg</b></td><td>direct pooled connection; no supabase-js</td></tr>
-        <tr><td><b>Gemini Flash</b></td><td>REST, JSON-schema output; the only model called</td></tr>
-        <tr><td><b>Tavily</b></td><td>dated web search</td></tr>
-        <tr><td><b>Vercel</b></td><td>2 crons + Functions (300 s) + hosting</td></tr>
-        <tr><td><b>zod · Vitest · PGlite · Playwright</b></td><td>validation · unit tests on the real migrations · browser tests</td></tr>
-      </table>
-    </section>
-
-    <section class="panel flow">
-      <h2>Data Flow (step by step)</h2>
-      <ol>
-        <li>Cron (Mon+Thu 09:30 IST) or a manual trigger starts a run; one queue row per investor.</li>
-        <li>An invocation claims 3 investors at a time; unfinished work is handed to a fresh invocation.</li>
-        <li>Research: Tavily search for the last 30 days → fetch each page → read its own publication date.</li>
-        <li>Validate: investor named? inside the window? dates consistent? duplicate event? else reject with a reason.</li>
-        <li>Gemini Flash classifies and judges relevance; its quote must exist verbatim in the page.</li>
-        <li>The scoring engine computes the 0–100 score, action and explanation (deterministic).</li>
-        <li>One transaction as role <span class="mono">vc_refresh</span>: save evidence, coverage and audit; update only the 4 columns.</li>
-        <li>Failures keep the previous score and are recorded; the run is “succeeded” only when every item is done.</li>
-        <li>The dashboard derives states at read time; startups reuse the same evidence with their own rubric.</li>
-        <li>Every morning the Telegram digest summarises it; the founder opens a draft and sends it from their own mail app.</li>
-      </ol>
-    </section>
-
-    <section class="panel schema">
-      <h2>Database Schema <small>(ownership)</small></h2>
-      <table>
-        <tr><th>Table</th><th>Role</th></tr>
-        <tr><td class="mono">investors</td><td><span class="own p">PROFILE</span> importer · <span class="own f">FOUNDER</span> notes, history, status, partner · <span class="own s">SIGNAL</span> 4 columns</td></tr>
-        <tr><td class="mono">signals</td><td>evidence incl. rejected (reason) for audit &amp; caching</td></tr>
-        <tr><td class="mono">runs · run_items</td><td>status, counters, heartbeat; per-investor queue and score breakdown</td></tr>
-        <tr><td class="mono">source_coverage</td><td>per investor × source status</td></tr>
-        <tr><td class="mono">audit_logs · provider_calls</td><td>system events · provider health</td></tr>
-        <tr><td class="mono">startups (+ 3 tables)</td><td><span class="own f">FOUNDER</span> owns each startup and rubric; scores are derived</td></tr>
-        <tr><td class="mono">investor_directory</td><td><span class="own f">PRIVATE</span> no grants; aggregate counts only</td></tr>
-      </table>
-    </section>
-
-    <section class="panel sig">
-      <h2>Signal-Derived Columns <small>(only these are auto-updated)</small></h2>
-      <div class="card"><b class="mono">last_signal_date</b><p>date of the most recent relevant verified signal</p></div>
-      <div class="card"><b class="mono">signal_summary</b><p>short summary of the lead signal (sanitised, ≤ 500 chars)</p></div>
-      <div class="card"><b class="mono">follow_up_score</b><p>0–100, computed by code from the breakdown</p></div>
-      <div class="card"><b class="mono">recommended_action</b><p>reach out now · prepare targeted outreach · wait for response · research further · no action now</p></div>
-      <p class="foot">Never touched by a refresh: <span class="mono">personal_notes · contact_history · relationship_status · last_contact_date · partner_name · firm_name · thesis / profile fields</span></p>
-    </section>
-  </div>
-
-  <div class="row r3">
-    <section class="panel flow">
-      <h2>Founder Workflow <small>(who does what)</small></h2>
-      <ol>
-        <li>Open the priority queue: the answer first, each pick with its source, score and opening line.</li>
-        <li>Preview the email: your pitch, why this investor, and your Calendly link.</li>
-        <li>Press Send mail (or Gmail): it opens in your own mail app and the card moves to Contacted. Undo is one click.</li>
-        <li>Replies land in your inbox; log the outcome on the investor page. Follow-up reminders appear on the board and the brief.</li>
-        <li>Ask the assistant anything about the pipeline; answers come only from your data.</li>
-      </ol>
-      <p class="foot">The application never sends email and never reads a mailbox.</p>
-    </section>
-
-    <section class="panel tech">
-      <h2>Trust &amp; Safety Guards</h2>
-      <table>
-        <tr><td><b>Write boundary</b></td><td>refresh role can update 4 columns; verified on the live database</td></tr>
-        <tr><td><b>Failures are never “quiet”</b></td><td>a failed search keeps the old score and is flagged</td></tr>
-        <tr><td><b>Evidence or nothing</b></td><td>every recommendation links to a dated source and a verbatim quote</td></tr>
-        <tr><td><b>Secrets</b></td><td>server-side only; the integrations panel shows names, never values</td></tr>
-        <tr><td><b>Chat</b></td><td>no notes or contact data in its context; untrusted web text fenced; rate limited</td></tr>
-        <tr><td><b>Private contacts</b></td><td>locked table, counts only</td></tr>
-        <tr><td><b>Cost</b></td><td>free tiers only; monthly credit budget enforced by the planner</td></tr>
-      </table>
-    </section>
-
-    <section class="panel schema">
-      <h2>Verification</h2>
-      <table>
-        <tr><th>Check</th><th>Result</th></tr>
-        <tr><td>Unit and integration tests (Vitest, real migrations on PGlite)</td><td><span class="chip t">473 passing</span></td></tr>
-        <tr><td>Browser tests (Playwright, production build, phone widths)</td><td><span class="chip t">40 passing</span></td></tr>
-        <tr><td>Full production refresh runs</td><td><span class="chip t">82/82, 0 errors</span></td></tr>
-        <tr><td>Golden AI cases on live Gemini</td><td><span class="chip t">10/10</span></td></tr>
-        <tr><td>Write boundary on the live database</td><td><span class="chip t">verified live</span></td></tr>
-        <tr><td>First scheduled run with live searching</td><td><span class="chip b">Thu 15 Oct, 09:30 IST</span></td></tr>
-        <tr><td>First scheduled Telegram digest</td><td><span class="chip b">Tue 13 Oct, ~11:00 IST</span></td></tr>
-      </table>
-    </section>
-  </div>
+<div class="page">
+  <h1>VC Pipeline Intelligence · Components Map</h1>
+  <p class="sub">A founder's week: trigger → collect → judge → decide → store → deliver</p>
+  <div id="grid"></div>
+  <p class="note">Gemini only reads evidence and writes words. Fixed rules in code decide every score. A refresh writes only 4 columns. You press send.</p>
 </div>
+
+<script>
+const COLS = ["Actor", "Trigger", "Collect", "AI", "Decision", "Store", "Output"];
+const ROWS = [
+  ["You", "(Founder)"], ["Vercel Cron", "(2 jobs)"], ["Tavily", "(Web search)"], ["Firm feeds", "(RSS / Atom)"], ["VC news", "(7 feeds)"],
+  ["Gemini Flash", "(AI)"], ["Rules", "(Code, no AI)"], ["Startups", "(Own rubric)"], ["Supabase", "(Database)"], ["Contacts", "(Private lists)"],
+  ["Telegram", "(Daily alert)"], ["Web app", "(Vercel)"], ["Your mail app", "(Drafts)"],
+];
+// col: 1 Trigger, 2 Collect, 3 AI, 4 Decision, 5 Store, 6 Output
+const BOX = [
+  { id: "you", r: 0, c: 1, k: "blue", t: "Opens the app, edits notes, taps Refresh now" },
+  { id: "cron", r: 1, c: 1, k: "yellow", t: "Mon + Thu 09:30 IST refresh, daily 11:00 IST report" },
+  { id: "tav", r: 2, c: 2, k: "blue", t: "Searches the last 30 days and reads each page's own date" },
+  { id: "feeds", r: 3, c: 2, k: "blue", t: "Firms' own RSS and Atom feeds, no search credits" },
+  { id: "news", r: 4, c: 2, k: "blue", t: "7 VC news feeds, read when you open the page" },
+  { id: "gem", r: 5, c: 3, k: "pink", t: "Checks the page names the investor, judges relevance, writes the opening line" },
+  { id: "rules", r: 6, c: 4, k: "yellow", t: "Scores 0 to 100, picks the action. A failed search never counts as quiet" },
+  { id: "start", r: 7, c: 4, k: "yellow", t: "Each startup gets its own rubric and scores from the same evidence" },
+  { id: "db", r: 8, c: 5, k: "green", t: "Investors, evidence, runs, audit. A refresh writes only 4 columns" },
+  { id: "con", r: 9, c: 5, k: "green", t: "Locked table. Only aggregate counts are ever shown" },
+  { id: "tg", r: 10, c: 6, k: "orange", t: "Daily report: who to email first, follow-ups due, who not to chase" },
+  { id: "web", r: 11, c: 6, k: "orange", t: "Queue, board, brief, signals, what-if, news, chat, demo video" },
+  { id: "mail", r: 12, c: 6, k: "orange", t: "Draft with your pitch and Calendly link. You press send" },
+];
+const EDGES = [["you", "db"], ["cron", "tav"], ["cron", "feeds"], ["tav", "gem"], ["feeds", "gem"], ["news", "web"], ["gem", "rules"], ["gem", "start"], ["rules", "db"], ["start", "db"], ["db", "tg"], ["db", "web"], ["db", "mail"], ["con", "web"]];
+
+const grid = document.getElementById("grid");
+COLS.forEach((c) => { const d = document.createElement("div"); d.className = "hd"; d.textContent = c; grid.appendChild(d); });
+ROWS.forEach(([a, s], r) => {
+  const l = document.createElement("div"); l.className = "lab"; l.innerHTML = `<b>${a}</b><span>${s}</span>`; grid.appendChild(l);
+  for (let c = 1; c <= 6; c++) {
+    const cell = document.createElement("div"); cell.className = `cell z${r % 2}`;
+    const b = BOX.find((x) => x.r === r && x.c === c);
+    if (b) { const e = document.createElement("div"); e.className = `box c-${b.k}`; e.id = b.id; e.textContent = b.t; cell.appendChild(e); }
+    grid.appendChild(cell);
+  }
+});
+
+// Dashed elbow arrows: out of the source's right edge, down a lane in its right-hand gutter, into the target's left edge.
+const NS = "http://www.w3.org/2000/svg";
+const svg = document.createElementNS(NS, "svg");
+svg.innerHTML = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#667085"/></marker></defs>`;
+grid.appendChild(svg);
+requestAnimationFrame(() => {
+  const g = grid.getBoundingClientRect();
+  const pos = (id) => { const r = document.getElementById(id).getBoundingClientRect(); return { l: r.left - g.left, r: r.right - g.left, y: (r.top + r.bottom) / 2 - g.top }; };
+  const perCol = {}, laneOf = {}; // one lane per source (edges from the same box share a trunk); sources in the same column get side-by-side lanes
+  EDGES.forEach(([a, b]) => {
+    const s = pos(a), t = pos(b);
+    if (laneOf[a] === undefined) { const k = Math.round(s.r); laneOf[a] = perCol[k] = (perCol[k] ?? -1) + 1; }
+    const x = s.r + 10 + laneOf[a] * 8;
+    const p = document.createElementNS(NS, "path");
+    p.setAttribute("d", `M${s.r} ${s.y} H${x} V${t.y} H${t.l - 1}`);
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", "#667085"); p.setAttribute("stroke-width", "2.6"); p.setAttribute("stroke-dasharray", "7 5"); p.setAttribute("marker-end", "url(#ah)");
+    svg.appendChild(p);
+  });
+  window.DONE = true;
+});
+</script>
 </body>
 </html>
