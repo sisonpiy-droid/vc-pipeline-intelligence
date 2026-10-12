@@ -4,7 +4,6 @@ import { CaretRight } from "@phosphor-icons/react/dist/ssr";
 import { ACTION_LABEL, ACTION_TONE, CONFIDENCE_TONE, ENTITY_LABEL, REL_LABEL, SECTOR_LABEL, STATE_META, TIER_LABEL, TYPE_LABEL, fmtDate, hostOf } from "@/lib/format";
 import { cadence } from "@/lib/cadence";
 import { displayStatus, type PipelineRow } from "@/lib/read";
-import { CopyButton } from "./CopyButton";
 import { templateDraft } from "@/lib/draft";
 import { EmailDraft } from "./EmailDraft";
 import { TemplateDraft } from "./TemplateDraft";
@@ -82,7 +81,7 @@ export function InvestorCard({ r, rank }: { r: PipelineRow; rank?: number }) {
               <div className="mt-4 rounded-xl border border-accent/30 bg-good-soft/40 p-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[0.7rem] font-medium uppercase tracking-[0.1em] text-good">Suggested opening angle</p>
-                  <span className="flex items-center gap-1"><EmailDraft to={r.contact_email} angle={r.angle} demo={r.is_demo} /><CopyButton text={r.angle} /></span>
+                  <span className="flex items-center gap-1"><EmailDraft to={r.contact_email} angle={r.angle} firm={r.firm_name} kind={r.entity_type} demo={r.is_demo} /></span>
                 </div>
                 <p className="mt-1.5 text-sm leading-relaxed">{r.angle}</p>
                 <p className="mt-1.5 text-[0.7rem] text-muted">Drafted by Gemini from the verified signal above only. Edit before using; nothing is sent.</p>
