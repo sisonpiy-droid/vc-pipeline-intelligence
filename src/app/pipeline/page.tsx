@@ -35,20 +35,24 @@ export default async function Pipeline({ searchParams }: Props) {
   if (!res.ok) return <SetupError message={res.error} />;
   const all = res.data;
   const rows = filterPipeline(all, f, today());
+  const realCount = all.filter((r) => !r.is_demo).length;
+  const demoTotal = all.length - realCount;
   const filtered = Object.entries(f).some(([k, v]) => v && k !== "sort");
 
   return (
     <>
-      <PageTitle title="Investor pipeline" sub={`${rows.length} of ${all.length} tracked investors. Statuses separate a quiet investor (searched, nothing found) from one we could not check.`} />
+      <PageTitle title="Investor pipeline" sub={`${rows.length} shown. ${realCount || demoTotal} tracked investors${realCount && demoTotal ? `, plus ${demoTotal} labelled demo accounts listed last (not counted in the totals)` : ""}. Statuses separate a quiet investor (searched, nothing found) from one we could not check.`} />
 
       <nav aria-label="Quick views" className="mb-4 flex flex-wrap gap-1.5">
         {VIEWS.map((v) => {
-          const n = v.key ? all.filter((r) => displayStatus(r.state) === v.key).length : all.length;
+          const inView = (r: (typeof all)[number]) => !v.key || displayStatus(r.state) === v.key;
+          const n = all.filter((r) => !r.is_demo && inView(r)).length; // the same real-investor counts as the home page
+          const d = all.filter((r) => r.is_demo && inView(r)).length;
           const on = (f.state ?? "") === v.key;
           return (
             <Link key={v.label} href={v.key ? `/pipeline?state=${v.key}` : "/pipeline"} aria-current={on ? "true" : undefined}
               className={`press inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition-colors ${on ? "border-accent bg-accent/10 font-medium text-ink" : "border-line text-muted hover:border-accent/40 hover:text-ink"}`}>
-              {v.label}<span className="num text-xs text-muted">{n}</span>
+              {v.label}<span className="num text-xs text-muted">{n}{d > 0 && <span title="Labelled demo accounts, listed after the real investors" className="ml-1 opacity-70">+{d} demo</span>}</span>
             </Link>
           );
         })}
