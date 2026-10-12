@@ -75,8 +75,10 @@ export function Simulator({ investors, now }: { investors: SimInvestor[]; now: s
   const setW = (k: (typeof WEIGHT_KEYS)[number], v: number) => update({ ...c, weights: { ...c.weights, [k]: v } });
 
   return (
-    <div className="grid gap-10 lg:grid-cols-[19rem_minmax(0,1fr)]">
-      <aside className="space-y-6 lg:sticky lg:top-8 lg:self-start">
+    // On a wide screen the controls and the ranking are two panes with their own scrollbars, so you can keep adjusting a slider
+    // while reading the list. On a phone they stack and the page scrolls as usual.
+    <div className="grid gap-10 lg:h-[calc(100dvh-19rem)] lg:min-h-[28rem] lg:grid-cols-[19rem_minmax(0,1fr)] lg:gap-8">
+      <aside className="space-y-6 lg:h-full lg:overflow-y-auto lg:pr-3">
         <div>
           <p className="text-[0.7rem] font-medium uppercase tracking-[0.12em] text-muted">Start from</p>
           <div className="mt-2 flex flex-wrap gap-1.5" role="group" aria-label="Presets">
@@ -112,7 +114,7 @@ export function Simulator({ investors, now }: { investors: SimInvestor[]; now: s
         </button>
       </aside>
 
-      <section aria-labelledby="sim-h">
+      <section aria-labelledby="sim-h" className="lg:h-full lg:overflow-y-auto lg:pr-2">
         <div className="grid grid-cols-3 divide-x divide-line border-y border-line text-sm" aria-live="polite">
           <div className="py-3 pr-3"><p className="num text-2xl font-medium">{reach}</p><p className="text-xs text-muted">“Reach out now” <span className="num">(production {baseReach})</span></p></div>
           <div className="px-3 py-3"><p className="num text-2xl font-medium">{changedAction}</p><p className="text-xs text-muted">investors change action</p></div>

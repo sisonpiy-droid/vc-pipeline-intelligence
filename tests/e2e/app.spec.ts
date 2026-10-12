@@ -181,18 +181,18 @@ test("phone: the menu button opens the grouped navigation and a link takes you t
   await ctx.close();
 });
 
-test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, reset and simulate are demo-only, and real data never appears", async ({ page, request }) => {
+test("demo mode: five labelled Piyush accounts, mail drafts open the mail app, reset and simulate are demo-only, and real data never appears", async ({ page, request }) => {
   // On the main site the demo accounts are listed, but labelled, last, and kept out of the real counts and the "Start here" shortlist.
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("of 82 investors");
   await expect(page.locator("#picks-h").locator("xpath=ancestor::section[1]")).not.toContainText("Piyush");
   const demoSection = page.locator("#demo-accounts");
-  await expect(demoSection.getByRole("link", { name: /^Piyush:/ })).toHaveCount(6);
-  await expect(demoSection.getByText("Demo account", { exact: true })).toHaveCount(6);
+  await expect(demoSection.getByRole("link", { name: /^Piyush:/ })).toHaveCount(5);
+  await expect(demoSection.getByText("Demo account", { exact: true })).toHaveCount(5);
   await page.goto("/pipeline");
-  expect(await page.locator("tbody tr").count()).toBe(88);
+  expect(await page.locator("tbody tr").count()).toBe(87);
   await expect(page.locator("tbody tr").first()).not.toContainText("Demo account"); // real investors first
-  await expect(page.locator("tbody tr").filter({ hasText: "Demo account" })).toHaveCount(6);
+  await expect(page.locator("tbody tr").filter({ hasText: "Demo account" })).toHaveCount(5);
   // Mail: a real investor's draft opens with NO address; a demo account's opens to the test address.
   await page.goto("/pipeline?q=Seafund");
   await page.getByRole("link", { name: "Seafund" }).first().click();
@@ -207,8 +207,8 @@ test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, re
   await expect(banner).toContainText("This is a demo account");
 
   await page.goto("/pipeline");
-  await expect(page.locator("tbody tr")).toHaveCount(6);
-  for (const c of ["High priority", "Low priority", "Stale signal", "Unverified signal", "Duplicate signal", "Irrelevant signal"]) await expect(page.getByRole("link", { name: `Piyush: ${c} (demo)` })).toBeVisible();
+  await expect(page.locator("tbody tr")).toHaveCount(5);
+  for (const c of ["High priority", "Low priority", "Stale signal", "Unverified signal", "Irrelevant signal"]) await expect(page.getByRole("link", { name: `Piyush: ${c} (demo)` })).toBeVisible();
   await expect(page.getByRole("link", { name: "Blume Ventures" })).toHaveCount(0); // real investors are not mixed in
 
   await page.getByRole("link", { name: "Piyush: High priority (demo)" }).click();
@@ -228,9 +228,9 @@ test("demo mode: six labelled Piyush accounts, mail drafts open the mail app, re
   await page.goto("/pipeline");
   // The palette follows the mode immediately (a cached demo-only list once leaked into the other view).
   const names = await page.evaluate(async () => ((await (await fetch("/api/palette")).json()) as { investors: { name: string }[] }).investors.map((i) => i.name));
-  expect(names.filter((n) => /piyush/i.test(n))).toHaveLength(6);
-  expect(names.length).toBe(88);
-  expect(await page.locator("tbody tr").count()).toBe(88); // the real investors are back, untouched, with the six labelled demo accounts last
+  expect(names.filter((n) => /piyush/i.test(n))).toHaveLength(5);
+  expect(names.length).toBe(87);
+  expect(await page.locator("tbody tr").count()).toBe(87); // the real investors are back, untouched, with the five labelled demo accounts last
 });
 
 test("startups: add one, read its rubric and exact workflow, evaluate it, edit the rubric, delete it", async ({ page }) => {

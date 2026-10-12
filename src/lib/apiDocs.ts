@@ -77,7 +77,7 @@ export const ENDPOINTS: Endpoint[] = [
   },
   {
     method: "POST", path: "/api/demo/reset",
-    summary: "Demo mode: deletes the synthetic demo investors (and only those, with the runs and audit lines they produced) and recreates the six labelled Piyush accounts. Real investors, signals, runs, notes and contact history are never touched.",
+    summary: "Demo mode: deletes the synthetic demo investors (and only those, with the runs and audit lines they produced) and recreates the five labelled Piyush accounts. Real investors, signals, runs, notes and contact history are never touched.",
     auth: { kind: "admin_passcode", detail: "Header x-admin-passcode; not required in open demo mode." },
     responses: [{ status: 200, meaning: "{ removed, created, demo: true }" }, { status: 401, meaning: "Wrong passcode." }, { status: 429, meaning: "Too many wrong passcodes." }, { status: 503, meaning: "Not enabled on this server." }],
     limits: "Every statement is scoped by the is_demo flag. No search credits or model calls.",

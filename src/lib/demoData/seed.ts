@@ -3,7 +3,7 @@ import { rescoreAll, scoreAndWrite, loadInvestor } from "@/lib/refresh/rescore";
 import { asRefresh } from "@/lib/refresh/write";
 
 /**
- * Demo data: six clearly labelled, entirely synthetic investors, one per situation the product has to handle. Nothing here is
+ * Demo data: five clearly labelled, entirely synthetic investors, one per situation the product has to handle. Nothing here is
  * real intelligence and nothing here is fetched: signals are written directly, then scored by the REAL scoring engine through the
  * same restricted refresh role a real refresh uses, so the demo exercises the genuine rules, the four-column write boundary and the
  * audit trail without a single search credit or model call.
@@ -36,6 +36,8 @@ interface DemoSignal {
 
 interface DemoSpec {
   key: string;
+  /** The investor profile the fit score reads: they deliberately differ, so the demo shows high fit and very low fit side by side. */
+  profile: { sectors: string[]; stage: string; geography: string };
   criterion: string;
   name: string;
   signals: DemoSignal[];
@@ -52,35 +54,27 @@ const sig = (s: Omit<DemoSignal, "excerpt" | "summary" | "why"> & Partial<Pick<D
 
 export const DEMO_SPECS: DemoSpec[] = [
   {
-    key: "high", criterion: "High priority", name: "Piyush: High priority (demo)",
+    key: "high", profile: { sectors: ["Logistics", "B2B SaaS"], stage: "Seed", geography: "India" }, criterion: "High priority", name: "Piyush: High priority (demo)",
     signals: [sig({ slug: "freight-seed", headline: "Piyush leads a seed round in a freight-marketplace startup", host: "demo.example", daysAgo: 2, type: "portfolio_investment", relevance: 90, confidence: "high", sector: "logistics", dateSource: "page", why: `${DEMO_TEXT} A fresh, on-topic seed investment: the clearest kind of reason to reach out.` })],
     angle: `${DEMO_TEXT} I saw that Piyush led a seed round in a freight-marketplace startup. I am raising a Seed round for a B2B logistics SaaS and would value your view on what we are building.`,
   },
   {
-    key: "low", criterion: "Low priority", name: "Piyush: Low priority (demo)",
+    key: "low", profile: { sectors: ["Fintech", "Payments"], stage: "Series A", geography: "India" }, criterion: "Low priority", name: "Piyush: Low priority (demo)",
     signals: [sig({ slug: "fintech-seed", headline: "Piyush backs a consumer-payments startup", host: "demo-news.example", daysAgo: 14, type: "portfolio_investment", relevance: 55, confidence: "medium", sector: "adjacent", dateSource: "page", why: `${DEMO_TEXT} A real investment, but in another sector, so relevance is capped and no outreach is recommended.` })],
   },
   {
-    key: "stale", criterion: "Stale signal", name: "Piyush: Stale signal (demo)",
+    key: "stale", profile: { sectors: ["Supply chain", "Freight"], stage: "Seed", geography: "India" }, criterion: "Stale signal", name: "Piyush: Stale signal (demo)",
     signals: [sig({ slug: "old-logistics", headline: "Piyush speaks about supply-chain software", host: "demo-events.example", daysAgo: 45, type: "event_appearance", relevance: 85, confidence: "high", sector: "logistics", dateSource: "page", why: `${DEMO_TEXT} On topic, but 45 days old: outside the 30-day window, so it earns no score.` })],
   },
   {
-    key: "unverified", criterion: "Unverified signal", name: "Piyush: Unverified signal (demo)",
+    key: "unverified", profile: { sectors: ["Consumer fashion", "Gaming"], stage: "Late stage / pre-IPO", geography: "United States" }, criterion: "Unverified signal", name: "Piyush: Unverified signal (demo)",
     signals: [
-      sig({ slug: "blog-claim", headline: "Piyush reportedly considering logistics deals", host: "demo-blog.example", daysAgo: 4, type: "public_statement", relevance: 78, confidence: "medium", sector: null, dateSource: "search_estimate", why: `${DEMO_TEXT} Looks relevant, but the date is a search estimate and the second-pass check has not confirmed it.` }),
+      sig({ slug: "blog-claim", headline: "Piyush reportedly considering logistics deals", host: "demo-blog.example", daysAgo: 4, type: "public_statement", relevance: 45, confidence: "low", sector: null, dateSource: "search_estimate", why: `${DEMO_TEXT} Looks mildly relevant, but the date is a search estimate and the second-pass check has not confirmed it.` }),
       sig({ slug: "unreadable-page", headline: "Piyush interview (page could not be read)", host: "demo-media.example", daysAgo: 3, type: "interview_podcast", relevance: 70, confidence: "low", sector: null, dateSource: "search_estimate", status: "needs_review", reason: "page_unavailable" }),
     ],
   },
   {
-    key: "duplicate", criterion: "Duplicate signal", name: "Piyush: Duplicate signal (demo)",
-    signals: [
-      sig({ slug: "dup-original", headline: "Piyush co-invests in a warehouse-robotics startup", host: "demo-press.example", daysAgo: 3, type: "portfolio_investment", relevance: 80, confidence: "high", sector: "logistics", dateSource: "page", why: `${DEMO_TEXT} The same event was reported by two sources; the repeat is merged, not counted twice.` }),
-      sig({ slug: "dup-repeat", headline: "Warehouse-robotics startup raises seed round, Piyush among investors", host: "demo-wire.example", daysAgo: 3, type: "portfolio_investment", relevance: 80, confidence: "high", sector: "logistics", dateSource: "page", status: "rejected", reason: "duplicate_event", duplicateOf: "dup-original" }),
-    ],
-    angle: `${DEMO_TEXT} I saw that Piyush co-invested in a warehouse-robotics startup. I am raising a Seed round for a B2B logistics SaaS and would value your view on what we are building.`,
-  },
-  {
-    key: "irrelevant", criterion: "Irrelevant signal", name: "Piyush: Irrelevant signal (demo)",
+    key: "irrelevant", profile: { sectors: ["Gaming", "Media"], stage: "Early stage", geography: "India" }, criterion: "Irrelevant signal", name: "Piyush: Irrelevant signal (demo)",
     signals: [sig({ slug: "game-studio", headline: "Piyush invests in a mobile-game studio", host: "demo-games.example", daysAgo: 5, type: "portfolio_investment", relevance: 80, confidence: "high", sector: "unrelated", dateSource: "page", why: `${DEMO_TEXT} A real, well-sourced investment, but nothing to do with logistics, so it earns nothing.` })],
   },
 ];
@@ -92,7 +86,7 @@ export interface DemoResult {
   created: number;
 }
 
-/** Deletes ONLY demo rows (and the audit lines they produced), then recreates the six demo investors. */
+/** Deletes ONLY demo rows (and the audit lines they produced), then recreates the demo investors. */
 export async function resetDemo(db: Db, now = new Date()): Promise<DemoResult> {
   const ids: string[] = [];
   const removed = await db.tx(async (q) => {
@@ -116,8 +110,8 @@ export async function resetDemo(db: Db, now = new Date()): Promise<DemoResult> {
     const inv = (await db.query<{ id: string }>(
       `insert into investors (entity_type, name_key, firm_name, role_title, website_url, investment_thesis, thesis_verified, fit_rationale, sectors, stage_preference, geography,
                               verification_status, verification_note, data_flags, personal_notes, contact_email, is_demo)
-       values ('angel', $1, $2, $3, $4, null, false, $5, '{Logistics,B2B SaaS}', 'Seed', 'India', 'unverified', $5, '{demo_account}', $6, $7, true) returning id`,
-      [`demo-${spec.key}`, spec.name, `${spec.criterion}. ${DEMO_TEXT}`, `https://demo.example/piyush-${spec.key}`, `${DEMO_TEXT} Synthetic profile for testing: not a real investor.`, `${DEMO_TEXT} Notes you add here stay on this demo record.`, DEMO_EMAIL],
+       values ('angel', $1, $2, $3, $4, null, false, $5, $8::text[], $9, $10, 'unverified', $5, '{demo_account}', $6, $7, true) returning id`,
+      [`demo-${spec.key}`, spec.name, `${spec.criterion}. ${DEMO_TEXT}`, `https://demo.example/piyush-${spec.key}`, `${DEMO_TEXT} Synthetic profile for testing: not a real investor.`, `${DEMO_TEXT} Notes you add here stay on this demo record.`, DEMO_EMAIL, spec.profile.sectors, spec.profile.stage, spec.profile.geography],
     )).rows[0]!.id;
     ids.push(inv);
 

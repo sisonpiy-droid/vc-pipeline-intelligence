@@ -43,11 +43,11 @@ const realSnapshot = async () => ({
 });
 
 describe("the demo data", () => {
-  it("is six clearly labelled Piyush accounts, one per situation, all addressed to the test email", async () => {
+  it("is five clearly labelled Piyush accounts, one per situation, all addressed to the test email", async () => {
     await resetDemo(db);
     const rows = (await db.query(`select firm_name, role_title, fit_rationale, personal_notes, contact_email, verification_note, data_flags from investors where is_demo order by firm_name`)).rows as Record<string, any>[];
-    expect(rows).toHaveLength(6);
-    expect(DEMO_SPECS.map((s) => s.criterion)).toEqual(["High priority", "Low priority", "Stale signal", "Unverified signal", "Duplicate signal", "Irrelevant signal"]);
+    expect(rows).toHaveLength(5);
+    expect(DEMO_SPECS.map((s) => s.criterion)).toEqual(["High priority", "Low priority", "Stale signal", "Unverified signal", "Irrelevant signal"]);
     for (const r of rows) {
       expect(r.firm_name).toMatch(/^Piyush: .+ \(demo\)$/);
       expect(r.contact_email).toBe(DEMO_EMAIL);
@@ -72,9 +72,10 @@ describe("the demo data", () => {
     // unverified: looks relevant but is un-reviewed with an estimated date: never "reach out now"
     expect(by["Unverified signal"]!.recommended_action).not.toBe("reach_out_now");
     expect(by["Unverified signal"]!.needs_review_signals).toBe(1);
-    // duplicate: the repeat is merged, not counted
-    expect(by["Duplicate signal"]!.relevant_30d).toBe(1);
-    expect((await db.query(`select count(*)::int n from signals where duplicate_of is not null`)).rows[0]).toEqual({ n: 1 });
+    // the accounts are not clones: one is a high fit, one a very low fit
+    const fit = async (name: string) => Number((await db.query<{ p: string }>(`select (h.breakdown->'fit'->>'points') as p from score_history h join investors i on i.id = h.investor_id where i.firm_name = $1 order by h.id desc limit 1`, [name])).rows[0]!.p);
+    expect(await fit("Piyush: High priority (demo)")).toBe(15);
+    expect(await fit("Piyush: Unverified signal (demo)")).toBeLessThanOrEqual(5);
     // irrelevant: a well-sourced but unrelated deal earns nothing
     expect(by["Irrelevant signal"]).toMatchObject({ state: "quiet_complete", relevant_30d: 0 });
     expect(by["Irrelevant signal"]!.follow_up_score!).toBeLessThanOrEqual(20);
@@ -114,7 +115,7 @@ describe("demo and real data are never mixed", () => {
     expect(live.map((r) => r.firm_name)).toEqual(["Alpha"]);
     expect(live.every((r) => !r.is_demo)).toBe(true);
     const demo = await listPipeline(db, TODAY, true);
-    expect(demo).toHaveLength(6);
+    expect(demo).toHaveLength(5);
     expect(demo.every((r) => r.is_demo)).toBe(true);
 
     expect((await listSignals(db, TODAY, { show: "verified" })).every((s) => !s.is_demo)).toBe(true);
@@ -122,28 +123,28 @@ describe("demo and real data are never mixed", () => {
     expect((await listRuns(db, 25)).every((r) => !/demo/i.test(r.summary ?? ""))).toBe(true);
     expect((await listRuns(db, 25, true)).length).toBeGreaterThan(0);
     expect((await getRunBar(db)).total).toBe(1);
-    expect((await getRunBar(db, true)).total).toBe(6);
+    expect((await getRunBar(db, true)).total).toBe(5);
     expect((await getOverview(db, TODAY)).counts.total).toBe(1);
-    expect((await getOverview(db, TODAY, true)).counts.total).toBe(6);
+    expect((await getOverview(db, TODAY, true)).counts.total).toBe(5);
     expect((await getSimulationInputs(db)).map((s) => s.firm_name)).toEqual(["Alpha"]);
-    expect((await getSimulationInputs(db, true)).length).toBe(6);
+    expect((await getSimulationInputs(db, true)).length).toBe(5);
     expect((await listAudit(db, 100)).every((a) => !/demo/i.test(a.event))).toBe(true);
     expect((await listAudit(db, 100, true)).some((a) => a.event === "demo_reset")).toBe(true);
   });
 
   it("the main site can list both, labelled; counts, picks and run history still describe only the real pipeline, and demo accounts sort after real ones", async () => {
     const all = await listPipeline(db, TODAY, "all");
-    expect(all).toHaveLength(7);
-    expect(all.filter((r) => r.is_demo)).toHaveLength(6);
+    expect(all).toHaveLength(6);
+    expect(all.filter((r) => r.is_demo)).toHaveLength(5);
     const ov = await getOverview(db, TODAY, "all");
     expect(ov.counts.total).toBe(1); // the one real investor: synthetic accounts are never counted
-    expect(ov.demoCount).toBe(6);
+    expect(ov.demoCount).toBe(5);
     expect(ov.runs.every((r) => !/demo/i.test(r.summary ?? ""))).toBe(true);
     // default (score) and recency sorts both keep real investors first, even though a demo account scores 95
     expect(filterPipeline(all, {}, TODAY)[0]!.is_demo).toBe(false);
     expect(filterPipeline(all, { sort: "recent" }, TODAY)[0]!.is_demo).toBe(false);
     expect((await listSignals(db, TODAY, { show: "verified" }, "all")).some((s) => s.is_demo)).toBe(true);
-    expect((await getSimulationInputs(db, "all")).length).toBe(7); // 1 real + 6 demo accounts, all with a completed run_item
+    expect((await getSimulationInputs(db, "all")).length).toBe(6); // 1 real + 5 demo accounts, all with a completed run_item
     expect((await getSimulationInputs(db)).length).toBe(1); // the default stays real-only
     // the high-priority demo account can still be found by filtering on priority, labelled as demo
     expect(filterPipeline(all, { priority: "high" }, TODAY).some((r) => r.is_demo && /High priority/.test(r.firm_name))).toBe(true);
@@ -167,10 +168,10 @@ describe("demo and real data are never mixed", () => {
   it("reset deletes only demo rows: real investors, notes, history, signals, runs and audit are byte-identical", async () => {
     const before = await realSnapshot();
     const r = await resetDemo(db);
-    expect(r).toMatchObject({ removed: 6, created: 6 });
+    expect(r).toMatchObject({ removed: 5, created: 5 });
     expect(await realSnapshot()).toEqual(before);
     expect((await db.query(`select personal_notes, relationship_status, contact_history from investors where firm_name = 'Alpha'`)).rows[0]).toMatchObject({ personal_notes: "REAL PRIVATE NOTE", relationship_status: "contacted" });
-    expect((await db.query(`select count(*)::int n from investors where is_demo`)).rows[0]).toEqual({ n: 6 });
+    expect((await db.query(`select count(*)::int n from investors where is_demo`)).rows[0]).toEqual({ n: 5 });
     // resetting leaves no orphaned demo audit lines or runs behind
     await resetDemo(db);
     expect((await db.query(`select count(*)::int n from runs where is_demo`)).rows[0]).toEqual({ n: 1 });
@@ -191,7 +192,7 @@ describe("demo and real data are never mixed", () => {
     const real = await realSnapshot();
     const protectedBefore = (await db.query(`select to_jsonb(i) - 'last_signal_date' - 'signal_summary' - 'follow_up_score' - 'recommended_action' as r from investors i where is_demo order by firm_name`)).rows;
     const s = await simulateRun(db, new Date(Date.now() + 6 * 86_400_000)); // a few days later: recency has moved on
-    expect(s.investors).toBe(6);
+    expect(s.investors).toBe(5);
     expect(s.changed).toBeGreaterThan(0);
     const run = (await db.query(`select is_demo, search_calls, summary from runs where id = $1`, [s.run_id])).rows[0] as { is_demo: boolean; search_calls: number; summary: string };
     expect(run).toMatchObject({ is_demo: true, search_calls: 0 });

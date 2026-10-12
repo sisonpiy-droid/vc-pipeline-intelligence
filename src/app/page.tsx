@@ -107,7 +107,7 @@ export default async function Overview() {
             { label: "Activity unknown", n: unknown, cls: "bg-warn" },
           ]} />
         <dl className="mt-4 divide-y divide-line border-y border-line">
-          <LedgerRow label="Tracked investors" hint={demo ? "6 synthetic demo accounts" : `50 VC firms and 32 angels${demoCount ? `; ${demoCount} labelled demo accounts are listed separately` : ""}`} value={counts.total} href="/pipeline" />
+          <LedgerRow label="Tracked investors" hint={demo ? `${counts.total} synthetic demo accounts` : `50 VC firms and 32 angels${demoCount ? `; ${demoCount} labelled demo accounts are listed separately` : ""}`} value={counts.total} href="/pipeline" />
           <LedgerRow label="Active signal, last 30 days" hint="verified and relevant" value={counts.active} href="/pipeline?state=active" tone="text-good" />
           <LedgerRow label="No verified signal" hint="every source answered" value={counts.quiet} href="/quiet" />
           <LedgerRow label="Activity unknown" hint="failed or partial, never counted as quiet" value={unknown} href="/quiet" tone={unknown ? "text-warn" : ""} />
