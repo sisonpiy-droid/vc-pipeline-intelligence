@@ -12,6 +12,7 @@ const env = {
   GEMINI_API_KEY: "", // empty on purpose: the server must be unable to call either provider
   TAVILY_API_KEY: "",
   NEXT_TELEMETRY_DISABLED: "1",
+  NEWS_OFFLINE: "1", // the News page reads canned feeds, never the internet
 };
 
 rmSync(".data/e2e", { recursive: true, force: true });

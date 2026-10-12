@@ -17,6 +17,7 @@ const PAGES: Item[] = [
   { key: "p-board", label: "Outreach board", hint: "Drag investors through your stages", href: "/board" },
   { key: "p-signals", label: "Signals", hint: "All evidence, with sources", href: "/signals" },
   { key: "p-quiet", label: "Quiet investors", hint: "No signal, failed, or incomplete", href: "/quiet" },
+  { key: "p-news", label: "Venture capital news", hint: "What is happening in the market", href: "/news" },
   { key: "p-runs", label: "Runs & audit", hint: "Refresh history, provider health, credits", href: "/runs" },
   { key: "p-compare", label: "Compare investors", hint: "Side by side", href: "/compare" },
   { key: "p-api", label: "API reference", hint: "Routes, auth and limits", href: "/api-docs" },

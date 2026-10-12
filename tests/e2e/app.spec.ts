@@ -90,6 +90,24 @@ test("the search box is also the assistant: a question goes to the chat, a name 
   done();
 });
 
+test("VC news: stories are snippets that open to the longer text with a link to the source; sources filter the list", async ({ page }) => {
+  const done = failOnConsoleErrors(page);
+  await page.goto("/news");
+  await expect(page.getByRole("heading", { level: 1, name: "Venture capital news" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^All 10$/ })).toBeVisible(); // 5 canned feeds x 2 venture stories; the recipe story is filtered out
+  await expect(page.getByText("Recipe of the week")).toHaveCount(0);
+  const first = page.locator("li details").first();
+  await expect(first.locator("summary").getByText(/A seed round of 4 million dollars will fund hiring/)).toBeVisible(); // the snippet
+  await expect(first.getByText("The founders previously ran supply-chain operations.")).toBeHidden(); // the longer text waits for a click
+  await first.locator("summary").click();
+  await expect(first.getByText("The founders previously ran supply-chain operations.")).toBeVisible();
+  await expect(first.getByRole("link", { name: /Read the full story at/ })).toHaveAttribute("href", /story-\d/);
+  await page.getByRole("link", { name: /^TechCrunch 2$/ }).click();
+  await expect(page).toHaveURL(/source=techcrunch/);
+  await expect(page.locator("li details")).toHaveCount(2);
+  done();
+});
+
 test("investor page: score breakdown, evidence with a verbatim quote, and the founder's data is read-only until edited", async ({ page }) => {
   await page.goto("/pipeline?q=Blume");
   await page.getByRole("link", { name: "Blume Ventures" }).first().click();
@@ -373,7 +391,7 @@ test("send mail moves the investor to Contacted (with undo), and replies are log
   done();
 });
 
-for (const path of ["/", "/startups", "/startups/new", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare", "/api-docs"]) {
+for (const path of ["/", "/startups", "/startups/new", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare", "/api-docs", "/news"]) {
   test(`phone width: ${path} has no horizontal page scroll and no console errors`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
