@@ -11,13 +11,15 @@ export const metadata = { title: "Signals" };
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
+const SORT = { newest: "Newest first", oldest: "Oldest first", relevance: "Most relevant first", investor: "Investor, A to Z" } as const;
 const SHOW = { relevant: "Relevant to logistics / B2B SaaS", verified: "All verified signals", review: "Needs review" } as const;
 
 export default async function Signals({ searchParams }: Props) {
-  const f = pick(await searchParams, ["show", "category"]);
+  const f = pick(await searchParams, ["show", "category", "sort"]);
+  const sort = (f.sort && f.sort in SORT ? f.sort : "newest") as keyof typeof SORT;
   const show = (f.show && f.show in SHOW ? f.show : "relevant") as keyof typeof SHOW;
   const demo = await isDemoView();
-  const res = await load((db) => listSignals(db, today(), { show, category: f.category }, demo ? true : "all"));
+  const res = await load((db) => listSignals(db, today(), { show, category: f.category, sort }, demo ? true : "all"));
   if (!res.ok) return <SetupError message={res.error} />;
 
   return (
@@ -40,8 +42,14 @@ export default async function Signals({ searchParams }: Props) {
             {Object.entries(TYPE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
+        <label className="block text-xs font-medium text-muted">
+          Sort by
+          <select name="sort" defaultValue={sort} className="mt-1 block rounded-md border border-line bg-bg px-2 py-1.5 text-sm text-ink">
+            {Object.entries(SORT).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </label>
         <button className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-white dark:text-black">Apply</button>
-        {(f.category || f.show) && <Link href="/signals" className="rounded-md border border-line px-4 py-1.5 text-sm">Reset</Link>}
+        {(f.category || f.show || f.sort) && <Link href="/signals" className="rounded-md border border-line px-4 py-1.5 text-sm">Reset</Link>}
       </form>
 
       {res.data.length === 0 ? (
@@ -52,7 +60,7 @@ export default async function Signals({ searchParams }: Props) {
         </Empty>
       ) : (
         <>
-          <p className="mb-3 text-sm text-muted">{res.data.length} signal{res.data.length > 1 ? "s" : ""}, newest first.</p>
+          <p className="mb-3 text-sm text-muted">{res.data.length} signal{res.data.length > 1 ? "s" : ""}, {SORT[sort].toLowerCase()}.</p>
           <div className="space-y-3">{res.data.map((s) => <SignalCard key={s.id} s={s} />)}</div>
         </>
       )}

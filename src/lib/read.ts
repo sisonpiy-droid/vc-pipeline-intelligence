@@ -320,7 +320,16 @@ export interface FeedFilters {
   category?: string;
   investor?: string;
   show?: string; // "relevant" (default) | "verified" | "review"
+  sort?: string; // a key of FEED_SORTS; anything else means newest first
 }
+
+/** The orders the signal feed offers. Fixed SQL fragments: a request can only pick a key, never write SQL. */
+export const FEED_SORTS = {
+  newest: "s.published_at desc nulls last, s.relevance_score desc nulls last",
+  oldest: "s.published_at asc nulls last, s.relevance_score desc nulls last",
+  relevance: `${effRel("s")} desc nulls last, s.published_at desc nulls last`,
+  investor: "i.firm_name asc, s.published_at desc nulls last",
+} as const;
 
 export async function listSignals(db: Db, today: string, f: FeedFilters = {}, demo: Scope = false): Promise<FeedSignal[]> {
   const show = f.show ?? "relevant";
@@ -338,7 +347,7 @@ export async function listSignals(db: Db, today: string, f: FeedFilters = {}, de
                and ($1 = 'verified' or ${effRel("s")} >= ${RELEVANCE_MIN})) )
         and ($3::text is null or s.signal_type = $3)
         and ($4::uuid is null or s.investor_id = $4)
-      order by s.published_at desc nulls last, s.relevance_score desc nulls last
+      order by ${FEED_SORTS[(f.sort ?? "newest") as keyof typeof FEED_SORTS] ?? FEED_SORTS.newest}
       limit 300`,
     [show, windowStart(new Date(`${today}T00:00:00Z`)), f.category ?? null, f.investor ?? null, scopeKey(demo)],
   );

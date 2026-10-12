@@ -95,6 +95,20 @@ describe("the demo data", () => {
 describe("demo and real data are never mixed", () => {
   beforeEach(() => resetDemo(db));
 
+  it("the signal feed sorts by date or investor, and a sort it does not know (or an injection attempt) falls back to newest", async () => {
+    const get = (sort?: string) => listSignals(db, TODAY, { show: "verified", sort }, true);
+    const dates = (l: { published_at: string | null }[]) => l.map((s) => s.published_at ?? "");
+    const newest = dates(await get("newest"));
+    expect(newest.length).toBeGreaterThan(2);
+    expect(newest).toEqual([...newest].sort().reverse());
+    expect(dates(await get("oldest"))).toEqual([...newest].sort());
+    const names = (await get("investor")).map((s) => s.firm_name);
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" })));
+    expect(dates(await get("created_at; drop table signals"))).toEqual(newest);
+    expect((await get("relevance")).length).toBe(newest.length);
+    expect((await get()).length).toBe(newest.length); // the table is still there
+  });
+
   it("live views show only real investors, signals, runs and counts; demo views show only demo ones", async () => {
     const live = await listPipeline(db, TODAY);
     expect(live.map((r) => r.firm_name)).toEqual(["Alpha"]);
