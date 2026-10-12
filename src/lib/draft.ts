@@ -4,7 +4,8 @@ import { fmtDate } from "@/lib/format";
 /**
  * Draft introduction emails. The app never sends them: they open in the founder's own mail app or Gmail, with no address for
  * real investors (their contact details are not stored, and none is invented). Every email has the same shape:
- *   greeting · why I am writing to YOU (from the evidence) · a short brief about the startup · a meeting link · sign-off.
+ *   greeting · why I am writing to YOU (from the evidence) · what we do · one clear ask with the meeting link on its own line
+ *   (so mail apps turn it into a link) · an easy alternative · sign-off.
  * The "why you" line is either the Gemini opening angle or a plain line built only from what a source says.
  */
 
@@ -48,9 +49,10 @@ export function composeEmail(o: { opening: string; firm: string; kind: string; s
   const body = [
     greeting(o.firm, o.kind),
     o.opening.trim(),
-    `A little about us: ${s.brief}`,
-    `If this is relevant to what you are looking at, I would value 30 minutes with you. You can pick a time that suits you here: ${s.calendly}`,
-    ["Thank you for your time,", s.name, s.company].filter(Boolean).join("\n"),
+    `What we do: ${s.brief}`,
+    `Would you be open to a 30-minute call? Pick any time that suits you:\n${s.calendly}`,
+    "If it is easier, I am happy to send a one-page summary first.",
+    ["Thanks for your time,", s.name, s.company].filter(Boolean).join("\n"),
   ].join("\n\n");
   return { subject: subjectFor(s), body };
 }

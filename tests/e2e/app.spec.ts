@@ -135,6 +135,29 @@ test("demo video: the sidebar has a Watch group, the page plays the video file, 
   done();
 });
 
+test("API reference: an Integrations panel shows names and states only (Calendly, not WhatsApp)", async ({ page }) => {
+  await page.goto("/api-docs");
+  const panel = page.locator("section[aria-labelledby=int-h]");
+  await expect(panel.getByRole("heading", { name: "Integrations" })).toBeVisible();
+  for (const name of ["Database", "Gemini", "Search", "Mail drafts", "Calendly", "Telegram", "Cron", "Admin"]) await expect(panel.getByText(name, { exact: true })).toBeVisible();
+  await expect(panel.getByText(/whatsapp/i)).toHaveCount(0);
+  await expect(panel.getByText("Not set").first()).toBeVisible(); // the test server has no keys: honest, not faked
+});
+
+test("every page's title finishes animating in and is fully visible, with or without reduced motion", async ({ browser }) => {
+  for (const reduced of [false, true]) {
+    const ctx = await browser.newContext({ reducedMotion: reduced ? "reduce" : "no-preference" });
+    const page = await ctx.newPage();
+    for (const path of ["/pipeline", "/signals", "/news", "/video", "/api-docs", "/runs"]) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("opacity", "1");
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+      await expect.poll(() => page.locator("main li").evaluateAll((els) => els.filter((e) => Number(getComputedStyle(e).opacity) < 0.99).map((e) => `${location.pathname} ${getComputedStyle(e).opacity} ${e.className.slice(0, 80)} | ${e.textContent?.slice(0, 50)}`)), { timeout: 6000 }).toEqual([]); // nothing is left hidden by scroll reveals
+    }
+    await ctx.close();
+  }
+});
+
 test("investor page: score breakdown, evidence with a verbatim quote, and the founder's data is read-only until edited", async ({ page }) => {
   await page.goto("/pipeline?q=Blume");
   await page.getByRole("link", { name: "Blume Ventures" }).first().click();

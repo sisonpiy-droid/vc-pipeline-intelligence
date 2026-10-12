@@ -43,11 +43,12 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 
 export function PageTitle({ title, sub, eyebrow, children }: { title: string; sub?: ReactNode; eyebrow?: string; children?: ReactNode }) {
   return (
-    <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-line pb-8">
+    <div className="relative mb-10 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-line pb-8">
+      <span aria-hidden data-title-rule className="js-hide pointer-events-none absolute -bottom-px left-0 h-[2px] w-24 bg-accent" />
       <div>
-        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-        <h1 className={`${eyebrow ? "mt-2 " : ""}text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.15rem]`}>{title}</h1>
-        {sub && <p className="mt-3 max-w-[68ch] text-[0.95rem] leading-relaxed text-muted">{sub}</p>}
+        {eyebrow && <div data-title-part className="js-hide"><Eyebrow>{eyebrow}</Eyebrow></div>}
+        <h1 data-title-part className={`js-hide ${eyebrow ? "mt-2 " : ""}text-3xl font-semibold leading-[1.1] tracking-tight md:text-[2.15rem]`}>{title}</h1>
+        {sub && <p data-title-part className="js-hide mt-3 max-w-[68ch] text-[0.95rem] leading-relaxed text-muted">{sub}</p>}
       </div>
       {children}
     </div>

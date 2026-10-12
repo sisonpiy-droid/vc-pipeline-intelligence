@@ -14,7 +14,7 @@ export function DemoPlayer() {
   const ref = useRef<HTMLVideoElement>(null);
   const jump = (s: number) => { const v = ref.current; if (!v) return; v.currentTime = s; void v.play(); };
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
+    <div data-rise className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
       <video ref={ref} controls preload="metadata" playsInline poster="/demo/vc-pipeline-demo.jpg" className="aspect-video w-full rounded-2xl border border-line bg-black">
         <source src="/demo/vc-pipeline-demo.mp4" type="video/mp4" />
         Your browser cannot play this video. <a href="/demo/vc-pipeline-demo.mp4">Download it</a>.

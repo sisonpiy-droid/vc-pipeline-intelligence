@@ -37,7 +37,7 @@ describe("composeEmail: greeting, why you, a brief about the startup, a meeting 
   const m = composeEmail({ opening: "I read about your new fund.", firm: "Kae Capital", kind: "vc_firm", sender: set });
 
   it("has every part, in order", () => {
-    const at = ["Hi Kae Capital team,", "I read about your new fund.", "A little about us: We build freight software", "https://calendly.com/vikram/20min", "Vikram Rao\nHaulr"].map((t) => m.body.indexOf(t));
+    const at = ["Hi Kae Capital team,", "I read about your new fund.", "What we do: We build freight software", "https://calendly.com/vikram/20min", "Vikram Rao\nHaulr"].map((t) => m.body.indexOf(t));
     expect(at.every((i) => i >= 0)).toBe(true);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
     expect(m.subject).toBe("Introduction: Haulr, Seed-stage B2B logistics SaaS");

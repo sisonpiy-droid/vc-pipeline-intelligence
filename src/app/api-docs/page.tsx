@@ -3,9 +3,11 @@ import { CaretDown } from "@phosphor-icons/react/dist/ssr";
 import { CopyButton } from "@/components/CopyButton";
 import { PageTitle, Pill } from "@/components/ui";
 import { ENDPOINTS, type Endpoint } from "@/lib/apiDocs";
+import { integrations } from "@/lib/integrations";
 import { MANUAL_COOLDOWN_MIN } from "@/lib/refresh/service";
 
 export const metadata = { title: "API reference" };
+export const dynamic = "force-dynamic"; // the integrations panel reads this deployment's environment on every request
 
 const AUTH_TONE = { none: "neutral", cron_secret: "warn", admin_passcode: "info" } as const;
 const AUTH_LABEL = { none: "Public", cron_secret: "Secret required", admin_passcode: "Passcode required" } as const;
@@ -85,6 +87,21 @@ export default async function ApiDocs({ searchParams }: { searchParams: Promise<
         title="API reference"
         sub={`${ENDPOINTS.length} routes. Secrets live only in server-side environment variables; the browser holds none. Manual refreshes are limited to one per ${MANUAL_COOLDOWN_MIN} minutes. Each line says what the route does in plain words: click it for who can call it, what you send, what comes back and the safety limits.`}
       />
+      <section aria-labelledby="int-h" className="mb-10">
+        <h2 id="int-h" className="text-lg font-semibold tracking-tight">Integrations</h2>
+        <p className="mt-1 text-xs text-muted">Names of configured integrations only: secret values never leave the server.</p>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {integrations().map((i) => (
+            <li key={i.key} title={i.note} className={`rounded-2xl border px-4 py-3 ${i.state === "configured" ? "border-good/30 bg-good-soft/50" : i.state === "open" ? "border-info/30 bg-info-soft/50" : "border-warn/30 bg-warn-soft/40"}`}>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[0.95rem] font-medium">{i.name}</span>
+                <span className="text-xs font-semibold">{i.state === "configured" ? "Configured" : i.state === "open" ? "Open demo" : "Not set"}</span>
+              </div>
+              <p className="mt-1 text-xs leading-snug text-muted">{i.note}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
       <nav aria-label="Filter by access" className="mb-8 flex flex-wrap gap-1.5">
         {VIEWS.map((v) => {
           const n = v.key ? ENDPOINTS.filter((e) => e.auth.kind === v.key).length : ENDPOINTS.length;

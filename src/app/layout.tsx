@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Pulse } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
+import { Suspense } from "react";
 import { CommandPalette } from "@/components/CommandPalette";
+import { PageMotion } from "@/components/motion/PageMotion";
 import { DemoBar } from "@/components/DemoBar";
 import { ChatWidget } from "@/components/ChatWidget";
 import { CompareTray } from "@/components/CompareTray";
@@ -71,6 +73,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <span className="ml-auto flex items-center gap-2"><CommandPalette /><ThemeToggle /></span>
             </header>
             <RunBar demo={demo} />
+            <Suspense fallback={null}><PageMotion /></Suspense>
             <main id="main" className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-8 lg:py-12">
               {children}
             </main>

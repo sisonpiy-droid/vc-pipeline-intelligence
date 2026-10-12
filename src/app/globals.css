@@ -196,6 +196,8 @@ summary {
     animation: none !important;
     transition: none !important;
   }
+  /* The "un-hide after 1.2 s" fallback is an animation, so with motion off nothing may start hidden at all. */
+  .js-hide { opacity: 1; }
 }
 
 .story-scroller { scroll-snap-type: x mandatory; scrollbar-width: none; }
