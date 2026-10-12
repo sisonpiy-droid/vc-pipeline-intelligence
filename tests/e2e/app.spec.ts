@@ -120,6 +120,21 @@ test("VC news: stories are snippets that open to the longer text with a link to 
   done();
 });
 
+test("demo video: the sidebar has a Watch group, the page plays the video file, and a chapter jumps to its moment", async ({ page, request }) => {
+  const done = failOnConsoleErrors(page);
+  await page.goto("/");
+  await page.getByRole("link", { name: "Demo video" }).first().click();
+  await expect(page).toHaveURL(/\/video$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Two-minute demo" })).toBeVisible();
+  const head = await request.head("/demo/vc-pipeline-demo.mp4");
+  expect(head.status()).toBe(200);
+  expect(head.headers()["content-type"]).toContain("video/mp4");
+  await expect(page.locator("video source")).toHaveAttribute("src", "/demo/vc-pipeline-demo.mp4");
+  await page.getByRole("button", { name: /Quiet is never a failure/ }).click();
+  await expect.poll(() => page.locator("video").evaluate((v: HTMLVideoElement) => Math.round(v.currentTime))).toBeGreaterThanOrEqual(88);
+  done();
+});
+
 test("investor page: score breakdown, evidence with a verbatim quote, and the founder's data is read-only until edited", async ({ page }) => {
   await page.goto("/pipeline?q=Blume");
   await page.getByRole("link", { name: "Blume Ventures" }).first().click();
@@ -414,7 +429,7 @@ test("send mail moves the investor to Contacted (with undo), and replies are log
   done();
 });
 
-for (const path of ["/", "/startups", "/startups/new", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare", "/api-docs", "/news"]) {
+for (const path of ["/", "/video", "/startups", "/startups/new", "/pipeline", "/brief", "/simulate", "/board", "/signals", "/quiet", "/runs", "/compare", "/api-docs", "/news"]) {
   test(`phone width: ${path} has no horizontal page scroll and no console errors`, async ({ browser }) => {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
     const page = await ctx.newPage();

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ClockCounterClockwise, Code, Database, Globe, House, Kanban, List, MoonStars, Newspaper, Pulse, Rows, SlidersHorizontal, Stack, X,
+  ClockCounterClockwise, Code, Database, Globe, House, Kanban, List, MoonStars, Newspaper, PlayCircle, Pulse, Rows, SlidersHorizontal, Stack, X,
 } from "@phosphor-icons/react";
 
 const GROUPS = [
@@ -25,6 +25,9 @@ const GROUPS = [
   { title: "More startups", links: [
     { href: "/startups", label: "Startups", Icon: Stack },
     { href: "/database", label: "Investor database", Icon: Database },
+  ] },
+  { title: "Watch", links: [
+    { href: "/video", label: "Demo video", Icon: PlayCircle },
   ] },
   { title: "System", links: [
     { href: "/runs", label: "Runs & audit", Icon: ClockCounterClockwise },
