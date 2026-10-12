@@ -11,12 +11,30 @@ import { ageInDays, isoDay, parseDate } from "@/lib/signals/window";
 export interface NewsSource { id: string; name: string; region: string; url: string }
 
 export const NEWS_SOURCES: NewsSource[] = [
-  { id: "techcrunch", name: "TechCrunch", region: "Global", url: "https://techcrunch.com/category/venture/feed/" },
+  { id: "techcrunch", name: "TechCrunch", region: "Global", url: "https://techcrunch.com/category/startups/feed/" },
   { id: "crunchbase", name: "Crunchbase News", region: "Global", url: "https://news.crunchbase.com/feed/" },
+  { id: "entrackr", name: "Entrackr", region: "India", url: "https://entrackr.com/rss" },
   { id: "inc42", name: "Inc42", region: "India", url: "https://inc42.com/feed/" },
   { id: "yourstory", name: "YourStory", region: "India", url: "https://yourstory.com/feed" },
+  { id: "et", name: "ET Startups", region: "India", url: "https://economictimes.indiatimes.com/tech/startups/rssfeeds/78570561.cms" },
   { id: "sifted", name: "Sifted", region: "Europe", url: "https://sifted.eu/feed" },
 ];
+
+/** What a story is about, so the page can be filtered and the reader knows what kind of news it is before opening it. */
+export type NewsTopic = "round" | "fund" | "exit" | "policy" | "people" | "market";
+export const TOPIC_LABEL: Record<NewsTopic, string> = {
+  round: "Funding rounds", fund: "New funds", exit: "Exits and deals", policy: "Policy and rules", people: "People and firms", market: "Market and valuations",
+};
+
+/** The same topics in plain words: what happened, and why a first-time founder might care. */
+export const TOPIC_MEANS: Record<NewsTopic, string> = {
+  round: "A startup raised money. It shows which kinds of company investors are backing right now.",
+  fund: "An investment firm raised or launched a fund. More money for them to invest, so a good moment to approach them.",
+  exit: "A company was bought or listed. Investors get money back and often fund new startups with it.",
+  policy: "A rule, tax or law that affects investors or startups.",
+  people: "Someone joined, left or was promoted at an investment firm. It can mean a new person to contact.",
+  market: "How much money is moving and at what prices: the mood of the market.",
+};
 
 export interface NewsItem {
   id: string;
@@ -26,6 +44,11 @@ export interface NewsItem {
   sourceId: string;
   region: string;
   published: string; // YYYY-MM-DD
+  topic: NewsTopic;
+  /** True when the story touches the founder's own world: logistics, supply chain, freight, fleets, warehousing or B2B software. */
+  matters: boolean;
+  /** Higher is read first: matters to the founder, a round or a fund, VC in the headline, and how fresh it is. */
+  rank: number;
   snippet: string;
   text: string; // the publisher's own feed text, bounded
 }
@@ -35,10 +58,35 @@ export interface SourceStatus { id: string; name: string; ok: boolean; items: nu
 /** Venture capital, specifically: a firm or fund, a round, an angel, a valuation. "Startup", "investor" or "backed" alone are not enough. */
 const VC_RE = /\b(venture|vcs?|funding|fundrais\w*|raises?|raised|raising|seed|pre-seed|series\s+[a-e]|funds?|valuations?|unicorns?|limited partners?|lps|term sheets?|angels?|cheques?|cap table)\b/i;
 /** A listing or a share-price story is about public markets, not venture capital, unless its headline is itself about VC or a round. */
-const MARKETS_RE = /\b(ipo|price band|share price|stock market|sensex|nifty)\b/i;
-const VC_HEADLINE_RE = /\b(venture|vcs?|funding|seed|series\s+[a-e]|raises?|raised)\b/i;
+/** "Raises" alone is not venture capital: councils raise thresholds too. A raise needs an amount after it. */
+const MONEY = String.raw`(?:rs\.?|₹|\$|us\$|usd|inr|€|£|\d)`;
+const RAISE_MONEY = new RegExp(String.raw`\b(?:raises?|raised|raising|secures?|bags?)\s+(?:up to\s+|about\s+|over\s+)?${MONEY}|\braising funds\b`, "i");
+/** A headline counts as venture capital when it names VC itself or a round. */
+const TITLE_VC_RE = /\b(venture|vcs?|funding|seed|pre-seed|series\s+[a-e]|funds?|valuations?|unicorns?|limited partners?|term sheets?|angels?|cheques?)\b/i;
+/** Newsletters, quizzes and events are not news. */
+const NOISE_RE = /\b(quiz|podcast|webinar|workshop|newsletter|sponsored|advertorial)\b|&\s*more$/i;
+const MARKETS_RE = /\b(ipo|price band|share price|stocks?|stock market|sensex|nifty)\b/i;
+const VC_HEADLINE_RE = /\b(venture|vcs?|funding|seed|series\s+[a-e])\b/i;
 const WINDOW_DAYS = 21;
-const MAX_ITEMS = 40;
+const MAX_ITEMS = 60;
+const MAX_PER_SOURCE = 12; // so one prolific publication cannot fill the page
+
+/** How many different venture-capital terms a text uses ("raises" and "raised" count once each as the same idea). */
+const termCount = (s: string) => new Set((s.toLowerCase().match(new RegExp(VC_RE.source, "gi")) ?? []).map((m) => (/^rais|^fundrais/.test(m) ? "raise" : /^series/.test(m) ? "series" : /^funds?$/.test(m) ? "fund" : /^(vcs?|venture)$/.test(m) ? "vc" : m))).size;
+
+const TOPICS: [NewsTopic, RegExp][] = [
+  ["fund", /\b(new fund|maiden fund|fund of funds|fund (?:close|raise|ii|iii|iv)|closes? .{0,40}\bfund|launch\w* .{0,40}\bfund|limited partners?|\blps?\b|corpus|dry powder)\b/i],
+  ["round", /\b(funding round|seed|pre-seed|series\s+[a-e]|bridge round|led by)\b/i],
+  ["exit", /\b(acquires?|acquisition|acquired|ipo|merger|buyout|secondary sale|exit)\b/i],
+  ["round", RAISE_MONEY],
+  ["policy", /\b(sebi|rbi|regulat\w*|angel tax|policy|dpiit|government|tax)\b/i],
+  ["people", /\b(appoints?|joins?|hires?|promoted|new partner|steps? down|names? .{0,30}(?:partner|head))\b/i],
+];
+export const topicOf = (title: string): NewsTopic => TOPICS.find(([, re]) => re.test(title))?.[0] ?? "market";
+
+const MATTERS_RE = /\b(logistics|supply[- ]chain|freight|fleets?|warehous\w*|trucking|last[- ]mile|b2b saas|enterprise saas|b2b software)\b/i;
+/** In the headline, or clearly the subject of the text (two mentions): one passing word is not "your world". */
+const mattersTo = (title: string, text: string) => MATTERS_RE.test(title) || (text.match(new RegExp(MATTERS_RE.source, "gi"))?.length ?? 0) >= 2;
 const MAX_BYTES = 800_000;
 
 const sentenceCut = (s: string, max: number) => {
@@ -56,11 +104,16 @@ export function toNews(items: FeedItem[], src: NewsSource, now: Date): NewsItem[
     const day = parseDate(it.published);
     if (!day || ageInDays(day, now) > WINDOW_DAYS || ageInDays(day, now) < -1) return []; // undated or old items are never assumed recent
     const text = tidy(it.summary);
-    if (!VC_RE.test(`${it.title} ${text}`)) return [];
+    // Venture capital in the headline, or at least two different venture terms in the text: one stray "funds" is not enough.
+    if (NOISE_RE.test(it.title)) return [];
+    if (!TITLE_VC_RE.test(it.title) && !RAISE_MONEY.test(it.title) && termCount(text) < 2) return [];
     if (MARKETS_RE.test(it.title) && !VC_HEADLINE_RE.test(it.title)) return [];
+    const topic = topicOf(it.title);
+    const matters = mattersTo(it.title, text);
+    const rank = (matters ? 5 : 0) + (topic === "round" || topic === "fund" ? 2 : 0) + (VC_HEADLINE_RE.test(it.title) ? 2 : 0) + Math.max(0, 3 - ageInDays(day, now));
     return [{
       id: createHash("sha1").update(it.url).digest("hex").slice(0, 12),
-      title: it.title.slice(0, 220), url: it.url, source: src.name, sourceId: src.id, region: src.region, published: day,
+      title: it.title.slice(0, 220), url: it.url, source: src.name, sourceId: src.id, region: src.region, published: day, topic, matters, rank,
       snippet: text ? sentenceCut(text, 170) : "", text: sentenceCut(text, 1400),
     }];
   });
@@ -68,9 +121,11 @@ export function toNews(items: FeedItem[], src: NewsSource, now: Date): NewsItem[
 
 export function mergeNews(all: NewsItem[]): NewsItem[] {
   const seen = new Set<string>();
+  const perSource = new Map<string, number>();
   return all
     .sort((a, b) => b.published.localeCompare(a.published) || a.title.localeCompare(b.title))
     .filter((n) => { const k = n.title.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); if (seen.has(n.url) || seen.has(k)) return false; seen.add(n.url); seen.add(k); return true; })
+    .filter((n) => { const c = (perSource.get(n.sourceId) ?? 0) + 1; perSource.set(n.sourceId, c); return c <= MAX_PER_SOURCE; })
     .slice(0, MAX_ITEMS);
 }
 

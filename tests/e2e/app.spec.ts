@@ -97,8 +97,10 @@ test("VC news: stories are snippets that open to the longer text with a link to 
   const done = failOnConsoleErrors(page);
   await page.goto("/news");
   await expect(page.getByRole("heading", { level: 1, name: "Venture capital news" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^All 10$/ })).toBeVisible(); // 5 canned feeds x 2 venture stories; the recipe story is filtered out
+  await expect(page.getByRole("link", { name: /^All topics 14$/ })).toBeVisible(); // 7 canned feeds x 2 venture stories; the recipe story is filtered out
   await expect(page.getByText("Recipe of the week")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Read these first" })).toBeVisible();
+  await expect(page.getByText("Matters to you").first()).toBeVisible(); // the logistics stories are flagged
   const first = page.locator("li details").first();
   await expect(first.locator("summary").getByText(/A seed round of 4 million dollars will fund hiring/)).toBeVisible(); // the snippet
   await expect(first.getByText("The founders previously ran supply-chain operations.")).toBeHidden(); // the longer text waits for a click
@@ -107,7 +109,14 @@ test("VC news: stories are snippets that open to the longer text with a link to 
   await expect(first.getByRole("link", { name: /Read the full story at/ })).toHaveAttribute("href", /story-\d/);
   await page.getByRole("link", { name: /^TechCrunch 2$/ }).click();
   await expect(page).toHaveURL(/source=techcrunch/);
-  await expect(page.locator("li details")).toHaveCount(2);
+  await expect(page.locator("#first-h").locator("xpath=following-sibling::ul/li")).toHaveCount(2); // both TechCrunch stories are in "Read these first"
+  await page.getByRole("link", { name: /^Clear filters$/ }).click();
+  await page.getByRole("link", { name: /^Funding rounds 7$/ }).click();
+  await expect(page).toHaveURL(/topic=round/);
+  await page.getByRole("searchbox", { name: "Search the news" }).fill("hiring");
+  await page.getByRole("searchbox", { name: "Search the news" }).press("Enter");
+  await expect(page).toHaveURL(/q=hiring/);
+  await expect(page.getByText("Venture funding falls in the third quarter")).toHaveCount(0); // a different topic
   done();
 });
 

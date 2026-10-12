@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fetchNews, mergeNews, NEWS_SOURCES, toNews } from "@/lib/news";
+import { fetchNews, mergeNews, NEWS_SOURCES, toNews, topicOf } from "@/lib/news";
 import { parseFeed } from "@/lib/providers/feeds";
 
 const NOW = new Date("2026-10-12T08:00:00Z");
@@ -44,8 +44,50 @@ describe("toNews: only recent venture-capital stories", () => {
   });
 });
 
+describe("topics, relevance to the founder, and stricter filtering", () => {
+  const stamp = "Sun, 11 Oct 2026 10:00:00 GMT";
+  it("labels what a story is about from its headline", () => {
+    expect(topicOf("Peak XV closes new $1.3B fund")).toBe("fund");
+    expect(topicOf("Freight startup raises $5M seed round")).toBe("round");
+    expect(topicOf("Zepto acquires a logistics firm")).toBe("exit");
+    expect(topicOf("SEBI tightens rules for angel funds")).toBe("policy");
+    expect(topicOf("Accel appoints new partner for India")).toBe("people");
+    expect(topicOf("Venture funding slows in Q3")).toBe("market");
+  });
+  it("marks a story that touches logistics or supply chain as mattering to the founder, and ranks it higher", () => {
+    const [a, b] = toNews([item("Freight startup raises seed round", "Supply chain software for fleets.", stamp), item("Fintech startup raises seed round", "Payments for shops.", stamp)], src, NOW);
+    expect(a!.matters).toBe(true);
+    expect(b!.matters).toBe(false);
+    expect(a!.rank).toBeGreaterThan(b!.rank);
+  });
+  it("a single stray venture word in the body of an unrelated story is not enough", () => {
+    expect(toNews([item("Insolvent edtech parent to hold a stake after settlement", "The settlement ends a shareholding dispute and funds will be allotted.", stamp)], src, NOW)).toEqual([]);
+    expect(toNews([item("Edtech settlement", "A venture fund and a seed investor are named in the dispute.", stamp)], src, NOW)).toHaveLength(1);
+  });
+  it("learned from the real feeds: a council raising a threshold, a quiz and a newsletter are not venture capital; an IPO is an exit, not a round", () => {
+    expect(toNews([item("GST Council removes arrest powers, raises prosecution threshold to Rs 5 Cr", "Logistics and supply chain firms welcomed the move.", stamp)], src, NOW)).toEqual([]);
+    expect(toNews([item("Test your business creativity with our weekly quiz", "Funding, venture and seed questions.", stamp)], src, NOW)).toEqual([]);
+    expect(toNews([item("India's Cleantech Funding Boom, The AI Safety Drill & More", "Funding news.", stamp)], src, NOW)).toEqual([]);
+    expect(toNews([item("NeoGrowth raises Rs 85 Cr from FMO", "A lender.", stamp)], src, NOW)[0]!.topic).toBe("round");
+    expect(toNews([item("Zetwerk IPO: venture investors sell stake in the offer", "The IPO is a venture exit.", stamp)], src, NOW)[0]!.topic).toBe("exit");
+    expect(topicOf("Project Europe leads step down as fund readies next chapter")).toBe("people");
+  });
+  it("one passing mention of logistics is not 'your world'; two, or the headline, is", () => {
+    const [a, b, c] = toNews([
+      item("Fintech startup raises seed round", "Payments for shops, with a logistics partner.", stamp, "https://x/1"),
+      item("Fintech startup raises seed round again", "Its logistics arm and supply chain finance unit grow.", stamp, "https://x/2"),
+      item("Logistics startup raises seed round", "Trucks.", stamp, "https://x/3"),
+    ], src, NOW);
+    expect([a!.matters, b!.matters, c!.matters]).toEqual([false, true, true]);
+  });
+  it("one publication cannot fill the page", () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ id: String(i), title: `Round ${i}`, url: `https://a/${i}`, source: "S", sourceId: "s", region: "Global", published: "2026-10-10", topic: "round" as const, matters: false, rank: 0, snippet: "", text: "" }));
+    expect(mergeNews(many)).toHaveLength(12);
+  });
+});
+
 describe("mergeNews", () => {
-  const n = (title: string, published: string, url: string) => ({ id: url, title, url, source: "S", sourceId: "s", region: "Global", published, snippet: "", text: "" });
+  const n = (title: string, published: string, url: string) => ({ id: url, title, url, source: "S", sourceId: "s", region: "Global", published, topic: "market" as const, matters: false, rank: 0, snippet: "", text: "" });
   it("sorts newest first and removes the same story reported by two feeds", () => {
     const out = mergeNews([n("Fund closes", "2026-10-10", "https://a/1"), n("Fund closes!", "2026-10-11", "https://b/2"), n("Seed round", "2026-10-09", "https://a/3"), n("Seed round", "2026-10-09", "https://a/3")]);
     expect(out.map((x) => x.url)).toEqual(["https://b/2", "https://a/3"]);
@@ -70,6 +112,6 @@ describe("fetchNews: a failed source is reported, never mistaken for 'no news'",
 
   it("only ever reads the fixed publisher list (no user-supplied URL can reach it)", () => {
     for (const s of NEWS_SOURCES) expect(new URL(s.url).protocol).toBe("https:");
-    expect(NEWS_SOURCES.length).toBe(5);
+    expect(NEWS_SOURCES.length).toBe(7);
   });
 });
