@@ -21,6 +21,9 @@ const env = {
 
 rmSync(".data/e2e", { recursive: true, force: true });
 execSync("npm run -s import && npm run -s dev:fixture && npm run -s demo:seed", { stdio: "inherit", env });
+// Optional, for looking at the Investor database page on real lists: E2E_DIRECTORY_DIR=<folder with the spreadsheets>. It loads them into
+// this throwaway local database only (DATABASE_URL above is pglite); tsx is run without --env-file so no real connection string is read.
+if (process.env.E2E_DIRECTORY_DIR) execSync(`npx tsx scripts/import-directory.ts --dir "${process.env.E2E_DIRECTORY_DIR}"`, { stdio: "inherit", env });
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", process.env.E2E_DEV ? "dev" : "start", "-p", PORT], { stdio: "inherit", env });
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { server.kill(); process.exit(0); });
 server.on("exit", (code) => process.exit(code ?? 0));
