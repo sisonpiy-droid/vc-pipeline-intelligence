@@ -17,7 +17,7 @@ import { GET as health } from "@/app/api/health/route";
 import { POST as manual } from "@/app/api/refresh/route";
 import { checkAdmin, isCron, safeEqual } from "@/lib/auth";
 import { missingEnv } from "@/lib/env";
-import { MANUAL_COOLDOWN_MIN, MAX_CHAIN, triggerRefresh, work } from "@/lib/refresh/service";
+import { handoffBase, MANUAL_COOLDOWN_MIN, MAX_CHAIN, triggerRefresh, work } from "@/lib/refresh/service";
 import { startRun } from "@/lib/refresh/run";
 import { asRefresh } from "@/lib/refresh/write";
 
@@ -200,6 +200,22 @@ describe("hand-off between invocations (chunk chaining)", () => {
     await work(rdb, h.deps as never, run_id, "https://vc.example", 1, { batchEstimateMs: 0 });
     expect(fetchMock).toHaveBeenCalledTimes(1); // finished → no further hand-off
     expect((await runs())[0]!.status).toBe("succeeded");
+  });
+
+  it("hands off to the public address even when the request arrived on the deployment's own (login-protected) one", async () => {
+    const fetchMock = vi.fn(async () => new Response("{}", { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    process.env.APP_URL = "https://vc.example/";
+    try {
+      const rdb = asRefresh(h.db);
+      const { run_id } = await startRun(rdb, "cron");
+      await work(rdb, h.deps as never, run_id, "https://vc-abc123-team.vercel.app", 0, { maxItems: 1, concurrency: 1, batchEstimateMs: 0 });
+      expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe("https://vc.example/api/refresh/continue");
+    } finally {
+      delete process.env.APP_URL;
+    }
+    expect(handoffBase("https://deploy.vercel.app", {})).toBe("https://deploy.vercel.app"); // nothing configured: the request origin (local runs)
+    expect(handoffBase("https://deploy.vercel.app", { VERCEL_PROJECT_PRODUCTION_URL: "vc.vercel.app" })).toBe("https://vc.vercel.app");
   });
 
   it("a lost hand-off is survivable and a runaway chain is capped", async () => {

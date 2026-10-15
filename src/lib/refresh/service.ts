@@ -50,12 +50,20 @@ export const MAX_CHAIN = 20; // 82 investors ≈ 3 chunks; this only stops a run
  * ask a *new* invocation to continue (its own time budget). If that hand-off is lost, the run's
  * heartbeat goes stale and the next cron / manual trigger resumes it.
  */
+/**
+ * Where a hand-off must go: the PUBLIC address (APP_URL, else Vercel's production domain), never the address the request arrived on.
+ * A scheduled call arrives on the deployment's own address, which Vercel puts behind its login wall, so a hand-off sent back there is
+ * refused and a long run strands part-way (this happened on the first real cron run). Locally, with neither set, the request origin is used.
+ */
+export const handoffBase = (origin: string, env: Record<string, string | undefined> = process.env): string =>
+  env.APP_URL?.trim().replace(/\/+$/, "") || (env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : origin);
+
 export async function work(rdb: Db, deps: Deps, runId: string, origin: string, chain = 0, opts: ChunkOptions = { budgetMs: 240_000 }): Promise<void> {
   const chunk = await runChunk(rdb, deps, runId, opts);
   if (chunk.finished || chain >= MAX_CHAIN) return;
   const secret = process.env.CRON_SECRET;
   if (!secret) return;
-  await fetch(`${origin}/api/refresh/continue`, {
+  await fetch(`${handoffBase(origin)}/api/refresh/continue`, {
     method: "POST",
     headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
     body: JSON.stringify({ run_id: runId, chain: chain + 1 }),
