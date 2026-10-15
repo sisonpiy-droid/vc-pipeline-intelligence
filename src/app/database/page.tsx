@@ -31,13 +31,13 @@ export default async function DatabasePage({ searchParams }: { searchParams: Pro
         <Stat label="With a phone number" value={d.withPhone} />
       </div>
       <div className="mt-12 grid gap-12 lg:grid-cols-2">
-        <section aria-labelledby="k-h">
+        <section aria-labelledby="k-h" className="min-w-0">
           <h2 id="k-h" className="text-lg font-semibold tracking-tight">By type</h2>
           <dl className="mt-4 divide-y divide-line border-y border-line text-sm">
             {d.byKind.map((k) => <div key={k.kind} className="flex justify-between py-2.5"><dt>{KIND[k.kind] ?? k.kind}</dt><dd className="num text-muted">{n(k.n)}</dd></div>)}
           </dl>
         </section>
-        <section aria-labelledby="s-h">
+        <section aria-labelledby="s-h" className="min-w-0">
           <h2 id="s-h" className="text-lg font-semibold tracking-tight">By source list</h2>
           <dl className="mt-4 divide-y divide-line border-y border-line text-sm">
             {d.bySource.map((s) => <div key={s.source} className="flex justify-between gap-4 py-2.5"><dt className="min-w-0 truncate">{s.source.replace(/ \/ /, ": ")}</dt><dd className="num shrink-0 text-muted">{n(s.n)}</dd></div>)}

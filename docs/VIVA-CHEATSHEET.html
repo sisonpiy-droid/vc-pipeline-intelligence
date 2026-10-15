@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Viva cheat sheet — VC Fundraising Pipeline Intelligence</title>
+<style>
+  @page { size: A4; margin: 12mm 13mm 13mm; }
+  :root { --ink:#17211f; --muted:#5b6865; --line:#d7dfdc; --teal:#0f6b6b; --teal-soft:#e3f2f0; --amber:#8a5a00; --amber-soft:#fbf0d6; --rose:#8f2a2c; --rose-soft:#fbe7e6; }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--ink); font:9.6pt/1.4 "Segoe UI", Calibri, Arial, sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  h1 { font-size:19pt; margin:0 0 1pt; letter-spacing:-.02em; }
+  h2 { font-size:12.5pt; margin:0 0 5pt; color:var(--teal); }
+  h3 { font-size:10pt; margin:8pt 0 3pt; }
+  p { margin:0 0 5pt; } ul, ol { margin:0 0 5pt; padding-left:14pt; } li { margin-bottom:2pt; }
+  .page { break-after:page; } .page:last-child { break-after:auto; }
+  .sub { color:var(--muted); font-size:9pt; margin-bottom:7pt; }
+  code, .mono { font-family:Consolas, monospace; font-size:8.6pt; background:#eef2f1; padding:0 2pt; border-radius:2pt; }
+  .box { border:1px solid var(--line); border-radius:7pt; padding:6pt 9pt; margin:6pt 0; break-inside:avoid; }
+  .teal { background:var(--teal-soft); border-color:#b9ddd8; } .amber { background:var(--amber-soft); border-color:#e6cf92; } .rose { background:var(--rose-soft); border-color:#efbcb9; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8pt; } .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:6pt; }
+  .n { border:1px solid var(--line); border-radius:6pt; padding:4pt 6pt; } .n b { display:block; font-size:12.5pt; color:var(--teal); line-height:1.15; } .n span { font-size:7.9pt; color:var(--muted); }
+  table { width:100%; border-collapse:collapse; margin:4pt 0 6pt; font-size:8.8pt; }
+  th, td { border:1px solid var(--line); padding:3pt 5pt; text-align:left; vertical-align:top; } th { background:#f1f5f4; font-size:7.9pt; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); } tr { break-inside:avoid; }
+  .flow { display:flex; gap:0; margin:5pt 0; } .step { flex:1; border:1.2pt solid var(--teal); border-radius:6pt; padding:4pt 4pt; text-align:center; font-size:8.3pt; background:var(--teal-soft); } .step b { display:block; font-size:8.8pt; } .arrow { width:11pt; display:grid; place-items:center; color:var(--teal); font-weight:700; }
+  .flow.alt .step { border-color:#c3a04a; background:var(--amber-soft); }
+  .qa { border-left:3pt solid var(--teal); padding:3pt 8pt; margin:0 0 5pt; break-inside:avoid; background:#fafcfb; }
+  .qa .q { font-weight:700; } .qa.hard { border-left-color:#b3541e; } .qa.hard .q::before { content:"HARD "; font:700 7pt Consolas, monospace; color:#b3541e; letter-spacing:.1em; }
+  img.map { width:100%; display:block; border:1px solid var(--line); }
+  .time { display:inline-block; min-width:30pt; font:700 8.5pt Consolas, monospace; color:var(--teal); }
+</style>
+</head>
+<body>
+
+<!-- ───────── PAGE 1 ───────── -->
+<div class="page">
+  <h1>VC Fundraising Pipeline Intelligence</h1>
+  <div class="sub">Viva cheat sheet · 15 Oct 2026 · Live: vc-pipeline-intelligence.vercel.app · GitHub: sisonpiy-droid/vc-pipeline-intelligence</div>
+
+  <h2>Say this first (60 seconds)</h2>
+  <div class="box teal"><p><b>"Vikram is a first-time founder raising a Seed round for a B2B logistics SaaS. He has 50 VCs and 32 angels to chase and no time to watch the news for all of them.</b> Every Monday and Thursday my system searches the public web for each investor's activity in the last 30 days. Gemini Flash reads the evidence and judges how relevant it is. <b>Fixed code, not the AI, turns that into a 0 to 100 follow-up score</b> and one recommended action. Only four columns are written back to Supabase, so his notes and contact history can never be touched. He opens the app and sees who to email first, why, with the source link and the exact quote."</p></div>
+
+  <h2>Your 10 minutes</h2>
+  <table>
+    <tr><td style="width:14%"><span class="time">1 min</span></td><td>The pitch above</td></tr>
+    <tr><td><span class="time">3 min</span></td><td><b>Live demo:</b> Home (answer first) → click the top investor (score breakdown + quote + source) → Preview email (Calendly link) → Runs &amp; audit (today's cron, credits, "failed is never quiet") → API reference (Integrations panel)</td></tr>
+    <tr><td><span class="time">1 min</span></td><td>Components Map: follow one investor left to right</td></tr>
+    <tr><td><span class="time">5 min</span></td><td>Questions (pages 4 and 5). If you are short of time, drop to the pitch plus the two sentences on the write boundary.</td></tr>
+  </table>
+
+  <h2>Five sentences to remember</h2>
+  <ol>
+    <li><b>Evidence first:</b> no source link and verbatim quote, no recommendation.</li>
+    <li><b>AI judges, code decides:</b> Gemini gives relevance 0 to 100; score and action are arithmetic in code.</li>
+    <li><b>A refresh can only write four columns:</b> enforced in code, in the database role, and in tests.</li>
+    <li><b>A failed search is never called "quiet":</b> unknown and quiet are different states.</li>
+    <li><b>A run is data, not a request:</b> a durable queue survives serverless time limits and crashes.</li>
+  </ol>
+
+  <h2>Numbers</h2>
+  <div class="grid4">
+    <div class="n"><b>82</b><span>investors: 50 VC firms + 32 angels</span></div>
+    <div class="n"><b>30/30/20/15/5</b><span>recency / relevance / evidence / fit / relationship</span></div>
+    <div class="n"><b>75 · 55 · 40</b><span>reach out now ≥ 75 · prepare 55 to 74 · relevance floor 40</span></div>
+    <div class="n"><b>30 days</b><span>evidence window; undated pages dropped</span></div>
+    <div class="n"><b>4</b><span>columns a refresh may write</span></div>
+    <div class="n"><b>Mon + Thu 09:30 IST</b><span>cron 0 4 * * 1,4 UTC; may start ~1 h late (free plan)</span></div>
+    <div class="n"><b>3 items · 240 s</b><span>per claim · budget inside the 300 s function limit</span></div>
+    <div class="n"><b>900</b><span>search-credit budget a month; skip if checked &lt; 36 h ago</span></div>
+    <div class="n"><b>15</b><span>API routes</span></div>
+    <div class="n"><b>485 + 40</b><span>unit + browser tests, all passing</span></div>
+    <div class="n"><b>9</b><span>database migrations</span></div>
+    <div class="n"><b>95 vs 18</b><span>fresh relevant signal vs fresh irrelevant one (same investor)</span></div>
+  </div>
+
+  <div class="box amber"><b>Before you go in:</b> open <span class="mono">/runs</span> and check that today's 09:30 IST cron ran (the 12 Oct run searched nothing because all 82 were checked within 36 h; today is the first run that really searches). Keep <span class="mono">/api/health</span> open in a tab.</div>
+</div>
+
+<!-- ───────── PAGE 2 ───────── -->
+<div class="page">
+  <h2>The workflow</h2>
+  <div class="flow">
+    <div class="step"><b>1 Trigger</b>Cron Mon+Thu or "Refresh now"</div><div class="arrow">›</div>
+    <div class="step"><b>2 Queue</b>1 run + 1 row per investor</div><div class="arrow">›</div>
+    <div class="step"><b>3 Search</b>Tavily, last 30 days, dated only</div><div class="arrow">›</div>
+    <div class="step"><b>4 Fetch</b>Open page, read its own date</div>
+  </div>
+  <div class="flow alt">
+    <div class="step"><b>5 Validate</b>Names the investor? In window? Duplicate?</div><div class="arrow">›</div>
+    <div class="step"><b>6 Gemini</b>Relevance, type, summary, verbatim quote</div><div class="arrow">›</div>
+    <div class="step"><b>7 Score</b>Fixed rules → 0 to 100 + action</div><div class="arrow">›</div>
+    <div class="step"><b>8 Write</b>One transaction, 4 columns only</div>
+  </div>
+  <ol>
+    <li><b>Trigger.</b> Vercel Cron calls <span class="mono">/api/cron/refresh</span> with a secret. The planner skips investors checked in the last 36 hours and stops at the monthly credit budget.</li>
+    <li><b>Queue.</b> A <span class="mono">runs</span> row plus one <span class="mono">run_items</span> row per investor. Each invocation claims 3 at a time (<span class="mono">FOR UPDATE SKIP LOCKED</span>) for 240 s, then hands the rest to a new invocation. A dead function is reclaimed after 5 minutes.</li>
+    <li><b>Collect and validate.</b> One Tavily search per investor; every page is fetched safely and its date is read from the page itself. Rejected: wrong investor, outside 30 days, profile or directory pages, duplicates.</li>
+    <li><b>Gemini Flash</b> returns structured JSON. Its quoted evidence must appear <b>word for word</b> in the fetched page, or the item is thrown away.</li>
+    <li><b>Score and write.</b> Code computes the score; one database transaction as the restricted role <span class="mono">vc_refresh</span> saves the evidence and updates four columns. A failed item keeps its previous score and is shown as "couldn't check yet", never "quiet".</li>
+    <li><b>Deliver.</b> The web app shows the ranked queue and weekly brief; a daily Telegram message (11:00 IST) summarises it; the founder sends mail from his own app. The app never sends email.</li>
+  </ol>
+
+  <h2>Why this workflow</h2>
+  <table>
+    <tr><th style="width:24%">Choice</th><th>Reason</th><th style="width:26%">Rejected</th></tr>
+    <tr><td><b>Durable queue</b></td><td>82 investors × (search + fetches + AI) is minutes of work; a serverless function can be killed at 300 s. A run stored in the database is resumable and auditable.</td><td>One long request</td></tr>
+    <tr><td><b>AI judges, code scores</b></td><td>Models read text well but are poor at arithmetic and consistency. Fixed rules are explainable, testable and repeatable.</td><td>Model-written scores, dates or links</td></tr>
+    <tr><td><b>Verify the evidence</b></td><td>The quote must be in the page and the date must come from the page, so hallucinated sources cannot count.</td><td>Trusting the model</td></tr>
+    <tr><td><b>Database role for the write boundary</b></td><td>"Never touch notes" is the hardest requirement. A rule the database enforces cannot be broken by a coding mistake.</td><td>Careful code alone</td></tr>
+    <tr><td><b>Mon + Thu, free tiers</b></td><td>Even 3/4-day gaps; free Vercel cron; about 710 searches a month inside the free allowance. Vikram is bootstrapped.</td><td>Daily (costly), weekly (stale)</td></tr>
+    <tr><td><b>Plain pipeline, no agent</b></td><td>Steps are fixed, so a pipeline is cheaper, faster and fully auditable.</td><td>LangChain or an agent</td></tr>
+  </table>
+  <div class="box teal"><b>Scope line:</b> the core is refresh, score, write four columns safely, show the result. Chat, news, startups, cold search, Telegram and mail drafts were added on top; none writes to those four columns or the founder's data.</div>
+</div>
+
+<!-- ───────── PAGE 3 ───────── -->
+<div class="page">
+  <h2>Components Map</h2>
+  <div class="sub">Read left to right: Trigger → Collect → AI → Decision → Store → Output. Blue = inputs, pink = AI, yellow = rules, green = storage, orange = outputs.</div>
+  <img class="map" src="file:///C:/Users/sison/Desktop/coding/vc-pipeline/docs/components-map.png" alt="Components map">
+</div>
+
+<!-- ───────── PAGE 4 ───────── -->
+<div class="page">
+  <h2>APIs and services, and why</h2>
+  <table>
+    <tr><th style="width:15%">Service</th><th style="width:25%">Used for</th><th>Why this one</th></tr>
+    <tr><td><b>Tavily</b></td><td>Find recent pages per investor</td><td>Date filters; drops undated results; 1 credit per search; credit meter keeps it free</td></tr>
+    <tr><td><b>Gemini Flash</b></td><td>Judge evidence, opening line, chat</td><td>Required by the brief; fast, cheap, structured JSON output</td></tr>
+    <tr><td><b>Supabase Postgres</b></td><td>The database</td><td>Required; real roles, grants and row-level security</td></tr>
+    <tr><td><b>Vercel</b></td><td>Hosting, functions, cron</td><td>Push to main deploys; cron built in; free</td></tr>
+    <tr><td><b>RSS feeds</b></td><td>Firm feeds, news page</td><td>Free, dated, no key</td></tr>
+    <tr><td><b>Telegram Bot API</b></td><td>Daily report</td><td>Free, one HTTPS call</td></tr>
+    <tr><td><b>OpenRouter</b> (backup)</td><td>Same Gemini Flash model if Google fails</td><td>Keeps the site alive when the free quota runs out; paid only then</td></tr>
+  </table>
+  <p><b>Not used on purpose:</b> Claude API at runtime (brief says Gemini), Firecrawl/Jina (a page's date and text are enough), Crunchbase, SerpAPI, MCP servers, any paid service. LinkedIn pages are never fetched.</p>
+  <p><b>My 15 routes:</b> public (health, palette, chat) · passcode, off on the open demo (refresh now, save notes, startups) · secret, machines only (cron refresh, cron digest, continue, rescore). The secret never reaches a browser.</p>
+
+  <div class="grid2">
+    <div class="box"><h3 style="margin-top:0">Backend</h3>
+      <ul>
+        <li><b>Next.js 16 route handlers</b> on Vercel, TypeScript, zod validation</li>
+        <li><b>Scoring:</b> recency 30 (full ≤ 3 days, then falls to 20% at day 30) + relevance 30 + evidence 20 + fit 15 + relationship 5. Gate: relevance ÷ 70; floor: 40. Irrelevant article: 72 → 18</li>
+        <li><b>Write boundary:</b> 4-field schema + role <span class="mono">vc_refresh</span> + before/after row tests (verified on the live DB)</li>
+        <li><b>Safe fetcher:</b> blocks internal addresses (SSRF), re-checks redirects, obeys robots.txt</li>
+        <li><b>Audit:</b> every run, source status, rejected candidate and reason is stored</li>
+      </ul>
+    </div>
+    <div class="box"><h3 style="margin-top:0">Frontend</h3>
+      <ul>
+        <li><b>Server components</b> read Postgres directly: no database client or secret in the browser</li>
+        <li><b>Answer first:</b> home leads with who to email this week, each with its evidence</li>
+        <li><b>Honest states:</b> failed, partial and quiet look different</li>
+        <li><b>Tailwind 4, GSAP</b> motion, light/dark, phone widths tested, skip link, reduced motion respected</li>
+        <li><b>Pages:</b> queue, board, brief, pipeline, signals, what-if, news, startups, database, runs, API reference, video</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box"><b>Database:</b> <span class="mono">investors</span> (profile · founder's notes · 4 signal columns) · <span class="mono">signals</span> · <span class="mono">runs / run_items</span> · <span class="mono">source_coverage</span> · <span class="mono">audit_logs</span> · startups tables · locked <span class="mono">investor_directory</span>. RLS on with no public policy, so Supabase's auto API exposes nothing. One connection string (<span class="mono">pg</span> directly, not supabase-js) so roles work and tests run on the real migrations (PGlite).</div>
+
+  <h2 style="margin-top:10pt">Most likely questions</h2>
+  <div class="qa"><div class="q">1. How do you guarantee the founder's notes are never overwritten?</div>Three layers: a strict four-field schema in code, a database role that cannot read or write those columns, and tests that compare the whole row before and after. I verified the role on the live database.</div>
+  <div class="qa"><div class="q">2. Where is the AI used, and where not?</div>AI reads and judges text: involvement, event type, relevance, a summary, opening lines, chat. It never chooses dates, links or the score; those come from page metadata, the search provider and code.</div>
+  <div class="qa"><div class="q">3. How do you stop hallucination?</div>Dates come from the page, links from the search provider, output must be valid structured JSON, and the model's quote must appear word for word in the page I fetched, otherwise it is rejected.</div>
+  <div class="qa"><div class="q">4. How is the score worked out? Why 75 and 55?</div>Recency 30, relevance 30, evidence 20, fit 15, relationship 5; only relevance comes from Gemini. Relevance gates recency and evidence, and under 40 earns nothing. 75 needs a fresh, clearly relevant signal; an adjacent one lands in "prepare outreach". I chose them from a score grid; the first version used 70/50 and was too generous.</div>
+  <div class="qa"><div class="q">5. How do 82 investors fit in a 300-second serverless limit?</div>A run is rows in the database. Each invocation claims 3 investors for 240 s, then hands off to a fresh one. A dead function is reclaimed after 5 minutes; a lost hand-off is resumed by the next trigger. One active run is enforced by a unique index.</div>
+  <div class="qa"><div class="q">6. What does "quiet" mean, versus "failed"?</div>Quiet: every source answered and found nothing relevant in 30 days. Failed or partial: a search did not complete, so activity is unknown. A failed item writes nothing, keeps its old score, and the screen says "couldn't check yet".</div>
+  <div class="qa"><div class="q">7. How do you control cost? Why Monday and Thursday?</div>The planner skips investors checked in 36 hours, searches quiet ones about weekly, and stops at 900 credits a month. The free Vercel cron allows one a day with about an hour of jitter; Mon + Thu gives even 3/4-day gaps and about 710 searches a month.</div>
+  <div class="qa hard"><div class="q">8. The brief says Gemini only. Why is there an OpenRouter backup?</div>It is the same Gemini Flash model through a different door, used only if Google fails (for example the free quota runs out). The product never switches model. It is optional, logged, and removing the key turns it off.</div>
+  <div class="qa"><div class="q">9. Is it secure? Anyone can open the site.</div>It is an open demo by choice so you can try it. Secrets stay on the server, machine routes fail closed without the secret, manual refresh has a cooldown, the chat is rate limited and cannot see notes or contacts. A real deployment would add sign-in.</div>
+  <div class="qa"><div class="q">10. You hold thousands of private contacts. Are they exposed?</div>No. They sit in a locked table (row-level security, no grants). The app shows counts and an organisation-level search only; a test fails if any name, email or phone ever appears in a result, and another that nothing in the app writes to that table.</div>
+  <div class="qa"><div class="q">11. Does the app send emails? Did you consider an agent or MCP?</div>It never sends: it builds a draft with the pitch and Calendly link and opens it in the founder's own mail app. I left out agents and MCP on purpose; a fixed pipeline is easier to test and audit, and an MCP server would be a second way into the data.</div>
+  <div class="qa"><div class="q">12. What is the weakest part?</div>Recall: one search per investor, no crawl of every firm's site. I am honest about it: coverage gaps are shown and "no signal" is only claimed when every source answered. Next: per-firm feeds or sitemaps, and recalibrating the weights from real outcomes.</div>
+  <div class="qa hard"><div class="q">13. What is not finished or not verified?</div>The first scheduled run that actually searches is today at 09:30 IST; earlier runs prove the pipeline end to end (82/82, no errors). Telegram is connected and tested. The weights are reasoned from the brief, not yet calibrated on outcomes.</div>
+  <div class="qa"><div class="q">14. How would it scale to 5,000 investors?</div>The queue already splits work into small claims, so it scales sideways. Cost grows with searches and AI calls, so I would move to paid tiers, prioritise by score, and search quiet investors less often.</div>
+</div>
+
+</body>
+</html>
