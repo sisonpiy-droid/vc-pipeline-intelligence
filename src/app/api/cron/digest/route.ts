@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { buildDigest, sendTelegram } from "@/lib/digest";
 import { today } from "@/lib/page";
 import { listPipeline } from "@/lib/read";
+import { handoffBase } from "@/lib/refresh/service";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!token || !chatId) return NextResponse.json({ sent: false, reason: "telegram_not_configured" });
   try {
     const rows = await listPipeline(getDb(), today(), false);
-    const r = await sendTelegram(buildDigest(rows, today(), req.nextUrl.origin), token, chatId);
+    const r = await sendTelegram(buildDigest(rows, today(), handoffBase(req.nextUrl.origin)), token, chatId);
     return NextResponse.json({ sent: r.ok, status: r.status }, { status: r.ok ? 200 : 502 });
   } catch (e) {
     console.error("[digest failed]", e instanceof Error ? e.message.replace(token, "***").slice(0, 200) : "unknown");
